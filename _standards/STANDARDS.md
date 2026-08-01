@@ -550,17 +550,22 @@ One rule, applied everywhere:
   and `add_options_page()` would file a report under Settings with no settings
   on it.
 
-> **wp-sweep stays top-level, and Tools stays read-only.** Moving wp-sweep to
-> `add_management_page()` was tried on 2026-07-30 and reverted at Lester's call.
-> It is on the record because the argument for it is a good one and will come up
-> again: sweeping is maintenance against the installation, which is what core
-> puts under Tools. What sank it is the second screen. Tools has no submenus, so
-> the settings have to become a tab of the sweep page — and that is the only
-> place in these nineteen plugins where a data screen and a settings screen would
-> share one page, against a rule whose whole point is that Settings is always the
-> last submenu of the plugin's own menu. One plugin shaped differently from the
-> other eighteen costs more than the menu placement is worth. Do not re-litigate
-> without deciding the tab question first.
+> **wp-sweep is under Tools, and this paragraph used to say the opposite.** The
+> move to `add_management_page()` was tried on 2026-07-30 and reverted; the note
+> recording that ended "do not re-litigate without deciding the tab question
+> first", and by the time anyone looked again the tab question *had* been decided
+> (§4.2.1) and the code had moved. Both halves of the old objection are gone:
+> **wp-sweep has no settings screen at all** — no `register_setting()`, no
+> sections — so the "where do the settings go" problem it described never
+> existed, and a plugin with one screen and no second one to put under it does
+> not earn a top-level menu by this section's own rule. Sweeping is maintenance
+> against the installation, which is what core puts under Tools.
+>
+> The lesson is not about wp-sweep. **A decision recorded with a condition
+> attached goes stale the moment the condition is met, and nobody notices,
+> because the note still reads as settled.** This one disagreed with the shipped
+> code for an unknown length of time. When a rule here is written as "not until
+> X", come back and close it when X happens.
 * **The menu title is the plugin's name, exactly as the plugin header spells
   it.** `WP-Polls`, not `Polls` or `Manage Polls`; `WP-DBManager`, not
   `Database`; `WP-EMail`, not `E-Mail`. This is the second argument to
