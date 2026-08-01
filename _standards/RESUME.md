@@ -647,3 +647,37 @@ that is the suites working, not wasted effort.
   two suites still need fixing.
 * `test-metadata.php` exists in four implementations, and its `$skip` array in
   five variants. Task #14.
+
+### Bugs the E2E suites found (tasks #21, #22)
+
+**Two stored XSS**, both invisible to PHPUnit and both exactly what
+STANDARDS 7.2.4 exists to catch:
+
+* **wp-postviews `%POST_TITLE%`** — `WP_PostViews_Query::render_item()`
+  (`includes/class-wp-postviews-query.php:89-104`) escapes the title only as a
+  *side effect of truncation*: `snippet_text()` runs when `$chars > 0`, and the
+  default is 0. So the default path has no escaping at all, and the raw title
+  lands in the default template's `title="…"` attribute. Escape
+  unconditionally; do not make truncation mandatory.
+* **wp-useronline `[page_useronline]`** — the admin screen and the AJAX
+  endpoint each wrap `users_online_page()` in `wp_kses_post()`; the shortcode
+  registration (`includes/class-wp-useronline.php:86`) passes the function
+  directly and gets it raw. Fix at the source: three call sites each deciding
+  escaping separately is the defect, and a third wrapper would just be a fourth
+  place to forget.
+
+**Three more**: wp-postviews counts a preview when the AJAX counter is used
+(`is_preview()` guards `process()` but not `enqueue()` — two places deciding one
+fact again); wp-useronline's settings screen never calls `settings_errors()` so
+it saves silently, the same bug E2E found in wp-postratings; and wp-sweep writes
+`<p><ol>…</ol></p>`, which the parser splits, so only the no-JavaScript details
+list is broken.
+
+All five are left as **failing tests**, not weakened. Fix the code, not the test.
+
+### E2E suite state after the third agent
+
+wp-postviews 96/99 (3 failures are bugs 1 and 2 above), wp-useronline 68/75
+(2 real bugs; 5 test-side fixes applied but **never re-run**), wp-stats reached
+46/94 and wp-sweep 26/70 before the environment was torn down. Four agents
+sharing one Docker daemon is too many — run these one at a time.
