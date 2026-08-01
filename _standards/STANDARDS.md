@@ -535,10 +535,13 @@ One rule, applied everywhere:
   a `WP_List_Table` appears anywhere.
 * A plugin with **data-management screens** (list tables, add/edit forms, logs)
   gets **one top-level menu** (`add_menu_page()`, slug `{{SLUG}}`) whose first
-  submenu is the data screen and whose last submenu is `Settings`.
+  submenu is the data screen and whose last submenu is `Settings`. **Only where
+  there are more screens than a tab strip can carry** — with exactly two, the
+  menu holds one tabbed page instead and there are no submenus at all (§4.2.1).
 * A plugin whose screen is a **read-only report** — no settings form, no list
   table, no add/edit — gets a top-level menu **only if it has a second screen to
-  put under it.** wp-stats does (report, then Settings), and had been split
+  put under it.** wp-stats does (report, then Settings, now the two tabs of one
+  page — §4.2.1), and had been split
   between a Dashboard widget and a Settings page, which is the scattering this
   rule exists to stop. wp-serverinfo does not: it is five read-only tables and
   nothing else, so it uses `add_management_page()` under **Tools**, where core
@@ -651,7 +654,44 @@ Every settings screen is built from:
   there.
 * `add_settings_error()` for every message. No hand-rolled `<div class="updated">`.
 
-### 4.2.1 Tabs — `Settings` and `Templates`, and templates always get their own
+### 4.2.1 Tabs — when a screen becomes a tab, and what the tabs are called
+
+**A plugin with exactly two screens is one page with tabs, not two submenus.**
+It keeps its top-level menu; what goes away is the submenu list. The data screen
+is the first tab and `Settings` is the last:
+
+| Plugin | Tabs |
+|---|---|
+| wp-stats | `Statistics` / `Settings` |
+| wp-useronline | `Users Online` / `Settings` / `Templates` |
+| wp-ban | `Stats` / `Settings` / `Templates` |
+
+**Flat, never nested.** wp-useronline has a data screen, settings and templates,
+and that is one strip of three tabs — not a Settings tab containing its own
+Settings/Templates strip. Two tab rows on one page is worse than the sprawl
+either was meant to fix.
+
+A plugin with **real data management** — a list table with add and edit screens,
+a log — keeps submenus: wp-polls, wp-postratings, wp-downloadmanager and
+wp-email all have more screens than a tab strip can carry, and their Settings
+screen is itself tabbed. The dividing line is the number of screens, not their
+kind.
+
+**Two things break when a screen becomes a tab, and both are worse than the
+layout.**
+
+*Capabilities.* If the two screens are gated differently — wp-useronline has a
+`wp_useronline_capability` filter with a per-screen context — the **page** takes
+the lower capability and **each tab then checks its own**. Skip the second half
+and filtering the report down to `list_users` silently opens the settings form
+to the same role. That is privilege escalation dressed as a layout change.
+
+*Forms.* A data screen must not post to `options.php`. A list table brings its
+own bulk-action form and its own nonce, and `WP_List_Table::display_tablenav()`
+emits a `_wpnonce` for `bulk-{$plural}` that overrides any `wp_nonce_field()` in
+the same form — see wp-ban's `STATS_NONCE`.
+
+### 4.2.2 Tabs — `Settings` and `Templates`, and templates always get their own
 
 **A plugin that has a template puts it on a tab of its own.** Templates are long
 text fields with a list of permitted variables under each; left inline they bury
