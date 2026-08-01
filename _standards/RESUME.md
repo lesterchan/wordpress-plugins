@@ -681,3 +681,65 @@ wp-postviews 96/99 (3 failures are bugs 1 and 2 above), wp-useronline 68/75
 (2 real bugs; 5 test-side fixes applied but **never re-run**), wp-stats reached
 46/94 and wp-sweep 26/70 before the environment was torn down. Four agents
 sharing one Docker daemon is too many — run these one at a time.
+
+---
+
+## PICK UP HERE (2026-08-01, third session)
+
+### Release blocker, found by the metadata unification
+
+**wp-polls deletes the shared `stats_display` row on uninstall.** `LEGACY_STATS_DISPLAY`
+(`includes/class-wp-polls-options.php:73`) is on `legacy_extra_rows()`, which
+`WP_Polls_Install::option_names()` merges and `uninstall_site()` deletes. So
+removing WP-Polls takes the row from the other six WP-Stats plugins — the §13.2
+hazard, in the release about to ship. The other five siblings keep the shared
+rows off their uninstall lists deliberately; wp-postratings documents why at
+`includes/class-wp-postratings-options.php:73-89`.
+
+Fixing it is a **two-file change**: wp-polls' own
+`tests/test-uninstall.php::test_every_row_the_plugin_owns_is_on_the_uninstall_list`
+currently *requires* the row to be listed, so it must move too.
+
+**wp-useronline has the same hazard one step earlier**: `delete_option( 'stats_display' )`
+at `includes/class-wp-useronline-options.php:381` sits in `maybe_migrate()`, not
+the uninstaller. Its uninstall list is clean, so no test catches it — the new
+family test covers uninstall only.
+
+### Other findings, none fixed
+
+* **wp-polls and wp-stats do not carry** "Update all seven WP-Stats plugins
+  together"; the other five do. Two family tests fail them. Left failing.
+* **freemyinternet** ships no "or later" GPL block (`freemyinternet.php:22-24`)
+  under a `License: GPLv2 or later` header, and its Upgrade Notice never names
+  the removed global `freemyinternet()`. Its changelog also still says
+  "Minimum WordPress 6.0 and PHP 7.4", contradicting its own BREAKING line.
+* **wp-relativedate, wp-serverinfo and wp-showhide** Upgrade Notices claim "the
+  plugin now stores one row"; §2.1 and the code say they store nothing.
+* **wp-serverinfo's** Upgrade Notice says "up from WordPress 4.0 and PHP 7.2",
+  which §14.1 calls out by name.
+
+### #14 state
+
+`_standards/templates/helper-metadata-testcase.php` is the shared base: 23
+tests, `abstract class Plugin_Metadata_TestCase extends Plugin_TestCase`, wired
+per plugin by two lines in `tests/bootstrap.php` (`class_alias` + require). 18 of
+19 plugins carry a byte-identical copy; verify with `md5 -q` across all of them
+before trusting any of it.
+
+Three defects were found **in the template itself** after it shipped to the
+copies, which is the argument for the md5 check being part of the workflow:
+`test_the_plugin_root_holds_no_loose_files()` compared a hand-written list
+against `glob()` output, so it asserted the slug sorts after `uninstall.php` —
+true of every `wp-*` plugin and false of freemyinternet; and two phpcs errors
+that fired in all 19 copies at once. All three are fixed and re-synced.
+
+### Overnight-safe work
+
+**#11 (the E2E sweep)** is the one to run unattended: ~808 tests, ~138 ever
+verified, 19 plugins at 10-25 minutes each, and it MUST be one plugin at a time
+— four concurrent Playwright runs tore each other down on a 7.6 GiB Docker.
+**#13 (CLAUDE.md)** can run alongside it because it needs no containers.
+
+Not overnight: **#8** and **#16** compete for the same Docker; **#5** is
+judgement work; **#7** goes near SVN; **#10** touches upgrade paths on plugins
+about to ship.
