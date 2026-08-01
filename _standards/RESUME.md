@@ -782,3 +782,56 @@ template's own docblock warns about. Route every such include through
 The brief I wrote said wp-sweep's uninstaller drops tables. It does not — it
 deletes two option rows. Only wp-draftsforfriends and wp-downloadmanager have
 schema-touching uninstallers.
+
+---
+
+## E2E SWEEP RESULT (2026-08-02) — 826/867
+
+First full run of all nineteen suites. Nine green: the seven that already were,
+plus **wp-postviews (98/98)** and **wp-ban (58/58)** on test fixes alone.
+39 test defects fixed (all in `tests/e2e/`), **15 distinct plugin bugs left
+standing**. Full report:
+`scratchpad/e2e-sweep-report.md` in this session's tmp directory — copy it
+somewhere durable before it is cleaned up.
+
+### Two release blockers, same shape
+
+**wp-print** and **wp-pluginsused** 3.0.0/2.0.0 migrations discard the settings
+of the commonest released install and then stamp themselves complete, so the
+loss is irreversible. Both are correct under WP-CLI and broken in a browser,
+because on an admin request `register_setting()` has already attached a
+sanitize callback or a default filter that changes what the migration reads.
+wp-print's was reproduced outside Playwright.
+
+This is the third variant of one root cause. The first was wp-print's own
+ordering bug (migration read a row its earlier steps had emptied); the second
+wp-postviews needing retired keys dropped in both `Settings::sanitize()` and
+`Options::save()` because `maybe_upgrade()` runs on `init` and
+`register_setting()` on `admin_init`. **Any migration test that only runs under
+WP-CLI is testing the easy path.** §7.6 should say so.
+
+### The single biggest failure, and why unit tests missed it
+
+24 of the 41 failures are one bug: wp-sweep's `messageContainer()` walks
+previous siblings of `.table-sweep`, but the table is inside the `<form>` and
+`.sweep-message` is outside it, so **no sweep ever reports its result**. The
+sweeps themselves work.
+
+Its vitest suite passes because the fixture at `tests/js/helpers.js:146-147`
+builds a DOM the plugin never renders. A unit test that constructs its own
+fixture tests the fixture.
+
+### Also
+
+* **wp-stats never unslashes `stats_author`**, so any commenter with an
+  apostrophe gets an empty drill-down — "Sinead O'Brien" suffices. The docblock
+  directly above the line asserts the opposite.
+* **wp-downloadmanager renders `%FILE_NAME%` raw** in two of five paths while
+  three `wp_kses()` it. Mitigated by `wp_kses_post()` on write, so reaching it
+  needs a direct database write. Rate it yourself.
+
+### Still open from before
+
+wp-polls and wp-downloadmanager delete the shared `stats_display` row on
+uninstall (§13.2). wp-polls' fix is a two-file change — its own
+`tests/test-uninstall.php` requires the row to be listed.
