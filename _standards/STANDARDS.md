@@ -684,10 +684,21 @@ is the first tab and `Settings` is the last:
 **Every section is named for what its fields do — except the one that is alone
 on its tab.** There the tab label is already the heading, and a section
 repeating it says the same word twice in a row. Three habits to avoid, all of
-which had taken hold: repeating the plugin name the `<h1>` already carries
-(`E-Mail Link`, `Poll Bar Style`), suffixing `Options` onto a page that is
-already Settings (`Download Options`, `WP-Stats Options`), and naming a section
-after the tab above it (`E-Mail Templates`, on the Templates tab).
+which had taken hold: suffixing `Options` onto a page that is already Settings
+(`Download Options`, `WP-Stats Options`), naming a section after the tab
+directly above it (`E-Mail Templates`, on the Templates tab), and repeating a
+word the surrounding context already supplies.
+
+That last one needs stating carefully, because the obvious phrasing — "drop the
+plugin name" — is wrong and leads somewhere silly. `E-Mail Link` and
+`Print Link` really did repeat the plugin's name. But wp-polls' sections said
+`Poll`, which is the domain's noun rather than the plugin's name, and under an
+`<h1>` reading `Poll Settings` it was the *heading* that made it redundant, not
+the plugin. **The test is whether the word is doing work where it stands.**
+`Sorting Of Poll Answers` became `Answer Order` and `Poll Archive` became
+`Archive`, because the heading already said which archive. `Current Active Poll`
+became `Current Poll` and kept the word, because `Current` on its own names
+nothing. Strip by that test, not by matching the plugin's name.
 
 `General` is a legitimate name for a genuine grab-bag — wp-useronline's timeout,
 URL and link-names sit together under nothing more specific — but reach for it
