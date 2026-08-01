@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<phpunit
+	bootstrap="tests/bootstrap.php"
+	backupGlobals="false"
+	colors="true"
+	convertErrorsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertWarningsToExceptions="true"
+	convertDeprecationsToExceptions="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	failOnWarning="true"
+	failOnRisky="true"
+	>
+	<testsuites>
+		<!--
+			Discovery is by the test- prefix, so helper-*.php, bootstrap.php and
+			index.php need no <exclude> entries. Adding a helper never means
+			editing this file.
+		-->
+		<testsuite name="{{SLUG}}">
+			<directory prefix="test-" suffix=".php">./tests/</directory>
+		</testsuite>
+	</testsuites>
+	<coverage>
+		<include>
+			<directory suffix=".php">./includes</directory>
+			<file>./{{SLUG}}.php</file>
+			<file>./uninstall.php</file>
+		</include>
+	</coverage>
+</phpunit>

@@ -1,0 +1,55 @@
+# The nineteen plugins are not part of this repository.
+#
+# Each one is its own repository, released to wordpress.org on its own schedule
+# and cloned into this folder side by side. What lives here is the shared
+# tooling that sits above them: the standard they are all held to, the checker
+# that enforces it, and the wp-env harness that runs all nineteen together.
+#
+# They are listed by name rather than caught by a pattern. A pattern would also
+# swallow _standards/ and bin/, and a bare directory left untracked by accident
+# is exactly the kind of thing this collection has spent a long time removing.
+/freemyinternet/
+/wp-ban/
+/wp-commentnavi/
+/wp-dbmanager/
+/wp-downloadmanager/
+/wp-draftsforfriends/
+/wp-email/
+/wp-pagenavi/
+/wp-pluginsused/
+/wp-polls/
+/wp-postratings/
+/wp-postviews/
+/wp-print/
+/wp-relativedate/
+/wp-serverinfo/
+/wp-showhide/
+/wp-stats/
+/wp-sweep/
+/wp-useronline/
+
+# Dependencies, fetched rather than written.
+node_modules/
+vendor/
+
+# Playwright traces and screenshots from a failing run, and the logged-in
+# session it stores. Recreated on demand; never worth keeping.
+artifacts/
+
+# Local wp-env overrides: ports and PHP versions somebody has changed for their
+# own machine, which must not be pushed onto everybody else's.
+.wp-env.override.json
+
+# Byproducts.
+__pycache__/
+*.pyc
+.phpunit.result.cache
+
+# Run logs from the all-plugins sweeps. Hundreds of kilobytes of container
+# chatter describing one afternoon, and stale the moment the next run happens.
+# Excluded here rather than left to a personal global gitignore, so the decision
+# travels with the repository.
+*.log
+
+# macOS.
+.DS_Store
