@@ -681,6 +681,22 @@ is the first tab and `Settings` is the last:
 | wp-useronline | `Users Online` / `Settings` / `Templates` |
 | wp-ban | `Stats` / `Settings` / `Templates` |
 
+**Every section is named for what its fields do — except the one that is alone
+on its tab.** There the tab label is already the heading, and a section
+repeating it says the same word twice in a row. Three habits to avoid, all of
+which had taken hold: repeating the plugin name the `<h1>` already carries
+(`E-Mail Link`, `Poll Bar Style`), suffixing `Options` onto a page that is
+already Settings (`Download Options`, `WP-Stats Options`), and naming a section
+after the tab above it (`E-Mail Templates`, on the Templates tab).
+
+`General` is a legitimate name for a genuine grab-bag — wp-useronline's timeout,
+URL and link-names sit together under nothing more specific — but reach for it
+last. `Appearance` belongs to sections that govern how something *looks*
+(wp-postratings' shapes and colours, wp-polls' bar), and not to sections holding
+markup or behaviour: wp-email's and wp-print's link sections carry a link type
+and a template, so they are `Link`. Forcing one word onto sections that do
+different jobs moves the inaccuracy somewhere harder to see.
+
 **Flat, never nested.** wp-useronline has a data screen, settings and templates,
 and that is one strip of three tabs — not a Settings tab containing its own
 Settings/Templates strip. Two tab rows on one page is worse than the sprawl
