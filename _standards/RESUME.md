@@ -20,7 +20,7 @@ differences between two plugins are name, features and capability.
 | Renamed hooks that were public in the last SVN release | **Dropped outright.** No `apply_filters_deprecated()` shims. Every one documented under `## Upgrade Notice`. |
 | Versioning | Fold this work into the existing unreleased major — **except** wp-dbmanager and wp-useronline, see §14. |
 | TinyMCE (wp-downloadmanager, wp-polls) | Classic Editor buttons stay; rewrite `plugin.js` vanilla. |
-| Root of this folder | Left untracked. Not a git repo. |
+| Root of this folder | **Tracked since 2026-08-01**: `github.com/lesterchan/wordpress-plugins`, branch `main`, holding `_standards/`, `bin/`, `.wp-env.json` only. The 19 plugin directories are gitignored by name — each is its own repo on `master`. |
 | Commit signing | **None.** Use `git commit --no-gpg-sign`, despite the global `commit.gpgsign = true`. Existing history is unsigned and stays that way. |
 | Supported floors | **WordPress 6.8, PHP 8.2** — raised from 6.0 / 7.4 on 2026-07-28, *after* the agents ran. See §1.1. |
 | Version markers | Own row `{{UNDER}}_version` = `array( 'plugin' => …, 'db' => … )`, **never** inside the settings array. See §2.1 for why. |
@@ -369,68 +369,142 @@ without trusting any of these notes.
 
 ---
 
-## PICK UP HERE (2026-07-31, late)
+## PICK UP HERE (2026-08-01)
 
-Lester is refining **wp-postratings** by hand in the browser, the way wp-sweep
-was refined. Everything below came out of that and is committed and green; the
-open items are at the bottom.
+Everything below is committed. All 19 plugin repos are pushed **except five**
+held back pending an E2E verification run — see "Held pushes" at the end.
 
-### Done today, wp-postratings
+### The root folder is now a git repository
 
-* `image` renamed to `shape` throughout, with a migration fold for beta rows.
-  Public filters (`wp_postratings_ratings_images`, `_vote`, `_image_alt`) keep
-  their names -- they shipped.
-* Scale capped at 10, filterable via `wp_postratings_max_scale`.
-* Rich snippets: **verified against Google's docs** that Article/BlogPosting/
-  NewsArticle are not eligible for a review snippet, so the old
-  `schema.org/Article` + aggregateRating produced nothing. Two toggles collapsed
-  into one type chooser over the supported types, **defaulting to No**.
-* Menu opens on **Settings**, second entry renamed **Logs**. Same applied to
-  **wp-email**. §4.1 records the rule: Settings last, *unless* the other screen
-  is a log.
-* Shape picker one per line; per-rating colour column; the rating table follows
-  the shape and scale with no Rebuild button; "While A Vote Is In Flight"
-  section retired (always `aria-busy`, no loading text).
+`github.com/lesterchan/wordpress-plugins`, private, branch **`main`** (not
+`master` — the plugins use `master`, this one does not). It tracks the shared
+tooling only: `_standards/`, `bin/`, `.wp-env.json`, `.gitignore`. The 19 plugin
+directories are ignored **by name**, because a pattern would also swallow
+`_standards/` and `bin/`.
 
-### OPEN: Lester's feedback on the per-rating colour column
+The line in "Decisions already made" saying the root is left untracked is now
+out of date. It is tracked; the plugins inside it are not.
 
-Four points, none started. The first needs a decision before coding:
+### Playwright E2E — 6 of 19 done
 
-1. **"We need both Not rated and rated colors."** Ambiguous, and it changes the
-   design. Either (a) the per-rating row gains a second swatch so each step sets
-   its own rated *and* not-rated colour, or (b) the two site-wide settings simply
-   have to stay alongside the per-rating column. **Ask before building.**
-2. **"Clicking on it does nothing."** The swatch is `disabled` while its Default
-   box is ticked, which reads as broken. Drop the per-row checkbox.
-3. **"An overall reset to default button in the table"** -- one control instead
-   of the per-row checkboxes, which also solves 2: leave every swatch enabled and
-   pre-filled, and let the button clear them all back to the site-wide colour.
-4. **No left padding** on the first column under `Rating Text / Value:`.
+Suites exist for **wp-postratings (52 tests), wp-pagenavi (13), wp-commentnavi
+(13), wp-showhide (10), wp-relativedate (10), wp-serverinfo (10)**. All green
+locally, and 5 of the 6 green on GitHub Actions first time (the sixth failed on
+a test bug, since fixed — see below).
 
-### Also open
+Scaffolding is in `_standards/templates/`: `playwright.config.js` (reads
+`testsPort` from `.wp-env.json`, so the port lives in one place),
+`bin/test-e2e.sh`, `tests/e2e/global-setup.js`, `tests/e2e/index.php`, the
+`package.json` entries and the `ci.yml` `e2e:` job.
 
-* **wp-polls logs**: leave as a sub-view. They are per-poll, so the entry point
-  is the poll -- unlike wp-postratings and wp-email, whose logs are one global
-  ledger and earn a menu entry. The one genuinely misplaced control is "Delete
-  All Logs", which is cross-poll but sits inside a per-poll screen.
-* **18 plugins unpushed.** Only wp-sweep has been through CI and it is 6 commits
-  past that run. Push wp-sweep first as the canary, then the rest.
+**Remaining 13:** freemyinternet, wp-ban, wp-dbmanager, wp-downloadmanager,
+wp-draftsforfriends, wp-email, wp-pluginsused, wp-polls, wp-postviews, wp-print,
+wp-stats, wp-sweep, wp-useronline.
 
-### Bugs found by using it, all fixed
+### E2E lessons that will recur — read before writing the next suite
 
-The pattern worth remembering: **every one of these had passing tests.**
+* **`bin/test-e2e.sh` is the only entry point.** wp-env installs a plugin into
+  the tests environment but activates neither it nor any theme; PHPUnit needs
+  neither, because its bootstrap loads the plugin itself and never renders a
+  page. A browser gets no plugin, no menu, and a front page returning 200 with
+  an empty body. The script fixes both on every run, which also makes it
+  self-healing after `bin/test.sh` reinstalls that database underneath it.
+* **A plugin that renders only under some condition needs that condition
+  created *and* a test asserting the fixture itself**, or the suite is vacuous.
+  Both pagination plugins have a "the fixture really is more than one page"
+  test for exactly this.
+* **Template-tag plugins need a theme shim** — a mu-plugin under
+  `tests/e2e/mu-plugins`, mapped by `env.tests.mappings` in `.wp-env.json`, and
+  **guarded on `PHP_SAPI === 'cli'`** because PHPUnit shares that environment. A
+  fixture forcing comment paging on made a unit test fail while the plugin was
+  behaving perfectly.
+* **Fixtures created in parallel tie on timestamp** and sort unpredictably.
+  Create sequentially with explicit dates where order matters.
+* **The tests site uses plain permalinks**, so `/page/2/` is not a pagination
+  URL — WordPress serves page one and the navigation truthfully says "Page 1 of
+  3". Navigate by clicking.
+* **`page_comments`, `comments_per_page`, `default_comments_page` are not in
+  core's REST settings allowlist.** `requestUtils.updateSiteSettings()` accepts
+  them and silently changes nothing. Set them from the fixture. `posts_per_page`
+  *is* in the allowlist.
+* **Assert on the plugin's own accessible labels, not the text beside them.**
+  That text is a template a site can replace; a test reading it is really
+  asserting nobody opened the Templates tab.
+* **Five per page**, not the WordPress default of ten, in both the suites and
+  the demo seeder — more pages for the same fixture, and pages are the only
+  thing a pagination plugin is about.
 
-* Duplicate `_wpnonce` in a bulk form -- core's list table emits its own, and a
-  second one under the same name replaces rather than adds, so PHP keeps the
-  last. Bulk actions failed with "The link you followed has expired" in
-  **wp-sweep**, **wp-downloadmanager** and **wp-draftsforfriends**. The tests
-  passed because they built the nonce themselves instead of reading the one the
-  form emits. wp-downloadmanager was worse still: `method="get"` form, handler
-  reading `$_POST`, so bulk delete did nothing at all.
-* **Hardcoded admin hook suffix.** Renaming wp-postratings' menu changed the
-  suffix, `screen_hooks()` had `'ratings_page_'` written out, and the stylesheet
-  stopped enqueueing -- every shape is a CSS mask, so the picker went blank.
-  §4.1 now requires deriving it and `verify.py` fails on a hardcoded one.
+### Demo site: `bin/seed-demo.sh`
+
+Fills the root harness at **http://localhost:8888** (admin / password) with the
+same fixtures the suites use. `bin/seed-demo.sh [posts] [comments]`, default
+200/100. Re-runnable: it clears only what it made (marked with a `_demo_fixture`
+meta key). Sets pretty permalinks and comment paging, activates all 19 plugins
+and Twenty Twenty-One, and maps `_standards/demo/mu-plugins` as a theme shim so
+WP-PageNavi and WP-CommentNavi render at all.
+
+### wp-polls, brought in line with wp-postratings
+
+* "Poll Logging Method" → **"Check For Repeat Votes"**, key `logging_method` →
+  `check_method`. **Every vote is now logged whatever the check says**;
+  `wp_polls_log_vote` turns it off. Stored numbers unchanged.
+* "Expiry Time For Cookie And Log" → **"Remember A Voter For"**. Its old hint
+  said "0 to disable", which was the opposite of the truth: zero makes the block
+  *permanent*. Nothing is deleted either — it only sets how far back a check
+  looks.
+* **"Polls AJAX Style" removed.** Loading indicator always shows; the fade now
+  reads `prefers-reduced-motion` — which must be read in the *script*, because
+  the transition is inline and an inline style beats a media query.
+* `setcookie()` guarded by `headers_sent()`, as wp-postratings'.
+* **CSS fix:** `.wp-polls input { display: inline; border: 0 }` broke every theme
+  that draws its own radio. With `appearance: none` an input is a non-replaced
+  inline box, so width/height do not apply — Twenty Twenty-One's 25px circles
+  rendered as 6px slivers. The reset is gone; the label half stays.
+
+### The CI lesson worth not repeating
+
+First CI run after the E2E suites landed: **8 of 19 red, and PHPCS plus all 114
+PHPUnit jobs were green.** Every failure was one rule read two wrong ways.
+
+"A plugin with no `js/` drops the eslint job" let **five repos ship e2e specs
+that nothing had ever linted** (their `package.json` had no `lint:js`), and left
+**three repos with no JavaScript at all** carrying a job that died at
+`actions/setup-node` for want of a lock file. §8 now says "no `js/` **and** no
+`tests/e2e/`", `verify.py` enforces it, and the workflow runs
+`npm run test:js --if-present`.
+
+### Held pushes — do this first
+
+Five repos are committed but **not pushed**, pending a background agent
+verifying their suites still pass after `eslint --fix` rewrote the specs:
+**wp-commentnavi, wp-pagenavi, wp-relativedate, wp-serverinfo, wp-showhide**.
+Confirm each is green, then `git push origin master` in each.
+
+wp-relativedate carries the one real CI test bug, now fixed: its "yesterday"
+fixture was `Date.now() - 26 hours`, which lands **two** calendar days back when
+the suite runs between midnight and 02:00 — CI ran at 01:44 UTC and the plugin
+correctly said "2 days ago". It now uses a `daysAgo()` helper pinned to midday.
+**A time-relative fixture asserting a calendar concept is a bug waiting for the
+clock.**
+
+### Open, not started
+
+* **The capability tests in both navigation suites assert nothing.** "A user
+  without manage_options cannot reach the screen" **passes with the plugin
+  deactivated**, because the page does not exist — it cannot tell "capability
+  works" from "page missing". Add a companion assertion that an admin *can*
+  reach the same screen.
+* **`test-metadata.php` exists in four different implementations** across the
+  collection (iterator-prune, strpos, scandir skip-list, hardcoded directory
+  list). Excluding `artifacts/` therefore took four different edits, and the
+  hardcoded-list variant silently passes for any directory nobody added to it.
+  Pick the iterator form, put it in `_standards/templates`, use it everywhere.
+* **Only wp-sweep has a CLAUDE.md.** The other 18 have none, so every
+  architectural decision that file records is unwritten elsewhere.
+* **wp-polls logs**: leave as a sub-view (per-poll, so the poll is the entry
+  point). The one misplaced control is "Delete All Logs", which is cross-poll
+  but sits inside a per-poll screen.
+
 
 ## Remaining work, in order
 
