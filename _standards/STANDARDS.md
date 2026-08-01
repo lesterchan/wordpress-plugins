@@ -506,6 +506,17 @@ headings are free — `## Changelog` necessarily contains `### 2.0.0`, and
   Today 17 plugins carry it in three variants: 10 exactly as above, 5 with a
   stray `* ` bullet prefix, and 2 with "as my school allowance" — drop that
   clause. freemyinternet and wp-relativedate removed it and must get it back.
+* **`## Upgrade Notice` is not project history.** It answers two questions and
+  only those: what will break for the reader, and what they must do about it.
+  wp-useronline opened with a paragraph explaining why the release was numbered
+  4.0.0 rather than 3.0.1 — true, and of no use whatsoever to somebody deciding
+  whether to press update. Reasoning about version numbering, what a previous
+  changelog claimed, and why a decision was taken belong in the commit message
+  or the changelog. The same test kills the padding removed in the same pass:
+  "a major release", "five things are worth knowing before you update", and the
+  paragraph explaining that WordPress will not offer the update on an old stack,
+  which describes WordPress rather than the plugin. If a sentence would not
+  change what the reader does, cut it.
 * **Every breaking change goes under `## Upgrade Notice`**, keyed by version,
   written for a site owner not a developer. `## Changelog` keeps the full list
   including the `IMPORTANT:`/`BREAKING:` lines, but Upgrade Notice is where the
