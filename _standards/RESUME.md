@@ -743,3 +743,39 @@ verified, 19 plugins at 10-25 minutes each, and it MUST be one plugin at a time
 Not overnight: **#8** and **#16** compete for the same Docker; **#5** is
 judgement work; **#7** goes near SVN; **#10** touches upgrade paths on plugins
 about to ship.
+
+### #14 finished, and it found a THIRD shared-row violation
+
+All 19 plugins now carry a byte-identical copy
+(`md5 baa236eac7b3baba83e68eaa7bf2448e`) and extend the shared base.
+
+**wp-downloadmanager deletes BOTH shared WP-Stats rows on uninstall.**
+`stats_mostlimit` is in `legacy_map()` (`includes/class-wp-downloadmanager-options.php:74`)
+and `stats_display` in `legacy_structured_rows()` (`:96`), and
+`uninstall.php:32-40` drives uninstall from both lists. §13.2 says the
+migration deletes the shared rows and uninstall leaves them alone; here one
+list does both jobs.
+
+So three of the seven WP-Stats plugins mishandle the shared rows: **wp-polls**
+and **wp-downloadmanager** on uninstall, **wp-useronline** in its migration.
+Each was invisible from inside its own plugin.
+
+### Four checks that belong in the template but are not in it
+
+Kept in individual plugins because nothing else covers them; lifting them in
+would let six plugins drop their copies:
+tags count, the Donations paragraph wording and position, the GPL "or later"
+block in the plugin file (`bin/verify.py` checks only the header field), and
+the `BREAKING: Requires WordPress 6.8 and PHP 8.2` changelog line.
+
+### Two things the wiring exposed
+
+`wp-sweep/tests/test-options.php:106` did a bare `require` of `uninstall.php`;
+once the metadata test loaded it too the suite died on
+`Cannot redeclare wp_sweep_delete_options()` — exactly the failure the
+template's own docblock warns about. Route every such include through
+`run_uninstall()`.
+
+The brief I wrote said wp-sweep's uninstaller drops tables. It does not — it
+deletes two option rows. Only wp-draftsforfriends and wp-downloadmanager have
+schema-touching uninstallers.
