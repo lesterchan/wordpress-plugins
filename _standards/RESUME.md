@@ -700,10 +700,13 @@ Fixing it is a **two-file change**: wp-polls' own
 `tests/test-uninstall.php::test_every_row_the_plugin_owns_is_on_the_uninstall_list`
 currently *requires* the row to be listed, so it must move too.
 
-**wp-useronline has the same hazard one step earlier**: `delete_option( 'stats_display' )`
-at `includes/class-wp-useronline-options.php:381` sits in `maybe_migrate()`, not
-the uninstaller. Its uninstall list is clean, so no test catches it — the new
-family test covers uninstall only.
+**wp-useronline is NOT a violation, and an earlier note here said it was.**
+`delete_option( 'stats_display' )` at
+`includes/class-wp-useronline-options.php:381` sits in `maybe_migrate()`, which
+is exactly where §13.2 puts it: "The migration deletes them because it has
+folded them in; uninstall must leave them alone." Its uninstall list is clean.
+Checked against the standard rather than against the note, which is the right
+way round and is how the error was caught.
 
 ### Other findings, none fixed
 
@@ -756,9 +759,9 @@ and `stats_display` in `legacy_structured_rows()` (`:96`), and
 migration deletes the shared rows and uninstall leaves them alone; here one
 list does both jobs.
 
-So three of the seven WP-Stats plugins mishandle the shared rows: **wp-polls**
-and **wp-downloadmanager** on uninstall, **wp-useronline** in its migration.
-Each was invisible from inside its own plugin.
+So two of the seven WP-Stats plugins mishandle the shared rows, both on the
+uninstall path: **wp-polls** and **wp-downloadmanager**. Neither was visible
+from inside its own plugin.
 
 ### Four checks that belong in the template but are not in it
 
