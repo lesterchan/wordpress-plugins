@@ -697,6 +697,19 @@ markup or behaviour: wp-email's and wp-print's link sections carry a link type
 and a template, so they are `Link`. Forcing one word onto sections that do
 different jobs moves the inaccuracy somewhere harder to see.
 
+**A tabbed page need not sit under the plugin's own menu.** wp-draftsforfriends
+is two tabs under core's **Posts**, because it acts on posts and is gated on
+`publish_posts`. The table above says "keeps its top-level menu" because that is
+what those three plugins did; the rule is that two screens become one tabbed
+page, not that the page must hang off a menu of the plugin's own.
+
+**The merge is required only where more than one tab owns settings.** Where a
+tab is a list table posting to itself and holding no key in the option row, no
+save can wipe another tab, and reading `get_option()` inside the sanitiser to
+merge would break §2.1. Pin the invariant instead — a test that fails the moment
+a second tab gains a settings field is the point at which the merge becomes
+mandatory, and it fails before anybody loses data rather than after.
+
 **Flat, never nested.** wp-useronline has a data screen, settings and templates,
 and that is one strip of three tabs — not a Settings tab containing its own
 Settings/Templates strip. Two tab rows on one page is worse than the sprawl
