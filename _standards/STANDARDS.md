@@ -737,9 +737,21 @@ Every tabbed plugin carries a test that **saves one tab and asserts the other
 tab's values survive**. It is the regression this design invites, and it is
 silent.
 
-`settings_errors()` must print on both tabs (§4.2 — a plugin page is dispatched
-by `admin.php`, so core never calls it for you), and the tab links must preserve
-the active tab across a save.
+**`settings_errors()` cuts both ways, and the answer depends on which function
+registered the page.** Core calls it from `wp-admin/options-head.php`, which
+`admin-header.php` requires only when `$parent_file` is `options-general.php`.
+So an `add_options_page()` screen — wp-ban, wp-print — already has its notices
+printed, and calling it again renders every one of them twice. A screen under a
+top-level menu or under Posts is dispatched elsewhere, core never calls it, and
+a save reports nothing at all unless the plugin calls it itself. Both mistakes
+look identical from the code: one line, present or absent. Check the parent
+before deciding, and carry a test either way — "the notice appears exactly once"
+covers both failures with one assertion.
+
+The tab links must preserve the active tab across a save. The Settings API
+posts to `options.php`, which redirects to `_wp_http_referer`; print a second
+one naming the tab after `settings_fields()`, since PHP keeps the last of a
+repeated name.
 
 ### 4.3 List tables
 
