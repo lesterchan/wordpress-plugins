@@ -566,6 +566,16 @@ One rule, applied everywhere:
 > because the note still reads as settled.** This one disagreed with the shipped
 > code for an unknown length of time. When a rule here is written as "not until
 > X", come back and close it when X happens.
+* **No two plugins share a dashicon.** They sit in the same sidebar, and at
+  20px an icon is most of what tells one entry from another. wp-polls and
+  wp-stats both shipped `dashicons-chart-bar` until somebody noticed they looked
+  identical. Where two plugins have a fair claim on the same icon, it goes to
+  the one whose screen literally draws that thing — wp-polls renders bars, so
+  wp-stats took `dashicons-chart-area`. Current allocation: `chart-bar`
+  wp-polls, `chart-area` wp-stats, `star-filled` wp-postratings, `groups`
+  wp-useronline, `email-alt` wp-email, `download` wp-downloadmanager, `archive`
+  wp-dbmanager.
+
 * **The menu title is the plugin's name, exactly as the plugin header spells
   it.** `WP-Polls`, not `Polls` or `Manage Polls`; `WP-DBManager`, not
   `Database`; `WP-EMail`, not `E-Mail`. This is the second argument to
