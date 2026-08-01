@@ -947,6 +947,41 @@ stopped at test 96 of 384, printed no summary, and was recorded as passing while
 `OK (`, `OK, but `, `FAILURES!`, `ERRORS!` or `No tests executed`, and treats its
 absence as a failure. Do not remove that check.
 
+### 7.2.4 Escaping a stored value is a test, not a habit
+
+**Every plugin that echoes a value it read from the database carries an escaping
+regression test for it.** The stored XSS that gated a wp-polls release was a
+value going to the page without escaping; the guard against the next one is not
+"we escape carefully" but a test that fails the moment an output stops
+escaping. This is a shared obligation like the metadata tests, scoped to the
+outputs each plugin actually has: poll questions and answers, ratings log
+entries, download titles, draft names, whatever the plugin stores and renders.
+
+The shape is the same everywhere and it asserts **both halves**:
+
+* the payload's active form is **not** in the output — no `<script>` element, no
+  `<img src=x onerror=…>`, no unescaped attribute break; and
+* the payload's text **is** in the output, escaped — because escaping that
+  dropped the value entirely would pass the first assertion while corrupting the
+  data, and a poll answer that silently vanishes is its own bug.
+
+The canonical payloads are a script tag (`<script>…</script>`), an attribute
+breakout (`" onmouseover="…`) and an error-firing image (`<img src=x
+onerror="…">`). Store them **unsanitised**, straight into the row — the row a
+compromised or pre-fix install already has — because sanitising on the way in is
+the assumption under test, not a step to reproduce.
+
+Split the work by where the output lives. **A render path reachable from PHP is
+tested in PHPUnit** — call the template tag, the shortcode, the list-table
+column, the widget with a hostile stored value and assert on the returned
+markup; it is faster and it pins the exact function. **A path that only exists
+in a browser** — markup built in an AJAX response and swapped in, a value echoed
+into a script or an attribute the DOM then acts on — is tested in the Playwright
+suite (§7.5), where the assertion additionally checks that no sentinel the
+payload would set ever became defined. Neither replaces the other: the AJAX
+results path is invisible to PHPUnit, and the per-function pinning is invisible
+to a browser.
+
 ### 7.3 Coverage
 
 Target as close to 100 % on `includes/` as the plugin allows. Every public
@@ -961,6 +996,169 @@ not left silently uncovered.
 entries changed. Test discovery is `<directory prefix="test-" suffix=".php">`,
 so helpers need no `<exclude>` entries — this is what removes the 19 different
 exclude lists.
+
+### 7.5 End-to-end tests (Playwright)
+
+PHPUnit calls the plugin's PHP. It cannot see a colour that came out wrong, a
+vote that navigated instead of swapping in place, a script tag that a browser
+executed, or a "Settings saved." notice that a scoped `settings_errors()`
+filtered away. A plugin with a front end or an admin screen therefore also
+carries a Playwright suite under `tests/e2e/`, and the ones already written
+found bugs no unit test could — an unticked checkbox that could never be
+unticked, a settings page with no success notice, a stored XSS.
+
+**Scaffolding is copied, never invented.** `_standards/templates/` holds
+`playwright.config.js` (reads `testsPort` from `.wp-env.json`, `workers: 1`,
+retries CI-only), `bin/test-e2e.sh`, `tests/e2e/global-setup.js`, and
+`tests/e2e/index.php`. `bin/test-e2e.sh` exists because **the tests wp-env
+starts a plugin that is inactive and a site with no theme** — PHPUnit needs
+neither, so wp-env provides neither, and a browser handed that site gets "not
+allowed to access this page" on every screen and a blank front page. The script
+activates the plugin by directory name and activates `twentytwentyone`, every
+run, because running PHPUnit reinstalls that database underneath it. Do not
+skip it and drive `npx playwright test` directly.
+
+**The suite is CommonJS under Node**, not modules in a page: `eslint.config.mjs`
+carries a block scoping `tests/e2e/**/*.js` and `playwright.config.js` to
+`sourceType: 'commonjs'` with `globals.node` (§9, §8). `package.json` gains
+`test:e2e` and the `@playwright/test` + `@wordpress/e2e-test-utils-playwright`
+devDependencies; `.github/workflows/ci.yml` gains the `e2e:` job from the
+template. A `tests/e2e/helpers.js` holds the fixture builders and shared
+locators, so a spec reads as prose.
+
+**Every test must fail with the plugin deactivated.** This is the one that
+catches the tests that pass while asserting nothing. Prove it once per suite by
+deactivating the plugin and running it: the count that survives is the count of
+tests that were testing the harness. Two shapes leak through and are called out
+below because they cost real time here.
+
+* **A capability test must assert both directions.** "A subscriber sees no menu
+  and cannot reach the screen" **passes with the plugin deactivated** — the
+  menu and the screen are absent because the plugin is gone, not because the
+  gate held. Pair it with "an administrator *can* see the menu and reach the
+  screen", in the same test, so the pair can only pass when the plugin is
+  present *and* gating. Both navigation suites shipped the one-sided version.
+* **The login helper races a 200ms timer.** `wp-login.php` focuses and *selects*
+  `#user_login` on a timer so a visitor can start typing. Fill across that
+  moment and the password lands in the username box — Playwright focuses
+  `#user_pass`, the timer takes focus back and selects it, and the typed text
+  replaces the selection. `await expect( page.locator( '#user_login' )
+  ).toBeFocused()` **before** filling waits for the timer's own effect; a
+  `waitForTimeout` only makes the race less likely, which is the kind that fails
+  on CI. Any suite that logs a second user in by hand needs this.
+
+**Fixtures.** Data a person would type goes in through the screen that creates
+it, so the screen is exercised by the tests that depend on it. Data a person
+could not type — a question holding a `<script>`, a row shaped as an older
+release wrote it — goes straight into storage. Custom tables have **no REST
+route**, so those fixtures go through `npx wp-env run tests-cli wp eval`; posts
+and comments go through `requestUtils`. Four rules the suites paid for:
+
+* **Payloads travel base64-encoded, not inline.** A poll question of quotes,
+  angle brackets and a script tag is exactly the string that arrives subtly
+  altered through a shell argument, and a fixture that is not the payload byte
+  for byte proves nothing about escaping it. Encode it, `base64_decode` it at
+  the far end, and wrap what you read back in markers so wp-env's own progress
+  chatter can be told from the output.
+* **Create ordered fixtures sequentially, with explicit timestamps.** Comments
+  or rows created in parallel land in the same second; the tie breaks on
+  insertion order, which is whichever request the server reached first, and
+  every assertion about "the first one" becomes a coin toss.
+* **Restore anything global in `afterEach`** — templates, options, settings.
+  A test that rewrites a poll template and does not put it back decides the
+  outcome of the next test that reads one.
+* **Each suite carries one "the fixture really is…" test** — that there is more
+  than one page of results, that the poll is closed, whatever the rest leans on.
+  Without it a broken fixture makes the whole file pass green while testing
+  nothing.
+
+**Assert on the far end, not on a notice.** A setting that saves but does
+nothing and a setting that does something but will not save are the two failures
+a screenshot cannot tell apart. Read the stored option back for the values the
+logic consumes; read the *computed* style or rendered text for the ones a
+visitor sees. "Settings saved." is worth asserting only as the specific
+regression guard that the page did not scope `settings_errors()` to its own slug
+and filter the core notice out.
+
+**Native dialogs block everything after them.** A `confirm()` or `alert()` left
+unhandled freezes the page and every later event. Register `page.on( 'dialog',
+… )` and answer it — and for a delete or a max-choices guard, answer it **both
+ways**: a dismissed confirm that deleted anyway is worse than no confirm, and
+that is a test, not a nuisance to route around.
+
+**Navigate by clicking.** Under the plain permalinks the tests env ships,
+`/page/2/` is not a pagination URL. Reach the second page through the link the
+plugin rendered, or through a `post.link` the REST helper handed back — never by
+constructing a pretty URL by hand.
+
+**Stored XSS is asserted twice over.** For every surface that renders
+attacker-controlled text — the front end, the AJAX-returned results markup
+(wp-polls' classic vector, built server-side and swapped in), the list table,
+the log, the edit field — assert both that the sentinel the payload would set is
+**undefined** *and* that the payload text is present **as text**. Escaping that
+ate the payload entirely also passes the first assertion, and an answer that
+silently vanishes is its own bug. The results markup is a separate test from the
+ballot: a payload can be clean in the form and run in the response.
+
+**Time fixtures use the site's clock, never this machine's.** A datetime built
+from host-local parts and posted to a REST `date` field — which WordPress reads
+as **site**-local — is wrong by the offset between the two, and `toISOString()`
+is wrong by the whole timezone because it converts to UTC. On a UTC CI runner
+host and site agree and the bug hides; on a developer machine at UTC+8 a post
+"five minutes old" is stored eight hours in the future. Measure the skew rather
+than assume it: publish a probe post, read back the date WordPress stamped, keep
+the difference (`wp-relativedate`'s `siteNow()`). Anchoring day-scale fixtures at
+**midday** buys twelve hours of slack and hides a day-scale skew; it does
+nothing for a minute-scale one, and is not a substitute for measuring. When a
+fixture's assertions are about *order* rather than an absolute date, a constant
+offset cannot change the order, so `toISOString()` is harmless there — say so in
+a comment, so the next reader does not copy it somewhere it bites.
+
+### 7.6 Upgrade and migration tests
+
+§2.1 and §13 govern *writing* a migration. This governs *proving* one does not
+lose data — the question every major version has to answer for the sites that
+have run the plugin for a decade. A plugin that owns custom tables or migrates
+option rows on upgrade carries a `tests/test-migration-*.php` alongside the
+option-level `test-migration.php`.
+
+**Build the legacy shape from the released zip, not from the current install
+code.** The whole point is to meet the tables a real site has, so transcribe the
+`CREATE TABLE` statements from the version on wordpress.org (query the API for
+the released version — the local SVN checkout is stale) into the test. If the
+test copied `class-*-install.php` instead, it would assert that the code agrees
+with itself. When the two disagree, this file must be the one still holding the
+shape real sites carry.
+
+**Two legacy shapes matter, and they test opposite things.** The near shape —
+the last release, whose columns already match — proves the upgrade **touches
+nothing**: snapshot all three tables before and `assertSame` after, row for row
+and byte for byte, so an upgrade that "only" reset a vote count or re-encoded a
+question fails. The ancient shape — the one the datatype conversions and index
+changes in `activate()` actually exist for (a `varchar` id, a superseded index)
+— proves the conversion **keeps every row**: those sites have been carried this
+far, and a plugin that drops their data does it silently. Put quotes, an
+ampersand and multibyte characters in the fixture; a migration that mangles
+encoding passes every test written in ASCII.
+
+**Both entry points, because they are not the same.** Reactivating runs the
+activation hook; **updating through the plugins screen never fires it** and
+leaves `admin_init` → `upgrade()` to run alone. Test each. And test
+**idempotence**: users deactivate and reactivate to "fix" things, so a second
+activation must be a bystander — same rows, same indexes.
+
+**Present is not alive.** After the migration, cast a real vote (or the
+plugin's equivalent write) against an id that came *through* the upgrade and
+assert it lands in every table it should. Rows that survived the schema change
+but no longer accept writes are a migration that passed and a plugin that
+broke.
+
+**DDL commits the transaction the test runner wraps each test in.** So a
+migration test cannot lean on the automatic rollback: it must rebuild a clean
+install in `tear_down()` **and then `COMMIT`**. Skip the commit and the parent's
+rollback undoes the cleanup itself — and because the next test's own DDL makes
+the leftovers durable, they leak into whichever file runs after this one. That
+is not hypothetical; it cost a sibling file its expected value once already.
 
 ---
 
