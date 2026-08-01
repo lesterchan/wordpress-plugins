@@ -651,6 +651,51 @@ Every settings screen is built from:
   there.
 * `add_settings_error()` for every message. No hand-rolled `<div class="updated">`.
 
+### 4.2.1 Tabs — `Settings` and `Templates`, and templates always get their own
+
+**A plugin that has a template puts it on a tab of its own.** Templates are long
+text fields with a list of permitted variables under each; left inline they bury
+the settings above them, and wp-email's eight templates sat below several
+screenfuls of options. The split is not cosmetic — it is what stops a settings
+page becoming a wall.
+
+**The tabs are named exactly `Settings` and `Templates`.** Not "Poll Options"
+and "Poll Templates", not "General". The page heading already says which plugin
+this is, so repeating the name in every tab is noise. Five of the six plugins
+with tabs disagreed with each other before this was written down:
+
+| Plugin | Was | Now |
+|---|---|---|
+| wp-postratings | `Settings` / `Templates` | the model, unchanged |
+| wp-polls | `Poll Options` / `Poll Templates` | `Settings` / `Templates` |
+| wp-downloadmanager | `General` / `Templates` | `Settings` / `Templates` |
+| wp-print, wp-email, wp-postviews, wp-useronline | one long page | two tabs |
+
+**Renaming a tab is never only the label.** wp-polls printed an admin notice
+linking to "Poll Templates" and its README told people to look under "Poll
+Options"; wp-downloadmanager's e2e suite asserted the active tab read
+"General". A rename that stops at the tab strip sends people to a screen name
+that no longer exists. Grep the whole plugin, README included.
+
+**One `register_setting()` and one option row across both tabs**, per §2.1.
+Tabs are a rendering decision, not a storage one.
+
+**The trap, and it destroys data.** `register_setting()`'s `sanitize_callback`
+is handed **only the fields the submitting form posted**, so a sanitiser that
+returns just what it was given wipes everything the other tab owns the moment
+either tab is saved. Somebody customises eight email templates, later changes an
+unrelated setting, and the templates are gone with no error. The sanitiser must
+merge the submitted subset over the stored value — wp-postratings and wp-polls
+both already do this, so copy one of them rather than re-deriving it.
+
+Every tabbed plugin carries a test that **saves one tab and asserts the other
+tab's values survive**. It is the regression this design invites, and it is
+silent.
+
+`settings_errors()` must print on both tabs (§4.2 — a plugin page is dispatched
+by `admin.php`, so core never calls it for you), and the tab links must preserve
+the active tab across a save.
+
 ### 4.3 List tables
 
 Every tabular data screen is a `WP_List_Table` subclass. No hand-rolled
