@@ -559,3 +559,91 @@ clock.**
 * Later phase, not started: WP-CLI, REST API and Gutenberg blocks across all
   plugins. `wp-sweep` already has `WP_Sweep_Command` and `WP_Sweep_API` and is
   the reference.
+
+---
+
+## PICK UP HERE (2026-08-01, second session)
+
+### The state in one line
+
+Twelve plugins gained Playwright suites on disk that **nobody has run to
+green**. Treat every one as unverified until you have run it yourself.
+
+### What is finished and safe
+
+* **wp-polls** — 30 E2E tests green, 261 PHPUnit green single-site and
+  multisite, PHPCS and eslint clean. Committed, not pushed. Lester ships this
+  one manually; do not touch SVN or tags for it.
+* **All 19 READMEs** — changelog pruned to the current major only (308 entries
+  dropped), Upgrade Notice sections rewritten concise and technical
+  (9,600 words to 5,900). Committed per plugin, not pushed.
+* **STANDARDS.md** — three new sections committed: 7.5 (E2E), 7.6 (upgrade and
+  migration tests), 7.2.4 (escaping regression tests are mandatory for every
+  plugin that echoes a stored value). Plus the two metadata traps below.
+
+### The twelve unverified suites
+
+| Plugin | specs | tests |
+|---|---|---|
+| freemyinternet | 4 | 37 |
+| wp-pluginsused | 4 | 26 |
+| wp-print | 5 | 52 |
+| wp-ban | 5 | 55 |
+| wp-postviews | 7 | 84 |
+| wp-useronline | 5 | 73 |
+| wp-stats | 8 | 84 |
+| wp-sweep | 5 | 66 |
+| wp-downloadmanager | 4 | 73 |
+| wp-draftsforfriends | 4 | 40 |
+| wp-email | 4 | 41 |
+| wp-dbmanager | 4 | 50 |
+
+For each: `bash bin/test-e2e.sh` to green, `npm run lint:js` clean, and
+`bash bin/test.sh --filter Metadata` still passing. Audit each against the
+plugin's own `includes/` before believing it is comprehensive — a suite can be
+green and still miss half the plugin. wp-postviews' 84 tests in particular were
+never checked for near-duplicate padding.
+
+**wp-print's metadata suite is failing right now**, and it is the scaffolding
+rather than the plugin: `test_the_plugin_root_holds_no_loose_files` at
+`tests/test-metadata.php:513` globs `*.js` in the plugin root and finds
+`playwright.config.js`, which has to live there because Playwright resolves
+paths relative to it. Fix by exempting `*.config.js` from that one assertion.
+STANDARDS 7.2.1 records the rule and the class it belongs to.
+
+### Four changes Lester asked for, specified but NOT started
+
+Tasks #17-#20, each with the decisions already made. They deliberately wait
+until the E2E suites are green, and they will **break some of those suites** —
+that is the suites working, not wasted effort.
+
+1. **#17 Settings naming.** `<Name> Settings` on all 14 settings screens. Ten
+   already comply; wp-print, wp-dbmanager, wp-postviews and wp-useronline say
+   "Options". wp-print also has a *section* named "Print Options", the same as
+   its page — rename that too.
+2. **#18 wp-print + wp-email link settings.** Drop the four-way style select and
+   both `post_text`/`page_text` fields; keep only the custom HTML template. Add
+   `%POST_TYPE%` resolving to the post type's singular label. Migration
+   synthesises the template from the old style *and* text; collapse to
+   `%POST_TYPE%` only when the two texts are the stock pair, otherwise keep
+   post_text verbatim and say in the Upgrade Notice that the page wording is
+   lost — one template cannot express two arbitrary strings.
+3. **#19 wp-postviews Display Options.** Remove the six-context matrix, but keep
+   `WP_PostViews_Display::should_be_displayed()` answering a
+   `wp_postviews_should_display` filter. The 2.0.0 Upgrade Notice names that
+   method as the documented replacement for the old global, so removing it
+   outright would break a promise in the release about to ship.
+4. **#20 Proxy header.** Five plugins have one. wp-polls and wp-postratings
+   carry the canonical label "Header That Contains The IP:" and the three-part
+   description (see `WP_Polls_Settings::describe_ip_header()`); bring wp-email,
+   wp-ban and wp-useronline to it, substituting each plugin's own constant and
+   filter. wp-ban also has a "behind a reverse proxy" checkbox nobody else has —
+   decide whether the header field alone should carry the meaning.
+
+### Open from before
+
+* The capability tests in the wp-pagenavi and wp-commentnavi suites pass with
+  the plugin deactivated. STANDARDS 7.5 now forbids the one-sided form; those
+  two suites still need fixing.
+* `test-metadata.php` exists in four implementations, and its `$skip` array in
+  five variants. Task #14.
