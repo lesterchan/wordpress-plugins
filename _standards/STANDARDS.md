@@ -855,6 +855,15 @@ three; do not rediscover them:
   (`RecursiveCallbackFilterIterator`), not a filter applied after the fact. A
   plain filter descends into `node_modules` and `vendor` before discarding
   them, which is slow enough to look like a hang.
+
+  **Its skip list must include `artifacts`.** Playwright writes traces,
+  screenshots and its stored session there, so the first plugin to gain an e2e
+  suite starts failing a metadata test that has nothing to do with e2e — and
+  only after somebody has run the suite locally, which means CI stays green and
+  the failure looks like it came from whatever was touched that day. wp-polls
+  did exactly this. The list was five different arrays across the collection
+  when this was found, so §7.2's shared `test-metadata.php` is the fix; until
+  that lands, every copy carries `artifacts`.
 * `test_no_jquery_is_enqueued()` is not just a source grep for a plugin that has
   JS. Assert **both** that the registered handle's `deps` array is empty *and*
   that `js/*.js` contains no `jQuery`/`$(` — a grep alone passes a dependency
