@@ -864,6 +864,21 @@ three; do not rediscover them:
   did exactly this. The list was five different arrays across the collection
   when this was found, so §7.2's shared `test-metadata.php` is the fix; until
   that lands, every copy carries `artifacts`.
+
+* **A metadata test that forbids loose files in the plugin root must exempt
+  `*.config.js`.** `playwright.config.js` lives in the root because Playwright
+  resolves every path in it relative to itself, so a rule asserting
+  `glob( '*.js' )` is empty fails the moment a plugin gains an e2e suite. The
+  rule means "no *source* scripts loose in the root", and a tool config is not
+  a script the plugin ships to a browser — `bin/verify.py` already draws that
+  line by allowing `*.config.js` and `*.config.mjs` at the root, so the two
+  agreeing is the point. Only wp-print carries this test today.
+
+  Both of these are the same shape, and worth naming as a class: **a metadata
+  rule written before e2e existed will fire on e2e scaffolding.** When one
+  does, decide whether the scaffolding is genuinely violating the rule's intent
+  or whether the rule simply predates it, and widen the rule rather than moving
+  the file — the file is where the tool requires it to be.
 * `test_no_jquery_is_enqueued()` is not just a source grep for a plugin that has
   JS. Assert **both** that the registered handle's `deps` array is empty *and*
   that `js/*.js` contains no `jQuery`/`$(` — a grep alone passes a dependency
