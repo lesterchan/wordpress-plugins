@@ -485,9 +485,17 @@ def verify(slug, name, prefix, port, root):
             return re.sub(r"\n  %s:.*?(?=\n  (?:%s):)" % (name, jobs), "",
                           text, flags=re.S)
 
+        # Lintable JavaScript is not only js/. The Playwright specs are
+        # JavaScript too, and a plugin whose only scripts are those still needs
+        # the linting job -- assuming otherwise is how five repositories shipped
+        # e2e specs that nothing had ever linted, and how three others carried a
+        # job that died at setup-node because they have no package.json at all.
+        has_js = (os.path.isdir(os.path.join(root, "js"))
+                  or os.path.isdir(os.path.join(root, "tests", "e2e")))
+
         def _norm(text):
             text = text.replace("{{SLUG}}", slug)
-            if not os.path.isdir(os.path.join(root, "js")):
+            if not has_js:
                 text = _drop("eslint", text)
             if not os.path.isdir(os.path.join(root, "tests", "e2e")):
                 text = _drop("e2e", text)

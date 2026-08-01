@@ -985,10 +985,27 @@ Action versions, pinned identically everywhere:
 Job names are exactly `PHP coding standards`, `JS coding standards and tests`,
 and `PHPUnit (WP …, PHP …, …)`.
 
-**A plugin with no `js/` directory deletes the whole `eslint:` job**, from its
-`eslint:` line through to `phpunit:`. The template carries no comment saying so
-— an instruction to the person copying the file has no business shipping in
-nineteen committed workflows.
+**A plugin with no JavaScript at all deletes the whole `eslint:` job**, from its
+`eslint:` line through to the job that follows it. The template carries no
+comment saying so — an instruction to the person copying the file has no
+business shipping in nineteen committed workflows.
+
+"No JavaScript" means no `js/` **and** no `tests/e2e/`. The Playwright specs are
+JavaScript too, and a plugin whose only scripts are those still needs linting.
+Reading the rule as "no `js/` directory" is how five repositories came to ship
+e2e specs that nothing had ever linted — the first CI run after they landed
+found style errors in a file that had been committed and pushed twice.
+
+The same rule read the other way is how three plugins that ship no JavaScript at
+all carried an `eslint:` job for months: it never ran a linter, because it died
+at `actions/setup-node` looking for a lock file in a repository with no
+`package.json`. A job that cannot pass is worse than no job; it teaches everyone
+to ignore a red mark.
+
+`npm run test:js --if-present` rather than `npm run test:js`, because a plugin
+can have JavaScript worth linting and no vitest suite: a plugin whose only
+scripts are Playwright specs has nothing for jsdom to load. `lint:js` is not
+optional in the same way — anything lintable gets linted.
 
 `wp-serverinfo` and `wp-sweep` keep their extra `claude.yml` /
 `claude-code-review.yml`; those are not part of this standard.
