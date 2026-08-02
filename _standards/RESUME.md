@@ -514,11 +514,20 @@ uniqueness held, §13 reconciled and the Upgrade Notice audit landed. The old
 steps 7 and 8, screenshots and the release, are **off this list**: Lester does
 both by hand, and neither is work this repo drives.
 
-1. **The E2E sweep across all 19, one plugin at a time.** The overnight job.
-   `scratchpad/e2e-all.sh` runs them in order, changed plugins first. **Serial is
-   not a preference** — four concurrent Playwright runs tore each other down on a
-   7.6 GiB Docker, and the symptom was suites failing for reasons unrelated to
-   their code. Expect ~4-5 hours.
+1. **DONE 2026-08-02 evening: 867/867, all nineteen suites green.** Per-suite
+   tally in `_standards/E2E-RERUN-2026-08-02.txt`; the morning's report is
+   annotated rather than rewritten. Every one of the fifteen plugin bugs it found
+   is confirmed fixed in a browser, and one of its diagnoses was wrong — wp-print's
+   "password protected" assertion passes, so the predicted hyphen failure never
+   existed.
+
+   **Two process notes for the next long run.** A job of this length cannot be a
+   tracked background task: the first attempt was reaped at a ten-minute harness
+   timeout with four suites done. `setsid` does not exist on macOS, so the first
+   relaunch silently never started — and a partial log left by the reaped run made
+   it *look* like it had, which is the same trap as trusting a grep. Plain
+   `nohup … &`, with a monitor that reports process death as well as results,
+   is what worked. Silence must not read as progress.
 2. **#20, the proxy header, is half done.** The label
    `Header That Contains The IP` reached wp-polls, wp-postratings, wp-email and
    wp-ban. Still open: the **three-part description exists only in wp-polls**

@@ -1,0 +1,20 @@
+wp-print               exit=0    501s  56 passed
+wp-downloadmanager     exit=0    938s  73 passed
+wp-useronline          exit=0   1310s  79 passed
+wp-dbmanager           exit=0    600s  50 passed (re-run after spec fix)
+wp-email               exit=0    546s  45 passed
+wp-draftsforfriends    exit=0    357s  42 passed
+freemyinternet         exit=0    297s  37 passed
+wp-pluginsused         exit=0    274s  26 passed
+wp-stats               exit=0   1315s  95 passed
+wp-polls               exit=0    196s  30 passed
+wp-commentnavi         exit=0     30s  13 passed
+wp-pagenavi            exit=0     36s  13 passed
+wp-ban                 exit=0    503s  58 passed
+wp-sweep               exit=0    933s  70 passed
+wp-postratings         exit=0    101s  52 passed
+wp-postviews           exit=0   1435s  98 passed
+wp-relativedate        exit=0     27s  10 passed
+wp-serverinfo          exit=0     28s  10 passed
+wp-showhide            exit=0     28s  10 passed
+SWEEP COMPLETE
