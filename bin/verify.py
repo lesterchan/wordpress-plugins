@@ -97,6 +97,71 @@ CANONICAL_SECTIONS = [
 
 CHANGELOG_PREFIXES = ("BREAKING:", "NEW:", "CHANGED:", "FIXED:", "NOTE:")
 
+# The year in the copyright line, kept apart from the block so that rolling it
+# over is one edit rather than nineteen.
+COPYRIGHT_YEAR = "2026"
+
+# §3.1's GPL comment block, verbatim, tabs and all. Two spaces after the year,
+# around "email :", and either side of the postal code -- those are the spacing
+# the standard pins, and normalising them is why this is compared rather than
+# pattern-matched.
+#
+# The address is the FSF's current one. Sixteen plugins carried
+# "59 Temple Place, Suite 330, Boston, MA  02111-1307", which the FSF left in
+# 2005 and which survives across the whole WordPress plugin directory purely by
+# copy-and-paste; three carried "51 Franklin St", the right building with the
+# street name abbreviated. This is the wording the FSF actually publishes with
+# GPL-2.0 today. It is a postal address the block tells a reader to write to, so
+# of the two ways to make nineteen files agree, only one of them is also true.
+GPL_BLOCK = """/*
+\tCopyright %s  Lester Chan  (email : lesterchan@gmail.com)
+
+\tThis program is free software; you can redistribute it and/or modify
+\tit under the terms of the GNU General Public License as published by
+\tthe Free Software Foundation; either version 2 of the License, or
+\t(at your option) any later version.
+
+\tThis program is distributed in the hope that it will be useful,
+\tbut WITHOUT ANY WARRANTY; without even the implied warranty of
+\tMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+\tGNU General Public License for more details.
+
+\tYou should have received a copy of the GNU General Public License
+\talong with this program; if not, write to the Free Software
+\tFoundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+*/"""
+
+
+def gpl_block(source):
+    """The /* ... */ licence block that follows the plugin header docblock."""
+    m = re.search(r"^/\*\n\tCopyright .*?^\*/", source, re.M | re.S)
+
+    return m.group(0) if m else None
+
+
+def first_difference(got, want):
+    """Where two blocks diverge, as a line number and both spellings.
+
+    A byte-for-byte comparison that reports only "does not match" sends the
+    reader to diff nineteen files by eye. Trailing whitespace and tab-versus-
+    space are the likeliest causes and the hardest to see, so the differing
+    line is quoted with its whitespace made visible.
+    """
+    def visible(text):
+        return text.replace("\t", "\\t").replace(" ", "·")
+
+    got_lines = got.split("\n")
+    want_lines = want.split("\n")
+
+    for i in range(max(len(got_lines), len(want_lines))):
+        mine = got_lines[i] if i < len(got_lines) else "<end of block>"
+        theirs = want_lines[i] if i < len(want_lines) else "<end of block>"
+
+        if mine != theirs:
+            return "line %d: %s != %s" % (i + 1, visible(mine), visible(theirs))
+
+    return ""
+
 # Files in includes/ whose names a theme copies verbatim to override them. The
 # filename is public API, so it cannot be bent to the class-*.php convention.
 THEME_TEMPLATES = {
@@ -232,6 +297,23 @@ def verify(slug, name, prefix, port, root):
         r.check(header_field("License URI:")
                 == "https://www.gnu.org/licenses/gpl-2.0.html",
                 "header License URI")
+
+        # §3.1 the GPL block itself, byte for byte. Checking only the header
+        # field above is what let one plugin ship the v2-ONLY wording under a
+        # "GPLv2 or later" header for as long as it did, and let the FSF's
+        # postal address drift into two spellings across the nineteen. Neither
+        # was visible to phpcs, to the header check, or to reading one file.
+        block = gpl_block(head)
+
+        if block is None:
+            r.check(False, "GPL comment block missing (§3.1)")
+        else:
+            r.check("either version 2 of the License, or" in block
+                    and "(at your option) any later version." in block,
+                    "GPL block is the 'or later' variant (§3.1)")
+            r.check(block == GPL_BLOCK % COPYRIGHT_YEAR,
+                    "GPL block matches §3.1 verbatim",
+                    first_difference(block, GPL_BLOCK % COPYRIGHT_YEAR))
 
         # §2.3 the constants. DB_VERSION only where there is a schema to count:
         # a plugin with no settings and no tables stores nothing at all (§2.1),

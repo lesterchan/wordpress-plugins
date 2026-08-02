@@ -431,7 +431,9 @@ Byte-identical structure everywhere; only the four content lines differ.
  */
 ```
 
-The GPL comment block that follows is the **"or later" variant**, verbatim:
+The GPL comment block that follows is the **"or later" variant**, and it is
+reproduced here **in full and verbatim** — tabs for indentation, two spaces
+after the year, around `email :`, and either side of the postal code:
 
 ```
 /*
@@ -441,11 +443,42 @@ The GPL comment block that follows is the **"or later" variant**, verbatim:
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation; either version 2 of the License, or
 	(at your option) any later version.
-	…
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 ```
 
-Two spaces after the year and around `email :`. Normalise the one-space variants.
+`bin/verify.py` compares this byte for byte, and the year lives in one constant
+there so that rolling it over is one edit rather than nineteen.
+
+**The tail used to be elided with a `…`, and that is how the address drifted.**
+Sixteen plugins carried `59 Temple Place, Suite 330, Boston, MA  02111-1307` —
+the address the FSF left in **2005**, which survives across most of the
+WordPress plugin directory purely by copy-and-paste — and three carried
+`51 Franklin St`, the right building with the street name abbreviated. Neither
+group matched what the FSF publishes with GPL-2.0 today.
+
+Of the two ways to make nineteen files agree, only one of them is also true:
+this is a postal address the block instructs a reader to write to. **A rule
+this document elides is a rule nothing enforces**, which is the same lesson §9
+and §4.1 each learned separately.
+
+**This must be the "or later" form.** A v2-**only** block (`under the terms of
+the GNU General Public License, version 2, as published by the Free Software
+Foundation`, with no "or at your option any later version") contradicts the
+`License: GPLv2 or later` header two lines above it and the `GPL-2.0-or-later`
+in composer.json, so a plugin carrying one ships a self-contradicting licence
+statement. Five did; the last of them, freemyinternet, was corrected on
+2026-08-02, and `verify.py` now checks for the "or later" clauses by name as
+well as comparing the whole block, so the failure says which of the two is
+wrong.
 
 **This must be the "or later" form.** Five plugins — including wp-showhide —
 carry a v2-**only** block (`under the terms of the GNU General Public License,
