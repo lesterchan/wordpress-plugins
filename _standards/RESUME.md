@@ -508,28 +508,65 @@ clock.**
 
 ## Remaining work, in order
 
-1. **Finish/verify the fan-out.** Any plugin whose agent did not commit.
-2. **`python3 bin/verify.py`** until it reports zero. This catches the
-   mechanical half; read the diffs for the rest (voice, comment density,
-   whether the Settings API rewrite is real or cosmetic).
-3. **`bash bin/test-all.sh`** and **`bash bin/test-all.sh --multisite`** against
-   the shared environment. This is the first time PHPUnit runs at all, so
-   expect fallout, especially around renamed options and hooks.
-4. **Cross-plugin uniqueness.** With all 19 mounted together, confirm no two
-   plugins claim the same option row, global function, class or hook. This is
-   the only check the per-plugin runs cannot do.
-5. **§13 reconciliation.** Seven plugins implement the WP-Stats
-   `wp_stats_sections` contract independently. Confirm all seven agree on the
-   filter signature wp-stats actually defines.
-6. **Upgrade Notice audit (§14.1).** For each plugin, diff the released version
-   on wordpress.org against the pending major and make sure every user-visible
-   break is in `## Upgrade Notice`, written for a site owner.
-7. **Screenshots.** Bring up the shared wp-env, give each plugin real content,
-   capture screenshots to `~/svn/wordpress_plugins/<slug>/assets/screenshot-N.png`
-   — **staged only, do not `svn commit`** — and write the numbered
-   `## Screenshots` section in each README.
-8. **Then, and only then, release.** Manually, via SVN. Nothing here pushes,
-   tags or touches SVN.
+Rechecked 2026-08-02. Steps 1-6 of the old list are **done** — the fan-out
+finished, `verify.py` is at zero, PHPUnit is green both ways, cross-plugin
+uniqueness held, §13 reconciled and the Upgrade Notice audit landed. The old
+steps 7 and 8, screenshots and the release, are **off this list**: Lester does
+both by hand, and neither is work this repo drives.
+
+1. **The E2E sweep across all 19, one plugin at a time.** The overnight job.
+   `scratchpad/e2e-all.sh` runs them in order, changed plugins first. **Serial is
+   not a preference** — four concurrent Playwright runs tore each other down on a
+   7.6 GiB Docker, and the symptom was suites failing for reasons unrelated to
+   their code. Expect ~4-5 hours.
+2. **#20, the proxy header, is half done.** The label
+   `Header That Contains The IP` reached wp-polls, wp-postratings, wp-email and
+   wp-ban. Still open: the **three-part description exists only in wp-polls**
+   (`WP_Polls_Settings::describe_ip_header()`); **wp-useronline has no header
+   field at all**, only the `WP_USERONLINE_TRUST_PROXY` constant and the
+   `wp_useronline_trust_proxy` filter, so it was never brought to the shape; and
+   **wp-ban's separate "This site is behind a reverse proxy." checkbox** still
+   needs the decision about whether the header field alone should carry that
+   meaning.
+3. **#17 collides with §4.1 and needs a decision, not an edit.** The four screens
+   it named are done — wp-print, wp-dbmanager, wp-postviews and wp-useronline all
+   read `<Name> Settings`. But **wp-ban's `<h1>` still says `Ban Options`**, and
+   §4.1's own worked examples of a good screen heading are `Ban Options`,
+   `Plugins Used`, `Manage Ratings`, `Sweep`, `Server Information`, `Stats`.
+   Changing wp-ban quietly would leave the standard teaching the opposite of what
+   the collection does. Decide which rule wins and fix the loser.
+4. **The two navigation suites' capability tests still assert nothing.**
+   wp-pagenavi and wp-commentnavi: "a user without manage_options cannot reach the
+   screen" **passes with the plugin deactivated**, because the page does not exist
+   — it cannot tell "capability works" from "page missing". §7.5 already forbids
+   the one-sided form. Add the companion assertion that an admin *can* reach it.
+5. **Assertion failure messages.** 4,847 of 6,845 (70.8 %) carry none, very
+   unevenly: freemyinternet 0 % missing, wp-useronline 15 %, against wp-email
+   94.9 %, wp-dbmanager 86.7 %, wp-print 83.9 %. freemyinternet is the reference
+   for what done reads like. One uniform pass, not per plugin, and **no filler** —
+   a message is owed where the failure would otherwise be unreadable.
+6. **Two spec-side questions, both awaiting Playwright evidence.** Neither may be
+   touched on reasoning alone; the rule here is fix the code, not the test.
+   * `wp-print/tests/e2e/printview.spec.js:341` asserts the phrase
+     `password protected`, but WP 7.0's `get_the_password_form()` says
+     `password-protected`, hyphenated. That line sat behind the comment-leak
+     failure and has never been reached, and `.wp-env.json` pins `core: null`, so
+     the literal keeps aging.
+   * `wp-dbmanager/tests/e2e/backups.spec.js` asserts the download refusal on a
+     **later, separate GET**. The message lives in the POST response body, which
+     the test never reads. Persisting a per-request refusal across requests is not
+     something any standard WordPress design does.
+7. **Reconcile this file and `E2E-SWEEP-2026-08-02.md` against the re-run.** Both
+   still describe findings that are fixed. The report is a record of what was
+   observed on the day and should be corrected against a *run*, not against a
+   commit log.
+8. **Later phase, not started:** WP-CLI, REST API and Gutenberg blocks across the
+   collection. `wp-sweep` already has `WP_Sweep_Command` and `WP_Sweep_API` and is
+   the reference (§13.3 pins the naming).
+
+**Off this list on purpose:** screenshots into `~/svn/wordpress_plugins/…/assets/`
+and the SVN release itself. Lester does both by hand. Nothing here pushes, tags or
+touches SVN.
 
 ## Traps
 
@@ -611,11 +648,13 @@ rather than the plugin: `test_the_plugin_root_holds_no_loose_files` at
 paths relative to it. Fix by exempting `*.config.js` from that one assertion.
 STANDARDS 7.2.1 records the rule and the class it belongs to.
 
-### Four changes Lester asked for, specified but NOT started
+### Four changes Lester asked for — TWO DONE, TWO PARTLY (rechecked 2026-08-02)
 
-Tasks #17-#20, each with the decisions already made. They deliberately wait
-until the E2E suites are green, and they will **break some of those suites** —
-that is the suites working, not wasted effort.
+Verified against the code rather than against this note. **#18 and #19 are
+done.** #17 is done for the four screens it named but has hit a conflict with
+§4.1, and #20 landed only its label. The live version of both is in
+"Remaining work, in order" at the end of this file; the original specification
+is kept below because it records decisions that are still binding.
 
 1. **#17 Settings naming.** `<Name> Settings` on all 14 settings screens. Ten
    already comply; wp-print, wp-dbmanager, wp-postviews and wp-useronline say
