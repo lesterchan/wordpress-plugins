@@ -643,8 +643,30 @@ One rule, applied everywhere:
 
   The prefix belongs in the sidebar, where a site owner is matching what they
   installed against a list of everything else installed. It is noise on the
-  screen itself, where they already know where they are: `Ban Options`,
-  `Plugins Used`, `Manage Ratings`, `Sweep`, `Server Information`, `Stats`.
+  screen itself, where they already know where they are: `Ban Settings`,
+  `Plugins Used Settings`, `Manage Ratings`, `Sweep`, `Server Information`,
+  `Stats`.
+
+  **A settings screen's heading ends in the word `Settings`, never `Options`.**
+  That is a separate rule from the prefix one above and the two are easily
+  confused, because both are about the same string. The prefix rule says what a
+  heading must **not** carry; this says what a settings heading must **end** in.
+  `Ban Settings` satisfies both; `WP-Ban Settings` fails the first and
+  `Ban Options` the second.
+
+  So the fifteen settings screens read `Print Settings`, `Database Settings`,
+  `Post Views Settings`, `UserOnline Settings`, `E-Mail Settings`,
+  `Poll Settings`, `Ratings Settings`, `Download Settings`,
+  `FreeMyInternet Settings`, `CommentNavi Settings`, `PageNavi Settings`,
+  `Ban Settings`, `Plugins Used Settings`, and the `Settings` tab of wp-stats
+  and wp-draftsforfriends. `Manage Ratings`, `Sweep`, `Server Information` and
+  `Stats` are **not** settings screens and keep their own nouns — a data screen
+  or a report says what it shows.
+
+  The two examples in the list above used to read `Ban Options` and
+  `Plugins Used`, which is how this section spent a while teaching the opposite
+  of what the collection was converging on. **An example is a rule.** When one
+  contradicts the prose beside it, the example is the thing people copy.
 * **Settings last, unless the other screen is a log.** The data screen comes
   first when it is the thing a site owner came for — Manage Polls, the download
   list, the backup list. It does not when it is a *record* rather than a
