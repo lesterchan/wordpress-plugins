@@ -785,6 +785,104 @@ schema-touching uninstallers.
 
 ---
 
+## PICK UP HERE (2026-08-02, second session)
+
+### State in one line
+
+**Both release blockers are fixed and both shared-row violations are fixed. All
+19 PHPUnit suites are green, single site and multisite, for the first time since
+the E2E sweep.** 4,126 tests / 12,846 assertions single site and 4,126 / 12,906
+multisite; `verify.py` 0; phpcs 0 in every plugin touched. Thirteen of the
+sweep's fifteen plugin bugs are still standing.
+
+The sweep report is now durable at **`_standards/E2E-SWEEP-2026-08-02.md`** —
+1,062 lines, the per-plugin detail the summary below compresses. It was in a
+session scratchpad; do not go looking for it there.
+
+### The migration class of defect is closed, and it was bigger than two plugins
+
+`register_setting()` attaches two things to the settings row, and **activation
+and WP-CLI run neither**: a `sanitize_option_*` filter, and — where a `default`
+is passed — a `default_option_*` filter that answers `get_option()` with the
+shipped defaults for a row that does not exist. Every migration that reads or
+writes through the bare `get_option()`/`update_option()` pair is therefore
+correct under WP-CLI and wrong on the one path a real update takes.
+
+Written up as **§7.6.1**, with the four variants found so far and the two rules
+that close them. What was fixed here:
+
+* **wp-pluginsused** — `false === get_option( self::OPTION )` as "no row yet" is
+  never true once a `default` is registered, so the fold-in was skipped and the
+  legacy row deleted anyway. The hidden-plugins list was read and thrown away.
+* **wp-print** — `update_option()` declines to write a value equal to the one
+  `get_option()` would return, and with a registered `default` that is the
+  defaults. The commonest 2.58.3 install migrates to exactly the defaults, so it
+  wrote **no row at all**, deleted the legacy row and stamped the markers
+  complete. Both writes now go through `WP_Print_Options::write()`.
+* **freemyinternet, wp-commentnavi, wp-pagenavi** carry a byte-identical
+  `migrate()` and were one `'default'` away from wp-pluginsused' bug. All four
+  now read the raw row and carry the same explanation. No behaviour change today.
+
+**The lesson worth keeping** is the one about fixtures. wp-print already had a
+test calling `WP_Print_Settings::register()` before the migration, and it passed
+throughout — its fixture was *customised*, so its result differed from the
+defaults and the write landed. **A fixture that differs from the defaults cannot
+see a defect that only shows when it does not.** Both new tests were confirmed
+to fail with the fix reverted.
+
+**wp-dbmanager looked exposed and is not.** It registers a `default` and its
+`maybe_upgrade()` has the same `! is_array( $current )` shape, but it is called
+from `add_hooks()` at plugin load, before `admin_init` — so `register_setting()`
+has not run. Checked rather than assumed.
+
+### The shared-row violations (§13.2) are fixed
+
+Both were the same design: one list of legacy rows drives the migration *and*
+uninstall, which is what stops a row the plugin owns drifting off the uninstall
+list — and both had a row they never owned on it.
+
+* **wp-polls** — `legacy_shared_rows()` splits `stats_display` out.
+  `option_names()` merges only `legacy_extra_rows()`.
+* **wp-downloadmanager** — `legacy_shared_rows()` names both `stats_display` and
+  `stats_mostlimit`; `uninstall.php` and the suite's `run_uninstall()` each
+  subtract it.
+
+Do not fold the lists back together. Each is pinned by two tests — the contract
+(absent from the uninstall list) and the behaviour (a seeded row survives) —
+because a test that walks the single list cannot see the defect.
+
+### Also closed
+
+* **wp-polls and wp-stats** now carry the family's exact "Update all seven
+  WP-Stats plugins together" wording. Those were the last two PHPUnit failures
+  outside freemyinternet.
+* **freemyinternet's four known discrepancies**, all of them the cost of its
+  agent having finished before the spec settled: the v2-**only** GPL block under
+  a `GPLv2 or later` header (§3.1 — it was the last one), an Upgrade Notice that
+  never named the removed global `freemyinternet()`, a `CHANGED: Minimum
+  WordPress 6.0 and PHP 7.4` line sitting under `BREAKING: Requires WordPress 6.8
+  and PHP 8.2`, and a `wp_register_script()` call still working around the 6.0
+  floor. Its Donations paragraph also appeared twice; no sibling has two.
+
+### Open, and the next thing to do
+
+**The thirteen remaining plugin bugs from the sweep**, in the order the report
+rates them — wp-sweep's `messageContainer()` first, because it is 24 of the 41
+remaining E2E failures and means no sweep ever reports its result. Then the
+three security items (wp-downloadmanager's raw `%FILE_NAME%`, wp-print's
+unescaped `[print_link]`, wp-print printing a password-protected post's
+comments), then the broken features. All are left as failing E2E tests; fix the
+code, not the test.
+
+One piece of drift found and deliberately **not** decided: the FSF postal address
+in the GPL block. Sixteen plugins say `59 Temple Place`, three say
+`51 Franklin St` (freemyinternet, wp-relativedate, wp-showhide). §3.1 elides the
+line, and 51 Franklin St is the address the FSF actually uses — so the three are
+arguably right and the sixteen wrong. Nineteen files either way; it wants a
+decision, not a guess.
+
+---
+
 ## E2E SWEEP RESULT (2026-08-02) — 826/867
 
 First full run of all nineteen suites. Nine green: the seven that already were,
@@ -832,6 +930,5 @@ fixture tests the fixture.
 
 ### Still open from before
 
-wp-polls and wp-downloadmanager delete the shared `stats_display` row on
-uninstall (§13.2). wp-polls' fix is a two-file change — its own
-`tests/test-uninstall.php` requires the row to be listed.
+**Both fixed on 2026-08-02** — see the section at the top of this file. wp-polls
+and wp-downloadmanager no longer delete the shared WP-Stats rows on uninstall.

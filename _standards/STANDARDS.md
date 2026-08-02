@@ -1340,6 +1340,58 @@ assert it lands in every table it should. Rows that survived the schema change
 but no longer accept writes are a migration that passed and a plugin that
 broke.
 
+#### 7.6.1 A migration test that does not call `register_setting()` first is testing WP-CLI
+
+The two entry points differ by more than which hook fires, and the difference is
+what makes this the collection's most-repeated bug. `register_setting()` runs on
+`admin_init`, and it attaches **two** things to the settings row:
+
+* a `sanitize_option_{$option}` filter, so **every** `update_option()` the
+  migration makes runs through the settings screen's sanitiser; and
+* where a `default` is passed, a `default_option_{$option}` filter, so
+  `get_option( $option )` answers with the shipped defaults for a row **that does
+  not exist**.
+
+Activation and WP-CLI run neither. So a migration can be correct everywhere a
+test looks and lose data on the one path every real update takes — a site owner
+pressing *Update* on the Plugins screen, where activation hooks do not fire and
+`admin_init` runs the migration alone, after registration.
+
+Four variants of this have now been found, all in different plugins:
+
+1. **wp-print**, ordering — the migration read a row its own earlier step had
+   already emptied, because the sanitiser drops retired keys on every write.
+2. **wp-postviews** — a retired key had to be dropped in both `Settings::sanitize()`
+   and `Options::save()`, because `maybe_upgrade()` runs on `init` and
+   `register_setting()` on `admin_init`.
+3. **wp-pluginsused**, the read — `false === get_option( self::OPTION )` as
+   "there is no row yet" is false once a `default` is registered, so the fold-in
+   was skipped and the legacy row deleted anyway.
+4. **wp-print**, the write — `update_option()` declines to write a value equal to
+   the one `get_option()` would return, and with a registered `default` that is
+   the shipped defaults. A migration whose *result* is the defaults therefore
+   wrote no row at all, deleted the legacy row it had read, and stamped the
+   markers complete.
+
+**Two rules follow, and they are cheap:**
+
+* **Ask for the raw row.** `get_option( $option, false )` inside a migration,
+  never the bare one-argument form. `filter_default_option()` returns early when a
+  default was passed, so this is the whole fix for the read side.
+* **Write through a helper that can tell an absent row from a defaulted one**, and
+  `add_option()` when it is absent. `add_option()` runs the sanitiser exactly as
+  `update_option()` does, so nothing else changes. `WP_Print_Options::write()` is
+  the reference.
+
+**And one about the fixture.** wp-print already had a test that called
+`WP_Print_Settings::register()` before the migration, and it passed throughout,
+because its fixture was *customised* and so differed from the defaults. **A
+fixture that differs from the defaults cannot see a defect that only shows when
+it does not.** Every migration suite needs the shipped-settings case — which is
+the commonest install in the world — and it must read the **raw** row, because
+through a registered default a row that was never written is indistinguishable
+from one holding the defaults.
+
 **DDL commits the transaction the test runner wraps each test in.** So a
 migration test cannot lean on the automatic rollback: it must rebuild a clean
 install in `tear_down()` **and then `COMMIT`**. Skip the commit and the parent's
