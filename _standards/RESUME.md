@@ -535,11 +535,21 @@ both by hand, and neither is work this repo drives.
    `Plugins Used`, `Manage Ratings`, `Sweep`, `Server Information`, `Stats`.
    Changing wp-ban quietly would leave the standard teaching the opposite of what
    the collection does. Decide which rule wins and fix the loser.
-4. **The two navigation suites' capability tests still assert nothing.**
-   wp-pagenavi and wp-commentnavi: "a user without manage_options cannot reach the
-   screen" **passes with the plugin deactivated**, because the page does not exist
-   — it cannot tell "capability works" from "page missing". §7.5 already forbids
-   the one-sided form. Add the companion assertion that an admin *can* reach it.
+4. **Done 2026-08-02.** Both navigation suites now assert the administrator
+   half first, and it was verified by deactivating the plugin and re-running —
+   the test fails where it used to pass.
+**Also closed on 2026-08-02, and worth knowing as a class.** Eight plugins
+register a `default` *and* write the settings row inside an upgrade path, which
+is the §7.6.1 hazard: `update_option()` declines to write a value equal to what
+`get_option()` would return, and a registered `default` makes that the shipped
+defaults for a row that does not exist. All eight now write through a `write()`
+helper (`WP_Print_Options::write()` is the reference). Six were latent rather
+than live — every one of their `get()` methods merges over the defaults, so a
+missing row and a defaults row read identically — but the two that were *not*
+latent each cost a release blocker earlier the same day. Ordinary setters
+(`update()`, `save()`) are deliberately untouched: only an upgrade path that then
+deletes the rows it read carries the risk.
+
 5. **Assertion failure messages.** 4,847 of 6,845 (70.8 %) carry none, very
    unevenly: freemyinternet 0 % missing, wp-useronline 15 %, against wp-email
    94.9 %, wp-dbmanager 86.7 %, wp-print 83.9 %. freemyinternet is the reference
