@@ -39,7 +39,7 @@ differences between two plugins are name, features and capability.
 
 ## What exists
 
-* `_standards/STANDARDS.md` — the spec. 15 sections.
+* `_standards/STANDARDS.md` — the spec. 17 numbered sections.
 * `_standards/BRIEFS.md` — the agent launch kit: a reusable preamble, the
   identity table, and a per-plugin section recording what the survey found in
   that repo. Survey knowledge that exists nowhere else and is expensive to

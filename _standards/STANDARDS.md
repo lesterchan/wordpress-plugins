@@ -91,9 +91,9 @@ Hard rules:
   `postviews-admin.js` → `js/wp-postviews-admin.js`, and so on.
 * Every directory gets a silence-is-golden `index.php` (see the template). This
   includes `bin/`, `css/`, `images/`, `includes/`, `js/`, `tests/`.
-* `uninstall.php` exists in **every** plugin. `wp-relativedate` and
-  `wp-showhide` currently have none — they still need one, even if it only
-  deletes the single option row.
+* `uninstall.php` exists in **every** plugin, even where it only deletes a
+  single option row. `wp-relativedate` and `wp-showhide` had none when this was
+  written; both do now.
 * `.wp-env.override.json` is **deleted** from every repo and gitignored. Ports
   live in the committed `.wp-env.json`; the override file is for local/CI use
   only and must never be tracked.
@@ -508,7 +508,8 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Nine fields after the `#` heading. Exactly **five** tags.
 
 `Contributors:` is **`GamerZ` and nothing else**, in every plugin without
-exception. wp-pagenavi currently reads `GamerZ, scribu`; drop the second name.
+exception. wp-pagenavi read `GamerZ, scribu` when this was written; the second
+name is gone.
 
 ### 3.3 `README.md` body
 
@@ -536,9 +537,10 @@ headings are free — `## Changelog` necessarily contains `### 2.0.0`, and
   > bucks, I will really appreciate it. If not feel free to use it without any
   > obligations.
 
-  Today 17 plugins carry it in three variants: 10 exactly as above, 5 with a
-  stray `* ` bullet prefix, and 2 with "as my school allowance" — drop that
-  clause. freemyinternet and wp-relativedate removed it and must get it back.
+  It was in three variants when this was written: 10 exactly as above, 5 with
+  a stray `* ` bullet prefix, and 2 with an "as my school allowance" clause,
+  while freemyinternet and wp-relativedate had dropped it altogether. All
+  nineteen now carry the wording above verbatim.
 * **`## Upgrade Notice` is not project history.** It answers two questions and
   only those: what will break for the reader, and what they must do about it.
   wp-useronline opened with a paragraph explaining why the release was numbered
@@ -1710,9 +1712,10 @@ directory, not the count.
 
 ## 13. WP-Stats integration — the one cross-plugin contract
 
-Seven plugins currently read the bare `stats_display` row, and five read
-`stats_mostlimit`: wp-downloadmanager, wp-email, wp-polls, wp-postratings,
-wp-postviews, wp-stats and wp-useronline. These are unprefixed, shared, legacy
+Seven plugins read the bare `stats_display` row when this was written, and
+five read `stats_mostlimit`: wp-downloadmanager, wp-email, wp-polls,
+wp-postratings, wp-postviews, wp-stats and wp-useronline. None reads either
+outside its migration now, which is what the contract below achieved. These are unprefixed, shared, legacy
 `wp_options` rows — exactly what §2.1 forbids, and the one place where changing
 a plugin in isolation breaks a sibling.
 
