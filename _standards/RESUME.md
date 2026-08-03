@@ -4,8 +4,9 @@ State of the consistency programme as of **2026-08-03**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line:** all nineteen plugins are green on CI, the bug backlog is empty,
-and **one item is open** — WP-CLI, REST and blocks, a phase that has not
-started. Everything else on the list below is closed.
+the pre-revamp tags are cut and pushed, and **one item is open** — WP-CLI, REST
+and blocks, a phase that has not started. Everything else on the list below is
+closed, and nothing is waiting on Lester.
 
 **Trust the tools over this file.** At the start of a session run
 `python3 bin/verify.py --quiet` and `git log --oneline -3` in each repo. Between
@@ -40,15 +41,9 @@ differences between two plugins are name, features and capability.
 ## What exists
 
 * `_standards/STANDARDS.md` — the spec. 17 numbered sections.
-* `_standards/BRIEFS.md` — the agent launch kit: a reusable preamble, the
-  identity table, and a per-plugin section recording what the survey found in
-  that repo. Survey knowledge that exists nowhere else and is expensive to
-  re-derive.
 * `_standards/templates/` — the files each plugin copies verbatim, placeholders
   `{{SLUG}}` `{{NAME}}` `{{CLASS}}` `{{UNDER}}` `{{UPPER}}` `{{L10N}}`
   `{{DESCRIPTION}}`.
-* `_standards/E2E-SWEEP-2026-08-02.md` — the full per-plugin E2E sweep report,
-  1,078 lines. Every bug in it is fixed; it is kept for the detail.
 * `.wp-env.json` — all 19 plugins in one WordPress on 8888/8889.
 * `bin/verify.py` — mechanical checker, ~40 rules per plugin.
   `python3 bin/verify.py [slug…] [--quiet]`. Exit status is the failure count.
@@ -198,22 +193,31 @@ release.
 and the SVN release itself. Lester does both by hand. Nothing here pushes, tags
 or touches SVN.
 
-## Waiting on Lester: the pre-revamp tags
+## The pre-revamp tags — done 2026-08-03
 
-**None of the nineteen repositories carries a single git tag**, so there is no
-ref for "the plugin as it shipped before this work". The commit is identifiable
-in all nineteen — every one has a gap of months to years between its last
-release and the first campaign commit — and the table below is that boundary,
-with the version each was carrying. It has been checked: each commit's plugin
-header and `Stable tag` were compared, and the two disagreements are noted.
+**All nineteen are tagged and pushed**, so every plugin now has a ref for "as it
+shipped before this work". Verified against each remote afterwards rather than
+trusted from the push output: nineteen annotated tags, each on the commit in the
+table below.
 
-`bin/tag-pre-revamp.sh` creates all nineteen as annotated tags and pushes them.
-It takes the directory holding the plugin repos, is safe to re-run, and refuses
+`bin/tag-pre-revamp.sh` is what created them. It takes the directory holding the
+plugin repos, is safe to re-run — a tag that exists is left alone — and refuses
 to guess: a shallow clone missing the commit is reported rather than tagged.
+Deriving the boundary needed full history, and the clones arrive shallow holding
+only the campaign's own commits, so `git fetch --unshallow origin` is what made
+the pre-revamp past visible at all.
 
-**It has to run from Lester's machine.** The sandbox's git proxy answers a tag
-push with HTTP 403 while allowing branch pushes, so the tags cannot leave a
-session. They were created and verified in one; the container took them with it.
+**It had to run from Lester's machine.** The sandbox's git proxy answers a tag
+push with HTTP 403 while allowing branch pushes, so the tags could not leave a
+session; they were created and verified in one and the container took them with
+it. That is why this sat waiting rather than being finished when it was written.
+
+**Two repositories already carried tags, and an earlier draft of this file said
+none did.** wp-pagenavi has six and wp-useronline four, bare version numbers
+from scribu's tenure (2010–2014), already on their remotes. They do not collide
+with the new tags and their naming is the same bare-version shape. The claim was
+never checked against `git tag` — it was prose about a number nothing measured,
+which is the same failure §7.2.2's note records.
 
 | Plugin | Tag | Commit | Date |
 |---|---|---|---|
@@ -237,7 +241,8 @@ session. They were created and verified in one; the container took them with it.
 | wp-sweep | 1.2.0 | `cff61a76` | 2026-06-19 |
 | wp-useronline | 2.88.9 | `14d4edc2` | 2025-07-15 |
 
-Two things the boundary turned up, both about released state rather than tags:
+Two things the boundary turned up, both about released state rather than tags,
+and both re-checked against the commits themselves before the tags were cut:
 
 * **wp-email shipped with its header behind its `Stable tag`.** At `066014a9`
   the header reads `2.69.2` and the `Stable tag` reads `2.69.3`, so wordpress.org
@@ -248,10 +253,6 @@ Two things the boundary turned up, both about released state rather than tags:
   wp-commentnavi, wp-draftsforfriends, wp-pluginsused and wp-relativedate. §14
   says four. This is the git side of that claim rather than the SVN side, so it
   is evidence and not proof, but the number to check is five.
-
-Deriving the boundary needs full history: the clones arrive shallow, holding
-only the campaign's own commits, and `git fetch --unshallow origin` is what
-makes the pre-revamp past visible at all.
 
 ## READ FIRST — CI and your machine are not the same environment
 
@@ -359,6 +360,33 @@ time somebody installs something.
   midday.
 * **Run E2E one plugin at a time.** Four concurrent Playwright runs tore each
   other down on a 7.6 GiB Docker.
+
+**Four defects in the *tests* accounted for 20 of the 39 fixes** in the
+2026-08-02 sweep, and each will recur in any suite written the same way:
+
+1. **A Settings API checkbox is two inputs** — a hidden `value="0"` beside the
+   box, so `[name="…"]` matches both and dies of Playwright strict mode. Hit
+   wp-useronline ×3, wp-ban, wp-email ×4 in one loop, wp-downloadmanager. Give
+   every suite a `checkbox()` helper beside its `field()`.
+2. **`get_current_user_id()` inside `wpEval()` is 0.** `wp eval` has no logged-in
+   user, so `get_user_meta( get_current_user_id(), … )` reads the empty string
+   and the assertion reports a working feature as broken. Hit wp-downloadmanager,
+   wp-email, wp-draftsforfriends.
+3. **A page-global XSS sentinel is contaminated by core**, which prints
+   unescaped values on the same page: the admin bar's `Howdy, <display name>`,
+   `comment_form()`'s `Logged in as …`, and `the_title()`. Scope the assertion to
+   the plugin's own container. Hit wp-postviews, wp-useronline, wp-stats ×2,
+   wp-downloadmanager ×2.
+4. **Strict mode on selectors that legitimately match twice.** `WP_List_Table`
+   draws its tablenav above *and* below (`.total-pages`, `tfoot, tbody`), and the
+   Dashboard carries core's own `.notice-error`.
+
+Two suites are thin rather than wrong, and are where to spend the next E2E hour:
+**wp-email** (45) leans on the interceptor recording one message, never covers
+`[email_link]` placement within content, and renders each standalone template
+once; **wp-postviews** (98) is padded — a six-way parametrised loop at
+`display.spec.js:114` and a four-way at `settings.spec.js:87` make ~15 of its 98
+one assertion with a different argument.
 
 ## Tests that cannot fail
 
@@ -636,10 +664,19 @@ Kept short on purpose; the detail is in git.
 * **2026-08-02** — full E2E sweep, 826/867. Fifteen plugin bugs found, all since
   fixed; two release blockers (wp-print, wp-pluginsused migrations discarding
   the settings of the commonest released install); both §13.2 shared-row
-  violations. Report at `_standards/E2E-SWEEP-2026-08-02.md`.
+  violations. The full 1,078-line report was deleted on 2026-08-03 once every
+  bug in it was fixed — its four recurring *test* defects are folded into the
+  E2E lessons above, and the per-plugin run log is in git.
 * **2026-08-03** — CI reconciled with local for the first time (the permalink
   divergence above); assertion messages taken to 7,860 of 7,860; the metadata
-  fixture held to its template; two tests that could not fail replaced.
+  fixture held to its template; two tests that could not fail replaced. Then the
+  nineteen pre-revamp tags were cut and pushed, and `_standards/` was cut from
+  eight files to four: `BRIEFS.md`, `SNAPSHOT.md`, `E2E-SWEEP-2026-08-02.md` and
+  `E2E-RERUN-2026-08-02.txt` all described work that had finished, and three of
+  the four had drifted into saying things that were no longer true. **A document
+  that records a migration becomes wrong the moment the migration lands** —
+  BRIEFS still instructed an agent to create wp-relativedate's options row, which
+  has existed since 2026-07-30. What was worth keeping was extracted first.
 
 The programme found roughly **twenty-five spec bugs and eleven `verify.py`
 bugs**, every one because an agent pushed back rather than complied. The pattern
