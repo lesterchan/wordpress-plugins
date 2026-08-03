@@ -1007,8 +1007,14 @@ else; nobody copies it as-is.
   sanitize callback and assert the result contains no `version`, `db_version` or
   `versions` key. This is the regression guard for the wp-useronline bug: it
   fails the moment someone moves a marker back into the settings array.
-  **Skipped by the two plugins with no settings row**, which have no sanitiser;
-  they assert instead that no `{{UNDER}}_options` row is ever created.
+  **Skipped by the four plugins with no settings row** — wp-relativedate,
+  wp-serverinfo, wp-showhide and wp-sweep — which have no sanitiser; they assert
+  instead that no `{{UNDER}}_options` row is ever created, through the
+  `has_settings_row()` opt-out. This said "two" until 2026-08-03, while
+  `helper-metadata-testcase.php` — the file that implements the opt-out — said
+  four in its own docblock. The template was right. Prefer naming the plugins to
+  counting them: a list can be checked against the overrides, and a bare number
+  cannot.
 * `test_no_rtl_stylesheet_is_registered()` — the plugin ships no `*-rtl.css` and
   registers no `rtl` style data (§5.1).
 
@@ -1513,11 +1519,18 @@ Reading the rule as "no `js/` directory" is how five repositories came to ship
 e2e specs that nothing had ever linted — the first CI run after they landed
 found style errors in a file that had been committed and pushed twice.
 
-The same rule read the other way is how three plugins that ship no JavaScript at
-all carried an `eslint:` job for months: it never ran a linter, because it died
-at `actions/setup-node` looking for a lock file in a repository with no
+The same rule read the other way is how three plugins with no JavaScript once
+carried an `eslint:` job for months: it never ran a linter, because it died at
+`actions/setup-node` looking for a lock file in a repository with no
 `package.json`. A job that cannot pass is worse than no job; it teaches everyone
 to ignore a red mark.
+
+**As of 2026-08-03 this rule has no subjects.** Every one of the nineteen has a
+`tests/e2e/` suite, so every one has JavaScript by the definition above and
+every one keeps its `eslint:` job. The rule stays for the next plugin, not for
+these — and it is written as a derivation from `js/` and `tests/e2e/` rather
+than as a list of names precisely so that a nineteen-to-zero change needs no
+edit here beyond this paragraph.
 
 `npm run test:js --if-present` rather than `npm run test:js`, because a plugin
 can have JavaScript worth linting and no vitest suite: a plugin whose only

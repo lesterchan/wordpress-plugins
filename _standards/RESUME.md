@@ -68,10 +68,16 @@ Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 
 ## Current state — verified 2026-08-03
 
-* **CI green on all 19**, checked run by run rather than assumed.
+* **CI green on all 19**, checked run by run rather than assumed. This line is
+  the one in this file most likely to be out of date by the time you read it —
+  it is true only of the commits listed by `git log --oneline -1` in each repo
+  on the date above. Re-check rather than trust it.
 * `verify.py` 0 across all 19.
 * PHPUnit green single site and multisite; Playwright green.
-* **7,860 of 7,860 assertions carry a failure message** (was 3,360, 42.7 %).
+* **Every assertion in the collection carries a failure message** — 7,879 of
+  7,879, up from 3,360 of 7,860 (42.7 %) when the work started. The total moves
+  with every commit; the ratio is the claim, and
+  `python3 bin/measure_assertions.py /path/to/plugins/*` re-derives both.
 * The permalink audit of the E2E suites is complete — see below.
 * No known plugin bug is outstanding.
 
@@ -112,9 +118,11 @@ release.
    Counting cannot tell "under-explained" from "nothing to explain"; only
    reading can.
 
-   The mechanical half, all clean: **1,871 functions across all nineteen have a
-   docblock**, every file has a file-level docblock, and `@package` is the
-   display name everywhere. That last one was a real find — four plugins
+   The mechanical half, all clean: **every function in shipped code has a
+   docblock** — about 1,890 of them across the nineteen, a figure that moves
+   with every commit and is checked rather than tracked — every file has a
+   file-level docblock, and `@package` is the display name everywhere. That last
+   one was a real find — four plugins
    (wp-useronline, wp-postratings, wp-draftsforfriends, wp-sweep) carried the
    lowercase slug in their older files and the display name in their newer ones,
    splitting each plugin along age rather than meaning, and canonicalisation
