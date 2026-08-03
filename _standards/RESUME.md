@@ -439,14 +439,25 @@ found two more:
   nothing: the GIFs and PNGs were replaced with inline SVG during the fan-out
   and never compared since, so the next one added would have shipped. Now a
   `verify.py` check, proven by planting a GIF in wp-ban.
-* **§12's `package.json` script list is stale, and every plugin diverges from
-  it identically.** The spec says the scripts are *exactly* `lint:js`,
-  `lint:js:fix`, `test`, `test:js`, `test:js:watch`. In fact all nineteen also
-  carry `test:e2e` and `test:e2e:headed`, added when Playwright landed and never
-  written back into §12; and seven have no `test:js`/`test:js:watch` because
-  they have no vitest suite. **Nothing checks it, which is why nobody noticed
-  the spec had gone out of date.** Open: decide whether §12 should name the two
-  E2E scripts and make the vitest pair conditional, then check it.
+* ~~**§12's `package.json` script list is stale.**~~ **Rewritten and checked
+  2026-08-03.** The spec named five scripts *exactly*; every plugin also carried
+  `test:e2e` and `test:e2e:headed`, added when Playwright landed and never
+  written back, and seven had no `test:js`/`test:js:watch` at all. So all
+  nineteen diverged from the spec, identically, and nothing noticed — there was
+  no check.
+
+  §12 now derives the set from what the plugin has rather than listing it: five
+  unconditional, plus the vitest pair **only** where `tests/js/` exists, which
+  is twelve of nineteen. The correlation was verified exact before the rule was
+  written — `test:js` present if and only if `tests/js/` present, no exceptions.
+  A `test:js` with no suite behind it is a green result that means nothing,
+  which is why the rule forbids rather than merely permits it.
+
+  `verify.py` derives the same set and compares, proven both ways: removing
+  `test:e2e` reports it missing, adding `test:js` to a plugin without a suite
+  reports it unexpected. §12's other claim — identical devDependency versions —
+  was checked at the same time and is true: seven packages, one version each
+  across all nineteen.
 
 §15 is the order of work per plugin — process rather than state, and not
 checkable.

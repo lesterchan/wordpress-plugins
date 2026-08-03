@@ -1672,9 +1672,39 @@ Lester Chan, `require` `php >=8.2`, `require-dev` `phpunit/phpunit ^9.6` +
 
 `composer.lock` is committed. `vendor/` is not.
 
-`package.json`: same shape as `wp-ban/package.json`. Scripts are exactly
-`lint:js`, `lint:js:fix`, `test`, `test:js`, `test:js:watch`. Same devDependency
-versions across all plugins.
+`package.json`: same shape as `wp-ban/package.json`. Same devDependency versions
+across all plugins.
+
+The script set follows from what the plugin has, and nothing else. Five are
+unconditional:
+
+| Script | Runs |
+|---|---|
+| `lint:js` | `eslint .` |
+| `lint:js:fix` | `eslint . --fix` |
+| `test` | `bin/test.sh` — the PHPUnit suite |
+| `test:e2e` | `bin/test-e2e.sh` |
+| `test:e2e:headed` | `bin/test-e2e.sh --headed` |
+
+Two more **only** where the plugin has a `tests/js/` directory, which twelve of
+the nineteen do:
+
+| Script | Runs |
+|---|---|
+| `test:js` | `vitest run` |
+| `test:js:watch` | `vitest` |
+
+A plugin with no vitest suite carries neither: a script pointing at a runner
+with nothing to run is a green result that means nothing. Every plugin has
+`tests/e2e/`, so the two E2E scripts are unconditional today; they follow the
+directory, not the count.
+
+> This section named five scripts and no E2E entry until 2026-08-03. The two
+> E2E scripts arrived with the Playwright work and were never written back, so
+> **every plugin diverged from the spec, identically, and nothing noticed** —
+> there was no check. `verify.py` now derives the expected set from `tests/js/`
+> and `tests/e2e/` and compares it. A rule nothing compares is a rule that goes
+> out of date silently.
 
 ---
 

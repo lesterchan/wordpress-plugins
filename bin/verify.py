@@ -14,6 +14,7 @@ Exit status is the number of failing checks, capped at 250.
 """
 
 import glob
+import json
 import os
 import re
 import sys
@@ -627,6 +628,42 @@ def verify(slug, name, prefix, port, root):
                     wrong.append("%s: @package %s" % (rel, tag))
     r.check(not wrong, "@package is the plugin display name everywhere",
             "; ".join(wrong[:3]) + (" (+%d more)" % (len(wrong) - 3) if len(wrong) > 3 else ""))
+
+    # --- §12 the package.json script set ------------------------------------
+    # Derived from what the plugin has rather than listed, which is the whole
+    # point: §12 named five scripts and no E2E entry until 2026-08-03, because
+    # the Playwright work added two and nothing compared the result. All
+    # nineteen diverged from the spec identically and in silence.
+    pkg_raw = read(os.path.join(root, "package.json"))
+    if pkg_raw:
+        try:
+            scripts = set(json.loads(pkg_raw).get("scripts", {}))
+        except ValueError:
+            scripts = None
+            r.check(False, "package.json parses")
+
+        if scripts is not None:
+            expected = {"lint:js", "lint:js:fix", "test"}
+
+            if os.path.isdir(os.path.join(root, "tests", "e2e")):
+                expected |= {"test:e2e", "test:e2e:headed"}
+
+            # A test:js pointing at a runner with nothing to run is a green
+            # result that means nothing, so it is owed only with a suite.
+            if os.path.isdir(os.path.join(root, "tests", "js")):
+                expected |= {"test:js", "test:js:watch"}
+
+            missing = sorted(expected - scripts)
+            extra = sorted(scripts - expected)
+            detail = []
+            if missing:
+                detail.append("missing " + ", ".join(missing))
+            if extra:
+                detail.append("unexpected " + ", ".join(extra))
+
+            r.check(not missing and not extra,
+                    "§12 package.json scripts match what the plugin has",
+                    "; ".join(detail))
 
     # --- §11 ships no raster image -----------------------------------------
     # Satisfied everywhere and enforced nowhere until 2026-08-03: §11 replaced
