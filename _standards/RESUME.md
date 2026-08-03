@@ -618,14 +618,54 @@ below about "Playwright green (867/867)" was a local result. See the permalink
 section above. Four repos were red the next morning; all four are green again,
 but the audit that would stop the fifth has not been done.
 
-1. **Audit the twelve unverified E2E suites for permalink assumptions.** The
-   highest-value item on this list, because it is the only one with a known
-   failure rate: four suites on 2026-08-02, three more on 2026-08-03, every one
-   of them green locally first. Two grep patterns find most of it — see "It
-   produced the same class of failure somewhere else, the next day" above — and
-   the rest is reading each suite's fixtures for a structure it assumes without
-   setting. Cheap, mechanical, and it is the difference between CI meaning
-   something and CI meaning "the same drift as last time".
+1. ~~**Audit the twelve unverified E2E suites for permalink assumptions.**~~
+   **Done 2026-08-03. Three defects, all fixed; the two grep patterns are now
+   clean across all nineteen suites.**
+
+   The two mechanical patterns returned nothing outstanding. Every
+   `` `${ … }&` `` hit is an *admin* URL (`options-general.php?page=…`), which
+   always carries a query string, and the one hit on a permalink —
+   `wp-print/tests/e2e/helpers.js:457` — already branches on `includes( '?' )`,
+   which is the shape to copy. Every `?p=` hit is either navigation, which
+   resolves under both structures, or an assertion already written to match both
+   (`wp-commentnavi` line 199 matches `/comment-page-2|cpage=2/`).
+
+   That left the harder half — a suite that *assumes* a structure without
+   setting one — and it found three:
+
+   * **`wp-print/tests/e2e/link.spec.js` took its baseline from the site.**
+     `beforeAll` read `permalinkStructure()` and `afterEach` restored it, so on
+     CI every test exercised `/print/` and on a drifted container every test
+     exercised `?print=1` — the two paths the file exists to compare — and
+     restoring what it found wrote the drift back so nothing ever corrected it.
+     This is the original instance of the whole problem, still unfixed after the
+     ordering bug inside it was. Now pinned to `/%postname%/`. **The one
+     structural fix of the three.**
+   * **`wp-pagenavi/tests/e2e/pagenavi.spec.js:171`** said "the tests site keeps
+     the plain permalink structure", which CI never has. The test clicks rather
+     than typing a URL, so it passed either way; the stated reason was false and
+     is the kind that gets copied. Comment corrected.
+   * **`wp-postviews/tests/e2e/counting.spec.js:269`** said "the tests
+     environment ships plain permalinks". Same false premise, and the same
+     sentence also carried the true reason (a draft's link is the permalink it
+     *would* get). Kept the true half.
+
+   **The other nine suites are structure-independent** and need no pinning:
+   they navigate through `post.link`, which core builds correctly under any
+   structure, or through admin URLs. Every hardcoded front-end path in the
+   collection is `/wp-admin/`, `/wp-login.php` or `/wp-json/`.
+
+   **Three plugins depend on rewrite endpoints** — wp-print `/print/`, wp-email
+   `/email/` and `/emailpopup/`, wp-downloadmanager `/download/` — and all three
+   now pin an absolute pretty structure in `beforeAll` rather than reading one.
+   wp-email's `logs.spec.js` is the only spec of the three that does not, and it
+   is admin-only.
+
+   **The rule this settles, for anything written next:** a suite that depends on
+   the permalink structure sets it to a literal. It never reads the site's and
+   puts that back — that is not restoring state, it is laundering drift. And a
+   test that wants the other structure sets it *after* the last REST call, since
+   `requestUtils` stops resolving the moment `/wp-json/` moves.
 
 2. ~~**Assertion failure messages.**~~ **Done 2026-08-03. Every assertion in
    every plugin carries one: 7,860 of 7,860, across all nineteen trees.**
