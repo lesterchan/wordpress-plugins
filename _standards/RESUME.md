@@ -500,13 +500,35 @@ clock.**
   deactivated**, because the page does not exist — it cannot tell "capability
   works" from "page missing". Add a companion assertion that an admin *can*
   reach the same screen.
-* **`test-metadata.php` exists in four different implementations** across the
-  collection (iterator-prune, strpos, scandir skip-list, hardcoded directory
-  list). Excluding `artifacts/` therefore took four different edits, and the
-  hardcoded-list variant silently passes for any directory nobody added to it.
-  Pick the iterator form, put it in `_standards/templates`, use it everywhere.
-* **Only wp-sweep has a CLAUDE.md.** The other 18 have none, so every
-  architectural decision that file records is unwritten elsewhere.
+* ~~**`test-metadata.php` exists in four different implementations.**~~
+  **Closed 2026-08-03.** The four had already been collapsed onto the iterator
+  form in `_standards/templates/helper-metadata-testcase.php`, and all nineteen
+  copies were byte-identical to it. What was missing was the thing that keeps
+  them that way: `verify.py` held `ci.yml` and `phpcs.xml` to their templates
+  but not this file. It does now, and the check is proven to fail on a
+  one-line difference. Four docblocks were also still shipping the template's
+  `{{CLASS}}` and `{{UNDER}}` placeholders verbatim into all nineteen; they are
+  phrased generically now rather than substituted, because substituting would
+  break the byte-identity the file is built around.
+* **Two class-naming tests compared two literals and could not fail.**
+  **Found and fixed 2026-08-03.** `wp-showhide` and `wp-pluginsused` both
+  looped over a hardcoded array of their own class names and asserted each
+  starts with the plugin prefix — true of any list anybody would type, so a
+  new unprefixed class was invisible to them. wp-pluginsused' file-name half
+  was real but equally blind, since it only asked about the four names already
+  in the array. Both now read the classes back out of `get_declared_classes()`,
+  filtered to files under the plugin directory and excluding `tests/`, and both
+  guard with `assertNotEmpty` — a filter that matches nothing is precisely how
+  the previous version passed while testing nothing. Verified both ways: the
+  new form finds the real classes with their paths matching, and fails on a
+  planted unprefixed class.
+
+  Worth looking for elsewhere: the shape is *any* assertion whose two operands
+  both come from literals written into the test.
+
+* ~~**Only wp-sweep has a CLAUDE.md.**~~ **Stale — corrected 2026-08-03.**
+  All nineteen have one, committed and pushed on 2026-08-02/03, ranging from 75
+  lines (wp-showhide) to 284 (wp-sweep). This note predates them.
 * **wp-polls logs**: leave as a sub-view (per-poll, so the poll is the entry
   point). The one misplaced control is "Delete All Logs", which is cross-poll
   but sits inside a per-poll screen.

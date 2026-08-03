@@ -587,6 +587,23 @@ def verify(slug, name, prefix, port, root):
                 "ci.yml matches the shared template",
                 "differs from _standards/templates (§8)")
 
+    # --- the metadata fixture is one file, not nineteen --------------------
+    # This started as four different implementations of the same walk, so
+    # excluding one directory took four edits and the hardcoded-list variant
+    # silently passed for any directory nobody had added to it. They were
+    # collapsed onto the template, and this is what keeps them there: the file
+    # is deliberately identical in all nineteen -- it reaches the plugin's own
+    # fixture base class through the Plugin_TestCase alias precisely so that it
+    # never has to name a plugin -- so any difference at all is drift.
+    tpl_meta = read(os.path.join(ROOT, "_standards", "templates",
+                                 "helper-metadata-testcase.php"))
+    meta = read(os.path.join(root, "tests", "helper-metadata-testcase.php"))
+    if tpl_meta and meta:
+        r.check(meta == tpl_meta,
+                "helper-metadata-testcase.php matches the shared template",
+                "differs from _standards/templates; this file carries no "
+                "per-plugin text, so edit the template and copy it out")
+
     # --- §7.4 phpunit configs ----------------------------------------------
     for cfg, marker in (("phpunit.xml.dist", None),
                         ("phpunit-multisite.xml.dist", 'name="WP_MULTISITE"')):
