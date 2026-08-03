@@ -4,8 +4,8 @@ State of the consistency programme as of **2026-08-03**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line:** all nineteen plugins are green on CI, the bug backlog is empty,
-and the only substantial work left is a phase that has not started (WP-CLI, REST
-and blocks).
+and **one item is open** — WP-CLI, REST and blocks, a phase that has not
+started. Everything else on the list below is closed.
 
 **Trust the tools over this file.** At the start of a session run
 `python3 bin/verify.py --quiet` and `git log --oneline -3` in each repo. Between
@@ -77,7 +77,8 @@ Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 
 ## Remaining work, in order
 
-Nothing here blocks a release.
+**One item is actually open: number 1.** Two and four are closed; three is
+shipped. Nothing here blocks a release.
 
 1. **WP-CLI, REST API and Gutenberg blocks across the collection.** The only
    substantial item, and a phase of its own rather than a cleanup. `wp-sweep`
@@ -118,10 +119,36 @@ Nothing here blocks a release.
    splitting each plugin along age rather than meaning, and canonicalisation
    walked past it because nothing compared the halves. `verify.py` checks it now.
 
-3. **One open API question**, left deliberately for a collection-wide decision:
-   whether wp-draftsforfriends gains `wp_draftsforfriends_share_created` /
-   `_extended` / `_revoked` actions and a `_share_url` filter. New public API on
-   a plugin that has never had any cannot be withdrawn once shipped.
+3. ~~**The wp-draftsforfriends API question.**~~ **Decided and shipped
+   2026-08-03.** Lester's call: ship the three actions, and do the URL filter
+   properly rather than cheaply.
+
+   `wp_draftsforfriends_share_created`, `_extended` and `_revoked` each fire
+   after the write has succeeded, so a listener sees the stored row rather than
+   what the caller asked for. `extend()` passes the previous expiry alongside
+   the new one, because it cannot be recovered afterwards.
+
+   **The URL filter needed a refactor first, and this is the part worth
+   remembering.** `Shares::url()` wrote `?p=<id>&draftsforfriends=<hash>` and
+   `Preview::requested_hash()` read the query argument back — each holding the
+   string separately, so the link a friend was given and the check that lets
+   them read it agreed only by coincidence. Filtering the URL alone would have
+   let a site rewrite the link into a shape the plugin could not recognise, and
+   every share would have 404'd with nothing on the admin screens looking
+   wrong — which is the field bug fixed on 2026-08-02, reintroduced through an
+   extension point.
+
+   So the query argument is one constant both halves use, and the pair is
+   filterable together: `wp_draftsforfriends_share_url` writes the link,
+   `wp_draftsforfriends_requested_hash` reads it back. **They are one contract**,
+   documented as such, and pinned by a test that rewrites the URL into a path
+   segment, reads it back and still gets the draft — plus its mirror, which
+   honours only half and correctly gets nothing. The filtered hash is sanitised
+   on the way out, since it is the credential the preview is gated on.
+
+   The general rule: **before exposing a value through a filter, find out who
+   else depends on its shape.** A producer and a parser that never share a code
+   path are a bug the moment either becomes public.
 
 4. ~~**Sweep for assertions whose two operands are both literals.**~~ **Done
    2026-08-03. One finding across all nineteen**, in wp-downloadmanager:
