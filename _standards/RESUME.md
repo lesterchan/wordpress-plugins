@@ -506,82 +506,89 @@ clock.**
   but sits inside a per-poll screen.
 
 
+## READ FIRST — the permalink structure decides what the suites test (2026-08-02)
+
+**WordPress turns pretty permalinks on during installation**, whenever the server
+can rewrite — `wp_install_maybe_enable_pretty_permalinks()` in
+`wp-admin/includes/upgrade.php`. The wp-env container can, so **every fresh
+install is `/%year%/%monthnum%/%day%/%postname%/`.**
+
+**A long-lived local wp-env drifts to plain and stays there**, because a suite
+that sets `''` and restores "whatever it found" locks the drift in. So GitHub CI
+and a developer's machine disagree, permanently, and **nothing in these suites
+pins which**.
+
+That is not a nuisance. It means the suites cover *different code paths in each
+environment* and neither says so: wp-print's `/print/` endpoint was exercised
+only in CI, and its `?print=1` fallback only locally. Five suites were red on CI
+for weeks while a full local sweep reported 867/867.
+
+**Assume CI is right.** It installs fresh, which is what a real site looks like.
+Before believing a green local E2E run, check
+`wp option get permalink_structure` in the tests container.
+
+Five failures came out of this, and the last one was **a real bug in the field,
+not a test defect**: `redirect_canonical()` rewrites `?p=<id>` to the pretty
+permalink, and the query that lands there looks a post up by slug among the
+*public* statuses — so wp-draftsforfriends' share links to private and scheduled
+posts 404'd on essentially every real site, while 42 local tests passed over it.
+Fixed in `WP_DraftsForFriends_Preview::keep_the_share_url()`.
+
+**The other four were tests assuming a structure**: switching structure and then
+calling REST (`/wp-json/` stops resolving, and the HTML 404 arrives as
+"Unexpected token '<'"); asserting `/author=/`, which is only the plain form of
+`get_author_posts_url()`; appending `&foo=bar` to a page link that only carries a
+query string when permalinks are plain; and a `.notice-error` selector that
+matched twice because core's community-events notice *reveals itself* when
+api.wordpress.org is unreachable — true on a CI runner, false on a laptop.
+
+**Still open:** nothing pins the structure per suite. Each test that depends on
+it should set it and restore it, or the next drift produces the same class of
+failure somewhere else.
+
 ## Remaining work, in order
 
-Rechecked 2026-08-02. Steps 1-6 of the old list are **done** — the fan-out
-finished, `verify.py` is at zero, PHPUnit is green both ways, cross-plugin
-uniqueness held, §13 reconciled and the Upgrade Notice audit landed. The old
-steps 7 and 8, screenshots and the release, are **off this list**: Lester does
-both by hand, and neither is work this repo drives.
+Rechecked 2026-08-02, evening, after the E2E sweep. **The programme's bug
+backlog is empty.** All 19 plugins: `verify.py` 0, phpcs 0, PHPUnit green single
+site and multisite (4,185 tests each way), Playwright green (867/867). Every
+finding from the 2026-08-02 morning sweep is fixed and confirmed in a browser.
 
-1. **DONE 2026-08-02 evening: 867/867, all nineteen suites green.** Per-suite
-   tally in `_standards/E2E-RERUN-2026-08-02.txt`; the morning's report is
-   annotated rather than rewritten. Every one of the fifteen plugin bugs it found
-   is confirmed fixed in a browser, and one of its diagnoses was wrong — wp-print's
-   "password protected" assertion passes, so the predicted hyphen failure never
-   existed.
+What closed today, so nobody re-opens it: both migration release blockers
+(wp-print, wp-pluginsused); both §13.2 shared-row uninstall violations (wp-polls,
+wp-downloadmanager); all fifteen plugin bugs the E2E sweep left standing; #17 and
+#20 in full; the §7.6.1 write hazard across all eight plugins that can reach it;
+the two navigation suites' one-sided capability tests; the GPL block, which is now
+byte-identical in all nineteen and mechanically checked.
 
-   **Two process notes for the next long run.** A job of this length cannot be a
-   tracked background task: the first attempt was reaped at a ten-minute harness
-   timeout with four suites done. `setsid` does not exist on macOS, so the first
-   relaunch silently never started — and a partial log left by the reaped run made
-   it *look* like it had, which is the same trap as trusting a grep. Plain
-   `nohup … &`, with a monitor that reports process death as well as results,
-   is what worked. Silence must not read as progress.
-2. **#20, the proxy header, is half done.** The label
-   `Header That Contains The IP` reached wp-polls, wp-postratings, wp-email and
-   wp-ban. Still open: the **three-part description exists only in wp-polls**
-   (`WP_Polls_Settings::describe_ip_header()`); **wp-useronline has no header
-   field at all**, only the `WP_USERONLINE_TRUST_PROXY` constant and the
-   `wp_useronline_trust_proxy` filter, so it was never brought to the shape; and
-   **wp-ban's separate "This site is behind a reverse proxy." checkbox** still
-   needs the decision about whether the header field alone should carry that
-   meaning.
-3. **#17 collides with §4.1 and needs a decision, not an edit.** The four screens
-   it named are done — wp-print, wp-dbmanager, wp-postviews and wp-useronline all
-   read `<Name> Settings`. But **wp-ban's `<h1>` still says `Ban Options`**, and
-   §4.1's own worked examples of a good screen heading are `Ban Options`,
-   `Plugins Used`, `Manage Ratings`, `Sweep`, `Server Information`, `Stats`.
-   Changing wp-ban quietly would leave the standard teaching the opposite of what
-   the collection does. Decide which rule wins and fix the loser.
-4. **Done 2026-08-02.** Both navigation suites now assert the administrator
-   half first, and it was verified by deactivating the plugin and re-running —
-   the test fails where it used to pass.
-**Also closed on 2026-08-02, and worth knowing as a class.** Eight plugins
-register a `default` *and* write the settings row inside an upgrade path, which
-is the §7.6.1 hazard: `update_option()` declines to write a value equal to what
-`get_option()` would return, and a registered `default` makes that the shipped
-defaults for a row that does not exist. All eight now write through a `write()`
-helper (`WP_Print_Options::write()` is the reference). Six were latent rather
-than live — every one of their `get()` methods merges over the defaults, so a
-missing row and a defaults row read identically — but the two that were *not*
-latent each cost a release blocker earlier the same day. Ordinary setters
-(`update()`, `save()`) are deliberately untouched: only an upgrade path that then
-deletes the rows it read carries the risk.
+1. **Assertion failure messages — the 70.8 % figure in this file was stale and
+   the real number is unknown.** A rough recount on 2026-08-02 put it nearer 20 %
+   (1,637 of 7,947), but that count is **not trustworthy**: PHPUnit's message
+   argument sits in a different position per assertion — third for
+   `assertSame`/`assertEquals`, second for `assertTrue`/`assertNull`/`assertEmpty`
+   — and a regex that does not know the arity of each one reads `assertSame( $a,
+   $b )` as already carrying a message. That undercounts. **Measure it properly
+   before planning the work**, per assertion name, or the estimate will be wrong
+   in whichever direction is least convenient.
 
-5. **Assertion failure messages.** 4,847 of 6,845 (70.8 %) carry none, very
-   unevenly: freemyinternet 0 % missing, wp-useronline 15 %, against wp-email
-   94.9 %, wp-dbmanager 86.7 %, wp-print 83.9 %. freemyinternet is the reference
-   for what done reads like. One uniform pass, not per plugin, and **no filler** —
-   a message is owed where the failure would otherwise be unreadable.
-6. **Two spec-side questions, both awaiting Playwright evidence.** Neither may be
-   touched on reasoning alone; the rule here is fix the code, not the test.
-   * `wp-print/tests/e2e/printview.spec.js:341` asserts the phrase
-     `password protected`, but WP 7.0's `get_the_password_form()` says
-     `password-protected`, hyphenated. That line sat behind the comment-leak
-     failure and has never been reached, and `.wp-env.json` pins `core: null`, so
-     the literal keeps aging.
-   * `wp-dbmanager/tests/e2e/backups.spec.js` asserts the download refusal on a
-     **later, separate GET**. The message lives in the POST response body, which
-     the test never reads. Persisting a per-request refusal across requests is not
-     something any standard WordPress design does.
-7. **Reconcile this file and `E2E-SWEEP-2026-08-02.md` against the re-run.** Both
-   still describe findings that are fixed. The report is a record of what was
-   observed on the day and should be corrected against a *run*, not against a
-   commit log.
-8. **Later phase, not started:** WP-CLI, REST API and Gutenberg blocks across the
+   The shape of the job is unchanged: one uniform pass, not per plugin, and **no
+   filler** — a message is owed where the failure would otherwise be unreadable.
+   freemyinternet is the reference for what done reads like; it is the only plugin
+   at zero missing on any measure.
+
+2. **wp-polls' "Delete All Logs" is a cross-poll control on a per-poll screen.**
+   `class-wp-polls-screen-manage.php:461`. The logs stay a per-poll sub-view --
+   that decision holds, the poll is the entry point -- but this one button acts on
+   every poll's logs from inside a screen scoped to one. Small, and the only known
+   piece of UI in the collection that is in the wrong place.
+
+3. **Later phase, not started:** WP-CLI, REST API and Gutenberg blocks across the
    collection. `wp-sweep` already has `WP_Sweep_Command` and `WP_Sweep_API` and is
-   the reference (§13.3 pins the naming).
+   the reference; §13.3 pins the naming (`wp wp-sweep`, `wp-sweep/v1`) and the
+   reason -- the bare nouns it replaced were names any plugin could have claimed,
+   and neither WordPress nor WP-CLI detects the collision.
+
+Nothing above blocks a release. Items 1 and 2 are quality; item 3 is a phase of
+its own.
 
 **Off this list on purpose:** screenshots into `~/svn/wordpress_plugins/…/assets/`
 and the SVN release itself. Lester does both by hand. Nothing here pushes, tags or
