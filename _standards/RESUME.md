@@ -546,6 +546,53 @@ api.wordpress.org is unreachable — true on a CI runner, false on a laptop.
 it should set it and restore it, or the next drift produces the same class of
 failure somewhere else.
 
+### It produced the same class of failure somewhere else, the next day
+
+Three of the four plugins red on GitHub on **2026-08-03** were this, again, in
+three places the day before had not touched. Every one had been green locally.
+
+* **wp-useronline** `recording.spec.js:180` asserted the recorded `page_url`
+  contains `p=<id>`. `page_url` is the REQUEST_URI, so it is `/2026/08/03/…/` on
+  a fresh install. The plugin was recording the page correctly and the failure
+  read as though it were not.
+* **wp-stats** `author.spec.js:240` and `:254` appended `&stats_author=` to the
+  statistics page's own link, which carries no query string to append to on a
+  pretty site. The result is a path, WordPress 404s, and both tests then failed
+  saying `.wp-stats` was not found — which reads like the plugin stopped
+  rendering. That is the same shape as the fourth failure listed above, in a
+  different repo, and the file's own docblock asserted the plain structure as a
+  premise.
+* **wp-stats** `settings.spec.js:97` is worse than a failure: it took its Stats
+  URL from the page link, so on a pretty site it was handed no query string and
+  asserted nothing about the separator logic it exists to test. A test that
+  passes vacuously in one environment and fails in the other.
+
+So the four found on 2026-08-02 were not the population, they were the sample.
+**Assume any suite not yet audited for this contains one.** The twelve listed
+under "The twelve unverified suites" are the place to look: they were written
+against a container that had drifted to plain, and only their first CI run has
+ever exercised them against pretty permalinks.
+
+Two shapes to grep for, both mechanical:
+
+* `` `${ something.link }&` `` — string concatenation onto a permalink. Build the
+  URL with `URL` and `searchParams` instead, which is right either way.
+* an assertion naming `?p=`, `?page_id=`, `?author=` or `?cpage=` — the plain
+  form of something core has a function for. Ask WordPress for it.
+
+### wp-showhide's red was not this, and not a plugin bug
+
+Its PHPUnit (WP 6.8, PHP 8.2, single site) job died in **Start wp-env**, before a
+test ran: building the `tests-cli` image, `curl https://composer.github.io/installer.sig`
+got "Recv failure: Connection reset by peer", so the hash check declared the
+installer corrupt and deleted it, and the next step had no file to run. That is
+wp-env's own Dockerfile and a runner network blip. Re-running the job was the
+whole fix.
+
+Worth recognising on sight: **a red job whose failing step is `Start wp-env` is
+an environment failure, not a finding.** Re-run it once before reading anything
+into it.
+
 ## Remaining work, in order
 
 Rechecked 2026-08-02, evening, after the E2E sweep. **The programme's bug
@@ -560,7 +607,21 @@ wp-downloadmanager); all fifteen plugin bugs the E2E sweep left standing; #17 an
 the two navigation suites' one-sided capability tests; the GPL block, which is now
 byte-identical in all nineteen and mechanically checked.
 
-1. **Assertion failure messages — the 70.8 % figure in this file was stale and
+Reopened 2026-08-03: the E2E suites are **not** all green on CI, and the entry
+below about "Playwright green (867/867)" was a local result. See the permalink
+section above. Four repos were red the next morning; all four are green again,
+but the audit that would stop the fifth has not been done.
+
+1. **Audit the twelve unverified E2E suites for permalink assumptions.** The
+   highest-value item on this list, because it is the only one with a known
+   failure rate: four suites on 2026-08-02, three more on 2026-08-03, every one
+   of them green locally first. Two grep patterns find most of it — see "It
+   produced the same class of failure somewhere else, the next day" above — and
+   the rest is reading each suite's fixtures for a structure it assumes without
+   setting. Cheap, mechanical, and it is the difference between CI meaning
+   something and CI meaning "the same drift as last time".
+
+2. **Assertion failure messages — the 70.8 % figure in this file was stale and
    the real number is unknown.** A rough recount on 2026-08-02 put it nearer 20 %
    (1,637 of 7,947), but that count is **not trustworthy**: PHPUnit's message
    argument sits in a different position per assertion — third for
@@ -575,26 +636,38 @@ byte-identical in all nineteen and mechanically checked.
    freemyinternet is the reference for what done reads like; it is the only plugin
    at zero missing on any measure.
 
-2. **wp-polls' "Delete All Logs" is a cross-poll control on a per-poll screen.**
+3. **wp-polls' "Delete All Logs" is a cross-poll control on a per-poll screen.**
    `class-wp-polls-screen-manage.php:461`. The logs stay a per-poll sub-view --
    that decision holds, the poll is the entry point -- but this one button acts on
    every poll's logs from inside a screen scoped to one. Small, and the only known
    piece of UI in the collection that is in the wrong place.
 
-3. **Later phase, not started:** WP-CLI, REST API and Gutenberg blocks across the
+4. **Later phase, not started:** WP-CLI, REST API and Gutenberg blocks across the
    collection. `wp-sweep` already has `WP_Sweep_Command` and `WP_Sweep_API` and is
    the reference; §13.3 pins the naming (`wp wp-sweep`, `wp-sweep/v1`) and the
    reason -- the bare nouns it replaced were names any plugin could have claimed,
    and neither WordPress nor WP-CLI detects the collision.
 
-Nothing above blocks a release. Items 1 and 2 are quality; item 3 is a phase of
-its own.
+Nothing above blocks a release. Item 1 is the one with a demonstrated failure
+rate; items 2 and 3 are quality; item 4 is a phase of its own.
 
 **Off this list on purpose:** screenshots into `~/svn/wordpress_plugins/…/assets/`
 and the SVN release itself. Lester does both by hand. Nothing here pushes, tags or
 touches SVN.
 
 ## Traps
+
+* **`npm ci` failing with `Missing: yaml@2.9.0 from lock file` is your npm, not
+  the lockfile.** `ci.yml` pins Node 24, whose npm is 11.x, and the lockfiles are
+  correct under it — checked on 2026-08-03 across wp-dbmanager, wp-useronline,
+  wp-showhide and wp-stats: `npm ci` accepts every one and
+  `npm install --package-lock-only` changes not a byte. npm 10 resolves vite's
+  optional peer `yaml` differently and declares the lock out of sync.
+
+  **Do not regenerate the lockfile to make the message go away.** npm 10 also
+  strips the `libc` arrays npm 11 writes on optional platform packages, so the
+  "fix" is a 69-line diff that removes metadata CI depends on and silently
+  reverses the drift it claims to correct. Match the npm major first.
 
 * **Nothing in this spec has ever been run under PHPUnit.** Not once, on any
   plugin. Step 3 is the first execution of the new `phpunit.xml.dist`, and the
