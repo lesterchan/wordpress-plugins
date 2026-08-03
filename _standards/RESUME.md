@@ -237,15 +237,13 @@ Still true and still worth knowing:
   19, so it will need changing together when wp-env drops them.
 
 ### What is NOT done
-2. **Tasks 5, 7 and 8 are untouched**: read the diffs for voice and comment
-   density (`verify.py` cannot see those), capture screenshots into SVN assets,
-   and add failure messages to inherited assertions. On that last one, the
-   measured gap is **4,847 of 6,845 assertions (70.8 %)**, and it is very
-   unevenly spread — freemyinternet is at 0 %, wp-useronline 15 %, but wp-email
-   is 94.9 %, wp-dbmanager 86.7 % and wp-print 83.9 %. freemyinternet is the
-   reference for what "done" reads like. Do it as one uniform pass, not per
-   plugin, and do not write filler: a message is owed where the failure would
-   otherwise be unreadable.
+2. **Tasks 5 and 7 are untouched**: read the diffs for voice and comment
+   density (`verify.py` cannot see those), and capture screenshots into SVN
+   assets. **Task 8, failure messages on inherited assertions, is done** —
+   7,860 of 7,860, finished 2026-08-03; see item 2 of the backlog below for the
+   measurement, the scope call and the tooling. The 70.8 % figure this section
+   used to quote was produced by a regex that could not count PHPUnit's
+   `$message` position and was wrong.
 
 3. **Three new asks from Lester, 2026-07-30** (tasks 10 and 11 in the tracker):
    * **Audit every plugin's migration path from the released SVN version to the
@@ -629,46 +627,47 @@ but the audit that would stop the fifth has not been done.
    setting. Cheap, mechanical, and it is the difference between CI meaning
    something and CI meaning "the same drift as last time".
 
-2. **Assertion failure messages — measured properly on 2026-08-03. Both earlier
-   numbers were wrong, and the job needs a decision before it needs work.**
+2. ~~**Assertion failure messages.**~~ **Done 2026-08-03. Every assertion in
+   every plugin carries one: 7,860 of 7,860, across all nineteen trees.**
 
    The measurement is `bin/measure_assertions.py`, which walks each
    call, splits its arguments at the top level respecting nesting and strings,
    and compares the count against a per-assertion arity table. That is what the
    regex could not do: PHPUnit's `$message` sits third for
    `assertSame`/`assertEquals` and second for `assertTrue`/`assertNull`, so
-   "more than N arguments" means nothing until you know N for that name.
+   "more than N arguments" means nothing until you know N for that name. Both
+   earlier estimates — 70.8 % and the ~20 % recount — were wrong; the real
+   starting figure was **3,360 of 7,860 (42.7 %)**.
 
-   **7,860 assertions. 3,360 carry a message (42.7 %); 4,500 do not.** The 70.8 %
-   was stale and the 20 % recount undercounted, as predicted.
+   The scope question was real and Lester answered it. `bin/triage_assertions.py`
+   split the 4,500 into 991 *owed* on the "otherwise unreadable" rule (927
+   opaque predicates, 64 inside loops) and 3,467 that already fail with a
+   readable expected-against-actual diff. The narrow reading gave 991; the
+   freemyinternet reading — named in this file as what done looks like, and at
+   232 of 232 — gave 4,500. **Lester chose the freemyinternet reading**, so all
+   4,500 were written.
 
-   **But 4,500 is not the size of the job, and this is the decision.** PHPUnit
-   prints expected against actual for the comparing assertions, so
-   `assertSame( 'Today', relative_comment_date( 'DATE' ) )` already fails
-   legibly and a message on it is the filler this list forbids. It prints
-   nothing usable for the predicate ones — "Failed asserting that false is
-   true" names neither subject nor expectation — and it cannot say which pass of
-   a loop failed. Splitting on that (`bin/triage_assertions.py`):
+   The diffing 3,467 turned out to be worth more than the triage suggested. The
+   messages that earn their place are on **pairs of assertions one character
+   apart in the source**: the print link against the print content element, the
+   backup interval against the optimize interval, the standalone endpoint
+   against the popup one, the first recipient against the second. Two of those
+   failing prints two diffs and names neither, and a diff cannot tell you which
+   of the pair broke. That is exactly the class the "no filler" rule was written
+   to protect against, read the other way round.
 
-   | | assertions |
-   |---|---|
-   | opaque predicate, no diff printed | 927 |
-   | inside a loop, so the failing case is unnamed | 64 |
-   | **owed a message on the "otherwise unreadable" rule** | **991** |
-   | already fail with a readable diff | 3,467 |
+   The style is the rule, not the test name restated: `'Seven days is a week,
+   not seven days.'`, `'A guest has no user ID.'`, `'The link element starts in
+   the hidden state class.'`. Loop assertions concatenate the loop variable.
 
-   So the job is **991 or 4,500 depending on which rule holds**, and the two
-   readings of this list disagree. "No filler — a message is owed where the
-   failure would otherwise be unreadable" gives 991. freemyinternet, named here
-   as the reference for what done reads like, messages **every** assertion —
-   232 of 232 — which gives 4,500. Lester's call; it is a 4.5× difference.
-
-   **Started 2026-08-03, on the 991 reading, which is a subset of the other so
-   no work is wasted whichever way it goes.** wp-useronline is at 374 of 374
-   (it was already at 88.5 %, so it went to the freemyinternet standard);
-   wp-relativedate is at 0 owed of 98 missing. Per-plugin remaining counts are
-   what `bin/triage_assertions.py` prints; wp-dbmanager (151), wp-email (130) and
-   wp-sweep (102) are the three largest.
+   The tooling is in the scratchpad rather than in `bin/`, because it is
+   single-use: a spec of `{file: [[line, expect_substring, message]]}` per
+   plugin, a `check.py` that validates every entry against the source before
+   anything is written, and an `apply.py` that edits back to front and aborts
+   atomically on the first mismatch. Anyone repeating this should rebuild those
+   three rather than look for them. `bin/measure_assertions.py` and
+   `bin/triage_assertions.py` are committed and stay useful: run the first
+   after any test work to confirm the figure has not slipped.
 
 3. ~~**wp-polls' "Delete All Logs" is a cross-poll control on a per-poll
    screen.**~~ **Closed 2026-08-03: checked against the code, and it is not.**
