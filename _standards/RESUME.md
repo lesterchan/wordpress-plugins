@@ -54,6 +54,14 @@ differences between two plugins are name, features and capability.
   `--multisite` for the network run. Keeps going past failures.
 * `bin/verify.py` — mechanical checker, ~40 rules per plugin. `python3
   bin/verify.py [slug…] [--quiet]`. Exit status is the failure count.
+* `bin/measure_assertions.py` — how many PHPUnit assertions carry a failure
+  message, per plugin and per assertion name. Takes plugin paths. Parses the
+  argument list rather than counting commas, because `$message` sits at a
+  different position for every assertion and a regex cannot tell a two-argument
+  `assertSame` from a messaged one.
+* `bin/triage_assertions.py` — the same set split into the messages that are
+  owed and the ones that would be filler, on the rule that a message is owed
+  where PHPUnit's own output would not identify the failure. Same arguments.
 
 ## Where the work got to
 
@@ -621,26 +629,63 @@ but the audit that would stop the fifth has not been done.
    setting. Cheap, mechanical, and it is the difference between CI meaning
    something and CI meaning "the same drift as last time".
 
-2. **Assertion failure messages — the 70.8 % figure in this file was stale and
-   the real number is unknown.** A rough recount on 2026-08-02 put it nearer 20 %
-   (1,637 of 7,947), but that count is **not trustworthy**: PHPUnit's message
-   argument sits in a different position per assertion — third for
-   `assertSame`/`assertEquals`, second for `assertTrue`/`assertNull`/`assertEmpty`
-   — and a regex that does not know the arity of each one reads `assertSame( $a,
-   $b )` as already carrying a message. That undercounts. **Measure it properly
-   before planning the work**, per assertion name, or the estimate will be wrong
-   in whichever direction is least convenient.
+2. **Assertion failure messages — measured properly on 2026-08-03. Both earlier
+   numbers were wrong, and the job needs a decision before it needs work.**
 
-   The shape of the job is unchanged: one uniform pass, not per plugin, and **no
-   filler** — a message is owed where the failure would otherwise be unreadable.
-   freemyinternet is the reference for what done reads like; it is the only plugin
-   at zero missing on any measure.
+   The measurement is `bin/measure_assertions.py`, which walks each
+   call, splits its arguments at the top level respecting nesting and strings,
+   and compares the count against a per-assertion arity table. That is what the
+   regex could not do: PHPUnit's `$message` sits third for
+   `assertSame`/`assertEquals` and second for `assertTrue`/`assertNull`, so
+   "more than N arguments" means nothing until you know N for that name.
 
-3. **wp-polls' "Delete All Logs" is a cross-poll control on a per-poll screen.**
-   `class-wp-polls-screen-manage.php:461`. The logs stay a per-poll sub-view --
-   that decision holds, the poll is the entry point -- but this one button acts on
-   every poll's logs from inside a screen scoped to one. Small, and the only known
-   piece of UI in the collection that is in the wrong place.
+   **7,860 assertions. 3,360 carry a message (42.7 %); 4,500 do not.** The 70.8 %
+   was stale and the 20 % recount undercounted, as predicted.
+
+   **But 4,500 is not the size of the job, and this is the decision.** PHPUnit
+   prints expected against actual for the comparing assertions, so
+   `assertSame( 'Today', relative_comment_date( 'DATE' ) )` already fails
+   legibly and a message on it is the filler this list forbids. It prints
+   nothing usable for the predicate ones — "Failed asserting that false is
+   true" names neither subject nor expectation — and it cannot say which pass of
+   a loop failed. Splitting on that (`bin/triage_assertions.py`):
+
+   | | assertions |
+   |---|---|
+   | opaque predicate, no diff printed | 927 |
+   | inside a loop, so the failing case is unnamed | 64 |
+   | **owed a message on the "otherwise unreadable" rule** | **991** |
+   | already fail with a readable diff | 3,467 |
+
+   So the job is **991 or 4,500 depending on which rule holds**, and the two
+   readings of this list disagree. "No filler — a message is owed where the
+   failure would otherwise be unreadable" gives 991. freemyinternet, named here
+   as the reference for what done reads like, messages **every** assertion —
+   232 of 232 — which gives 4,500. Lester's call; it is a 4.5× difference.
+
+   **Started 2026-08-03, on the 991 reading, which is a subset of the other so
+   no work is wasted whichever way it goes.** wp-useronline is at 374 of 374
+   (it was already at 88.5 %, so it went to the freemyinternet standard);
+   wp-relativedate is at 0 owed of 98 missing. Per-plugin remaining counts are
+   what `bin/triage_assertions.py` prints; wp-dbmanager (151), wp-email (130) and
+   wp-sweep (102) are the three largest.
+
+3. ~~**wp-polls' "Delete All Logs" is a cross-poll control on a per-poll
+   screen.**~~ **Closed 2026-08-03: checked against the code, and it is not.**
+   The note's own file:line reference contradicted its description.
+   `class-wp-polls-screen-manage.php:461` is inside the `default:` branch of the
+   `$poll_mode` switch, which renders **Manage Polls** — the list of every poll,
+   with the cross-poll stats table above it. A cross-poll control on the
+   cross-poll screen is where it belongs.
+
+   The per-poll screen is `WP_Polls_Screen_Logs`, reached with a `$poll_id`, and
+   its button is a different one: "Delete Logs For This Poll Only"
+   (`class-wp-polls-screen-logs.php:420`), scoped and labelled as such.
+   `git log -S "Delete All Logs" -- includes/class-wp-polls-screen-logs.php`
+   returns nothing, so the cross-poll button was never on the per-poll screen
+   and this was a description error rather than a regression.
+
+   Nothing to fix. The collection has no known misplaced UI.
 
 4. **Later phase, not started:** WP-CLI, REST API and Gutenberg blocks across the
    collection. `wp-sweep` already has `WP_Sweep_Command` and `WP_Sweep_API` and is
@@ -1012,12 +1057,19 @@ unescaped `[print_link]`, wp-print printing a password-protected post's
 comments), then the broken features. All are left as failing E2E tests; fix the
 code, not the test.
 
-One piece of drift found and deliberately **not** decided: the FSF postal address
-in the GPL block. Sixteen plugins say `59 Temple Place`, three say
-`51 Franklin St` (freemyinternet, wp-relativedate, wp-showhide). §3.1 elides the
-line, and 51 Franklin St is the address the FSF actually uses — so the three are
-arguably right and the sixteen wrong. Nineteen files either way; it wants a
-decision, not a guess.
+One piece of drift found and left for a decision: the FSF postal address in the
+GPL block, sixteen plugins on `59 Temple Place` against three on `51 Franklin
+St`. **Decided and closed 2026-08-03** — Lester confirmed 51 Franklin Street.
+All nineteen carry it, §3.1 spells the tail out in full instead of eliding it,
+and `bin/verify.py` compares the block byte for byte. Verified on 2026-08-03:
+the nineteen GPL blocks are identical bar the plugin's own filename, and
+`verify.py` is at 0.
+
+Note that neither original group was right. The sixteen had the address the FSF
+left in 2005; the three had the right building with the street abbreviated. §3.1
+carries what the FSF publishes with GPL-2.0 today, which is what "converge"
+had to mean here — the alternative was nineteen files agreeing on something
+false.
 
 ---
 
