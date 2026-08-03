@@ -310,8 +310,25 @@ class scan that matched `vendor/`, and a hook-surface guard that had to be
 updated deliberately. Every one was invisible to the checks being run here and
 obvious to the ones that were not.
 
-**phpcs is installable and is worth installing**, because it gates a whole CI
-job and needs no Docker:
+**A SessionStart hook now installs the toolchain**, so a fresh session on
+`wordpress-plugins` arrives with it: `.claude/hooks/session-start.sh`, registered
+in `.claude/settings.json`. It installs Node 24 (what `ci.yml` pins), phpcs and
+WPCS, and starts the Docker daemon, which is present but not running by default.
+It is idempotent and remote-only.
+
+That makes **two of the nine CI jobs reproducible here** — "PHP coding standards"
+and "JS coding standards and tests". Both were validated: phpcs catches a planted
+double-quoted string, `npm ci` is clean under npm 11, `eslint` passes, and
+wp-sweep's 34 vitest tests run.
+
+**The six PHPUnit jobs and the Playwright job still cannot run**, and not for
+want of Docker — Docker starts fine. wp-env downloads WordPress from
+`*.wordpress.org`, and this session's egress policy blocks that host (403 at the
+agent proxy; `npmjs.org` and `github.com` are allowed). That is an organisation
+policy, not something to route around, so those suites belong to CI. It is the
+gap that let a hook-surface test failure through on 2026-08-03.
+
+To install the PHP side by hand instead:
 
 ```sh
 export COMPOSER_ALLOW_SUPERUSER=1
@@ -336,10 +353,13 @@ letter** (a backtick or a lowercase identifier fails, though a `§` slips throug
 as multibyte), and a string with nothing to interpolate must use **single
 quotes**.
 
-**PHPUnit still needs Docker** and so cannot be run here. That gap is real:
-`tests/test-metadata.php` pins each plugin's hook surface as an exact set, so
-any new hook fails it by design, and nothing short of running the suite will
-tell you.
+For the JS job, `npm ci && npm run lint:js && npm run test:js` inside a plugin,
+under Node 24. Under Node 22's npm 10 the lockfiles read as out of sync, which
+is the false alarm in Traps below.
+
+**PHPUnit remains CI-only.** That gap is real: `tests/test-metadata.php` pins
+each plugin's hook surface as an exact set, so any new hook fails it by design,
+and nothing short of running the suite will tell you.
 
 ## Traps
 
