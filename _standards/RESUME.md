@@ -4,8 +4,8 @@ State of the consistency programme as of **2026-08-03**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line:** all nineteen plugins are green on CI, the bug backlog is empty,
-and **two items are open** — routing administrator creation through a helper
-(small, measured), and WP-CLI/REST/blocks, a phase that has not started.
+and **one item is open** — WP-CLI, REST and blocks, a phase that has not
+started. Everything else on the list below is closed.
 
 **Trust the tools over this file.** At the start of a session run
 `python3 bin/verify.py --quiet` and `git log --oneline -3` in each repo. Between
@@ -77,28 +77,18 @@ Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 
 ## Remaining work, in order
 
-**Two items are open: 1 and 2.** Three has nothing actionable left, four is
-shipped and five is closed. Nothing here blocks a release.
+**One item is actually open: number 1.** Two is a human read with nothing
+mechanical left in it; three, four and five are done. Nothing here blocks a
+release.
 
-1. **Route administrator creation through a helper (§7.2.2).** Small, mechanical
-   and now measured: four plugins route it (wp-dbmanager, wp-polls, wp-print,
-   wp-sweep), **twelve create administrators inline across 55 call sites**, and
-   three create none. All three plugins that need the super admin grant
-   (wp-sweep, wp-dbmanager, wp-print) are already routed, so every one of the
-   twelve wants the helper for shape, without a grant.
-
-   §7.2.2 said eleven and claimed the helper was already on every plugin when it
-   was on four. Nothing checks it, which is why it drifted — worth a `verify.py`
-   rule once the twelve are done, or it will drift again.
-
-2. **WP-CLI, REST API and Gutenberg blocks across the collection.** The only
+1. **WP-CLI, REST API and Gutenberg blocks across the collection.** The only
    substantial item, and a phase of its own rather than a cleanup. `wp-sweep`
    already has `WP_Sweep_Command` and `WP_Sweep_API` and is the reference; §13.3
    pins the naming (`wp wp-sweep`, `wp-sweep/v1`) and the reason — the bare
    nouns it replaced were names any plugin could have claimed, and neither
    WordPress nor WP-CLI detects the collision.
 
-3. **Read the diffs for voice.** The mechanical half is done and closed. What
+2. **Read the diffs for voice.** The mechanical half is done and closed. What
    is left is a human read, and the measurements below say where *not* to spend
    it.
 
@@ -130,7 +120,7 @@ shipped and five is closed. Nothing here blocks a release.
    splitting each plugin along age rather than meaning, and canonicalisation
    walked past it because nothing compared the halves. `verify.py` checks it now.
 
-4. ~~**The wp-draftsforfriends API question.**~~ **Decided and shipped
+3. ~~**The wp-draftsforfriends API question.**~~ **Decided and shipped
    2026-08-03.** Lester's call: ship the three actions, and do the URL filter
    properly rather than cheaply.
 
@@ -161,7 +151,7 @@ shipped and five is closed. Nothing here blocks a release.
    else depends on its shape.** A producer and a parser that never share a code
    path are a bug the moment either becomes public.
 
-5. ~~**Sweep for assertions whose two operands are both literals.**~~ **Done
+4. ~~**Sweep for assertions whose two operands are both literals.**~~ **Done
    2026-08-03. One finding across all nineteen**, in wp-downloadmanager:
    `assertTrue( true )` standing in for "serve() returned rather than ending the
    request". Reaching the line was the real assertion, but that form would also
@@ -174,6 +164,27 @@ shipped and five is closed. Nothing here blocks a release.
    the constant comes from the code under test. Only values written *in the
    test file* count. Scope `foreach` sources per method too, or a literal array
    in one test makes the next test's variable look literal.
+
+5. ~~**Route administrator creation through a helper (§7.2.2).**~~ **Done
+   2026-08-03.** Eleven plugins got a `create_admin()` on their shared test case
+   and **52 call sites now go through it**. None of the eleven takes a grant:
+   every one gates on `manage_options` or on a custom capability of its own, and
+   core's `map_meta_cap()` remaps neither. Only wp-sweep, wp-dbmanager and
+   wp-print grant super admin, which is what §7.2.2 always said.
+
+   Two things fell out of doing it. wp-ban's metadata fixture was granting super
+   admin to register a `manage_options` page — a fourth grant the section could
+   not account for, and now gone. And `verify.py` fails any plugin that reaches
+   the user factory for an administrator outside `helper-*.php`.
+
+   **The check is the point, not the refactor.** This paragraph's own numbers
+   were wrong twice: first "the helper is on every plugin" when it was on five,
+   then "twelve plugins, 55 sites" — that count included
+   `get_role( 'administrator' )`, which asserts a capability rather than creating
+   a user, and called wp-downloadmanager non-compliant one sentence after
+   describing its idiom as compliant. Both were prose about a number nothing
+   measured. The generalisation is in STANDARDS §7.2.2 and worth repeating here:
+   **audit the spec against the checks, not the plugins against the spec.**
 
 **Off this list on purpose:** screenshots into `~/svn/wordpress_plugins/…/assets/`
 and the SVN release itself. Lester does both by hand. Nothing here pushes, tags

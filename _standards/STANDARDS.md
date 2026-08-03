@@ -1158,20 +1158,30 @@ make the test user stop representing the operator the plugin actually has,
 hiding exactly the class of bug this section is about. **Only wp-sweep,
 wp-dbmanager and wp-print need the grant.**
 
-**Adoption, measured 2026-08-03 — this is open work.** Four plugins route every
-administrator through a helper: wp-dbmanager, wp-polls, wp-print and wp-sweep.
-**Twelve still create them inline, across 55 call sites** — freemyinternet,
-wp-ban, wp-downloadmanager, wp-draftsforfriends, wp-email, wp-pagenavi,
-wp-pluginsused, wp-postratings, wp-postviews, wp-serverinfo, wp-stats and
-wp-useronline. Three create no administrator at all and need nothing:
-wp-commentnavi, wp-relativedate and wp-showhide.
+**Adoption: complete as of 2026-08-03, and checked.** All sixteen plugins that
+create an administrator now route every one through a helper; the other three —
+wp-commentnavi, wp-relativedate and wp-showhide — create none and need nothing.
+`verify.py` fails any plugin that reaches the user factory for an administrator
+outside `helper-*.php`, which is the only file the helper itself may live in.
+Two idioms count as routed: a `create_admin()` that calls the factory, and a
+`login_as( 'administrator' )` taking the role as an argument, which is what
+wp-downloadmanager's `become_download_admin()` wraps.
 
-Route the twelve through a helper for shape, without a grant. Nothing checks
-this, which is why the figure in this paragraph was wrong for a fortnight: it
-said eleven, and claimed the helper was already on every plugin when it was on
-four. Two idioms count as routed — a `create_admin()` that calls the factory,
-and a `login_as( 'administrator' )` taking the role as an argument, which is
-what wp-downloadmanager's `become_download_admin()` wraps.
+Getting there took eleven helpers and 52 call sites, and the count is worth
+recording because this paragraph was wrong twice before it was checked. It first
+claimed the helper was on every plugin when it was on five. The correction then
+said twelve plugins and 55 sites, which was also wrong: it counted
+`get_role( 'administrator' )` — a capability assertion, not a user — and listed
+wp-downloadmanager as non-compliant in the same breath as calling its idiom
+compliant. **A figure nothing measures is a figure that rots**, which is the
+argument for the check rather than for a more careful sentence.
+
+Removing the inline calls also settled the one grant this section could not
+account for. wp-ban's metadata fixture called `grant_super_admin()` to register
+its settings page under multisite, though the page takes `manage_options` and
+core leaves that alone on a network. It went with the refactor: a plain
+administrator was always the right fixture there, and the grant made the test
+user stronger than any operator wp-ban has.
 
 Two exceptions where the plugin *was* wrong, and which are the shape to look for:
 

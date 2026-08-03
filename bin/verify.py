@@ -665,6 +665,39 @@ def verify(slug, name, prefix, port, root):
                     "§12 package.json scripts match what the plugin has",
                     "; ".join(detail))
 
+    # --- §7.2.2 administrators come from the helper -------------------------
+    # §7.2.2 asks that every administrator a suite creates go through one
+    # helper, so the question "what does this capability mean on a network"
+    # is answered once per plugin rather than once per call site. Nothing
+    # checked it, and the section's own count of who complied was wrong for a
+    # fortnight -- it named eleven plugins and 55 call sites when the truth was
+    # eleven and 52, and called a plugin non-compliant that had a helper. A
+    # figure nothing measures is a figure that rots.
+    #
+    # helper-*.php is where the helper lives, so it is the one place the
+    # factory may be reached for an administrator directly. Subscriber and
+    # editor fixtures are untouched: those assert the unprivileged path and
+    # §7.2.2 says explicitly they must not be routed through the helper.
+    inline = []
+    for dirpath, dirnames, filenames in os.walk(os.path.join(root, "tests")):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        for fn in sorted(filenames):
+            if not fn.endswith(".php") or fn.startswith("helper-"):
+                continue
+            body = read(os.path.join(dirpath, fn)) or ""
+            rel = os.path.relpath(os.path.join(dirpath, fn), root)
+            for m in re.finditer(r"->user->create(?:_and_get)?\s*\(", body):
+                # The statement, not a fixed window: an administrator created
+                # across three lines is the same finding as one on a single
+                # line, and a `role` on the *next* statement is not.
+                if "administrator" in body[m.end():].split(";")[0]:
+                    inline.append("%s:%d"
+                                  % (rel, body.count("\n", 0, m.start()) + 1))
+    r.check(not inline,
+            "§7.2.2 administrators are created through create_admin()",
+            ", ".join(inline[:3])
+            + (" (+%d more)" % (len(inline) - 3) if len(inline) > 3 else ""))
+
     # --- §11 ships no raster image -----------------------------------------
     # Satisfied everywhere and enforced nowhere until 2026-08-03: §11 replaced
     # every GIF and PNG in the collection with inline SVG, and nothing compared
