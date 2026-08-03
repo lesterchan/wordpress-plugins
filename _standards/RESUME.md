@@ -301,6 +301,46 @@ sight.
 **Confirm a new test fails before believing it passes.** Every fix above was
 verified by reverting the code and watching the test go red.
 
+## Run the same checks CI runs
+
+**`php -l` and `verify.py` passing means very little on its own.** They are a
+strict subset of what gates the repositories, and treating the subset as the
+whole put four broken commits on master on 2026-08-03 — two phpcs errors, a
+class scan that matched `vendor/`, and a hook-surface guard that had to be
+updated deliberately. Every one was invisible to the checks being run here and
+obvious to the ones that were not.
+
+**phpcs is installable and is worth installing**, because it gates a whole CI
+job and needs no Docker:
+
+```sh
+export COMPOSER_ALLOW_SUPERUSER=1
+composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+composer global require squizlabs/php_codesniffer wp-coding-standards/wpcs
+```
+
+Then, **from inside the plugin directory**, which is what CI does and what makes
+it pick up that plugin's own `phpcs.xml`:
+
+```sh
+cd <plugin> && "$(composer global config bin-dir --absolute)"/phpcs -q --report=full .
+```
+
+Run from anywhere else it falls back to a default standard, misses the ruleset,
+and reports tens of thousands of issues from `vendor/` — which is a broken
+invocation, not a finding.
+
+Two sniffs the collection's own style trips repeatedly, both worth knowing
+before writing a docblock: a long description must **start with a capital
+letter** (a backtick or a lowercase identifier fails, though a `§` slips through
+as multibyte), and a string with nothing to interpolate must use **single
+quotes**.
+
+**PHPUnit still needs Docker** and so cannot be run here. That gap is real:
+`tests/test-metadata.php` pins each plugin's hook surface as an exact set, so
+any new hook fails it by design, and nothing short of running the suite will
+tell you.
+
 ## Traps
 
 * **A red job whose failing step is `Start wp-env` is an environment failure,
