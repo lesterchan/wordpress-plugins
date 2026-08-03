@@ -4,13 +4,19 @@ State of the consistency programme as of **2026-08-03**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line:** all nineteen plugins are green on CI, the pre-revamp tags are
-cut and pushed, and **two items are open** — a migration gap that blocks a
-release, and the WP-CLI/REST/blocks phase that has not started. Everything else
-on the list below is closed, and nothing is waiting on Lester.
+cut and pushed, and **three items are open** — a migration gap that blocks a
+release, the spec-against-checks audit that found it, and the WP-CLI/REST/blocks
+phase that has not started. Nothing is waiting on Lester.
 
 **The bug backlog is no longer empty.** An audit on 2026-08-03 found one live
 defect (wp-dbmanager's migration) and eleven plugins whose migration has no
 end-to-end test. Item 1 below is the plan; start there rather than here.
+
+**Green tools were not enough, and that is the lesson of the day.** Nineteen
+suites, `verify.py` at zero and CI green across the board, while a data-loss
+migration sat one hook-ordering accident away from firing — because §7.6.1 was
+a rule the spec stated and nothing checked. Item 2 counts how much else is in
+that position: **17 of 48 sections.**
 
 **Trust the tools over this file.** At the start of a session run
 `python3 bin/verify.py --quiet` and `git log --oneline -3` in each repo. Between
@@ -44,7 +50,9 @@ differences between two plugins are name, features and capability.
 
 ## What exists
 
-* `_standards/STANDARDS.md` — the spec. 17 numbered sections.
+* `_standards/STANDARDS.md` — the spec. **15 numbered sections, 48 including
+  subsections** (this line said 17 until 2026-08-03, and nothing had counted).
+  31 of the 48 have something mechanical behind them; see item 2.
 * `_standards/templates/` — the files each plugin copies verbatim, placeholders
   `{{SLUG}}` `{{NAME}}` `{{CLASS}}` `{{UNDER}}` `{{UPPER}}` `{{L10N}}`
   `{{DESCRIPTION}}`.
@@ -86,8 +94,8 @@ Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 
 ## Remaining work, in order
 
-**Two items are open: one and two.** Three is a human read with nothing
-mechanical left in it; four, five and six are done. **Item one blocks a
+**Three items are open: one, two and three.** Four is a human read with
+nothing mechanical left in it; five, six and seven are done. **Item one blocks a
 release** — it is the same data-loss shape as the two blockers the E2E sweep
 found, and it is one line of code plus a missing test.
 
@@ -173,7 +181,46 @@ found, and it is one line of code plus a missing test.
    `wp option get permalink_structure` in the tests container first; see the
    permalink section below.
 
-2. **WP-CLI, REST API and Gutenberg blocks across the collection.** The only
+2. **Audit the spec against the checks — 17 of 48 sections have nothing behind
+   them.** This is the audit that keeps finding real defects, and the one item 1
+   is a product of. Re-reading nineteen plugins against the spec buys nothing:
+   the mechanical half is checked on every push and is green. Reading the *spec*
+   and asking "what enforces this?" has found every defect of the last week —
+   `@package` split along file age, §11's raster ban satisfied by all nineteen
+   and enforced by nothing, §12's script list stale in all nineteen identically,
+   and §7.6.1, which is item 1.
+
+   Measured 2026-08-03 by cross-referencing the `§` citations in `bin/verify.py`
+   and `templates/helper-metadata-testcase.php` against the section headings in
+   STANDARDS. **31 sections have a check; these 17 do not:**
+
+   | Section | Mechanisable? |
+   |---|---|
+   | §2.2 Class constants — one spelling each | **yes** — compare the constant names across the nineteen |
+   | §2.5 Functions | **yes** — same shape as §2.4, which is already checked |
+   | §2.7 Capabilities | **yes** — the custom-capability list is fixed and named in the section |
+   | §4.2.1 / §4.2.2 Tabs, and their names | **yes** — the tab labels are a closed set |
+   | §4.3 List tables | partly — "uses `WP_List_Table`" is checkable, "well" is not |
+   | §4.4 Markup | no — judgement |
+   | §7.1 Structure | **yes** — file naming and the `test-`/`helper-` split |
+   | §7.2.1 Process-wide state | no — needs the suite running |
+   | §7.2.3 A suite that dies is not one that passed | already enforced, but by `bin/test-all.sh` rather than a rule; **say so in the section** |
+   | §7.2.4 Escaping a stored value | partly |
+   | §7.3 Coverage | no — a number, and gaming it is worse than missing it |
+   | §7.6 / §7.6.1 Upgrade and migration tests | **yes, and item 1 does it** |
+   | §13.1 The exact shape | **yes** — the fixture pins §13.2 already |
+   | §13.3 WP-CLI and REST naming | not yet — nothing to check until item 3 ships |
+   | §15 Order of work | no — process, not state |
+
+   Roughly nine are worth a rule. Do them one at a time and **prove each both
+   ways**: plant the violation, watch it fail, remove it, watch it pass. That is
+   what caught the §4.2 drift in two plugins and the §11 gap.
+
+   **The generalisation, already in §7.2.2 and now earned twice:** a rule the
+   spec implies and nothing enforces is a rule nineteen copies will drift from,
+   and the drift is invisible precisely because every tool is green.
+
+3. **WP-CLI, REST API and Gutenberg blocks across the collection.** The only
    substantial item, and a phase of its own rather than a cleanup. `wp-sweep`
    already has `WP_Sweep_Command` and `WP_Sweep_API` and is the reference; §13.3
    pins the naming (`wp wp-sweep`, `wp-sweep/v1`) and the reason — the bare
@@ -183,7 +230,7 @@ found, and it is one line of code plus a missing test.
    or a block, and whether a block wraps the existing shortcode or replaces it)
    is still open and is Lester's.
 
-3. **Read the diffs for voice.** The mechanical half is done and closed. What
+4. **Read the diffs for voice.** The mechanical half is done and closed. What
    is left is a human read, and the measurements below say where *not* to spend
    it.
 
@@ -217,7 +264,7 @@ found, and it is one line of code plus a missing test.
    splitting each plugin along age rather than meaning, and canonicalisation
    walked past it because nothing compared the halves. `verify.py` checks it now.
 
-4. ~~**The wp-draftsforfriends API question.**~~ **Decided and shipped
+5. ~~**The wp-draftsforfriends API question.**~~ **Decided and shipped
    2026-08-03.** Lester's call: ship the three actions, and do the URL filter
    properly rather than cheaply.
 
@@ -248,7 +295,7 @@ found, and it is one line of code plus a missing test.
    else depends on its shape.** A producer and a parser that never share a code
    path are a bug the moment either becomes public.
 
-5. ~~**Sweep for assertions whose two operands are both literals.**~~ **Done
+6. ~~**Sweep for assertions whose two operands are both literals.**~~ **Done
    2026-08-03. One finding across all nineteen**, in wp-downloadmanager:
    `assertTrue( true )` standing in for "serve() returned rather than ending the
    request". Reaching the line was the real assertion, but that form would also
@@ -262,7 +309,7 @@ found, and it is one line of code plus a missing test.
    test file* count. Scope `foreach` sources per method too, or a literal array
    in one test makes the next test's variable look literal.
 
-6. ~~**Route administrator creation through a helper (§7.2.2).**~~ **Done
+7. ~~**Route administrator creation through a helper (§7.2.2).**~~ **Done
    2026-08-03.** Eleven plugins got a `create_admin()` on their shared test case
    and **52 call sites now go through it**. None of the eleven takes a grant:
    every one gates on `manage_options` or on a custom capability of its own, and
