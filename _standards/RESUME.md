@@ -310,11 +310,19 @@ class scan that matched `vendor/`, and a hook-surface guard that had to be
 updated deliberately. Every one was invisible to the checks being run here and
 obvious to the ones that were not.
 
-**A SessionStart hook now installs the toolchain**, so a fresh session on
-`wordpress-plugins` arrives with it: `.claude/hooks/session-start.sh`, registered
-in `.claude/settings.json`. It installs Node 24 (what `ci.yml` pins), phpcs and
-WPCS, and starts the Docker daemon, which is present but not running by default.
-It is idempotent and remote-only.
+**A SessionStart hook installs the toolchain**, in all nineteen plugins and in
+this repository: `.claude/hooks/session-start.sh`, registered by
+`.claude/settings.json`. It installs Node 24 (what `ci.yml` pins), phpcs and
+WPCS, the repo's npm dependencies where there is a lockfile, and starts the
+Docker daemon, which is present but not running by default. Idempotent and
+remote-only.
+
+**One file, byte-identical in all twenty.** It names no plugin and branches on
+what it finds, and `bin/verify.py` holds the copies to
+`_standards/templates/.claude/` — so edit the template and copy it out, never a
+copy. `.claude/` was already in the metadata fixture's `SKIPPED_DIRECTORIES` and
+is already named in §1 as development tooling excluded from the SVN deploy, so
+it ships to nobody.
 
 That makes **two of the nine CI jobs reproducible here** — "PHP coding standards"
 and "JS coding standards and tests". Both were validated: phpcs catches a planted

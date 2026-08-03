@@ -628,6 +628,27 @@ def verify(slug, name, prefix, port, root):
     r.check(not wrong, "@package is the plugin display name everywhere",
             "; ".join(wrong[:3]) + (" (+%d more)" % (len(wrong) - 3) if len(wrong) > 3 else ""))
 
+    # --- the session-start hook is one file, not twenty --------------------
+    # It installs the toolchain CI gates on -- Node 24, phpcs, npm ci -- and
+    # names no plugin, branching on what it finds instead. Same reasoning as
+    # the metadata fixture above: anything copied into twenty repositories
+    # diverges unless something compares it.
+    for rel in (os.path.join(".claude", "hooks", "session-start.sh"),
+                os.path.join(".claude", "settings.json")):
+        tpl_hook = read(os.path.join(ROOT, "_standards", "templates", rel))
+        hook = read(os.path.join(root, rel))
+
+        if tpl_hook is None:
+            continue
+
+        r.check(hook is not None, "%s exists" % rel,
+                "copy it out of _standards/templates")
+
+        if hook is not None:
+            r.check(hook == tpl_hook, "%s matches the shared template" % rel,
+                    "differs from _standards/templates; this file carries no "
+                    "per-plugin text, so edit the template and copy it out")
+
     # --- §7.4 phpunit configs ----------------------------------------------
     for cfg, marker in (("phpunit.xml.dist", None),
                         ("phpunit-multisite.xml.dist", 'name="WP_MULTISITE"')):
