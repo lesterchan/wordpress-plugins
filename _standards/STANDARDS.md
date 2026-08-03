@@ -1150,15 +1150,28 @@ through it, and leave the tests that assert the *unprivileged* path setting thei
 own subscriber or editor explicitly — those stay meaningful and must not be
 routed through this.
 
-**Grant super admin only where the plugin's own capability needs it.** The helper
-is on every plugin, but its body follows the capability, which is one of the
-three things plugins are allowed to differ on. A plugin whose surface is
-`manage_options` needs no grant: a site administrator holds that under both, and
-granting anyway would make the test user stop representing the operator the
-plugin actually has, hiding exactly the class of bug this section is about. As of
-the first green multisite sweep, only wp-sweep, wp-dbmanager and wp-print need
-the grant; eleven plugins still create administrators inline and should be
-routed through a helper for shape, without one.
+**Grant super admin only where the plugin's own capability needs it.** The
+helper's body follows the capability, which is one of the three things plugins
+are allowed to differ on. A plugin whose surface is `manage_options` needs no
+grant: a site administrator holds that under both, and granting anyway would
+make the test user stop representing the operator the plugin actually has,
+hiding exactly the class of bug this section is about. **Only wp-sweep,
+wp-dbmanager and wp-print need the grant.**
+
+**Adoption, measured 2026-08-03 — this is open work.** Four plugins route every
+administrator through a helper: wp-dbmanager, wp-polls, wp-print and wp-sweep.
+**Twelve still create them inline, across 55 call sites** — freemyinternet,
+wp-ban, wp-downloadmanager, wp-draftsforfriends, wp-email, wp-pagenavi,
+wp-pluginsused, wp-postratings, wp-postviews, wp-serverinfo, wp-stats and
+wp-useronline. Three create no administrator at all and need nothing:
+wp-commentnavi, wp-relativedate and wp-showhide.
+
+Route the twelve through a helper for shape, without a grant. Nothing checks
+this, which is why the figure in this paragraph was wrong for a fortnight: it
+said eleven, and claimed the helper was already on every plugin when it was on
+four. Two idioms count as routed — a `create_admin()` that calls the factory,
+and a `login_as( 'administrator' )` taking the role as an argument, which is
+what wp-downloadmanager's `become_download_admin()` wraps.
 
 Two exceptions where the plugin *was* wrong, and which are the shape to look for:
 

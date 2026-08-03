@@ -4,8 +4,8 @@ State of the consistency programme as of **2026-08-03**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line:** all nineteen plugins are green on CI, the bug backlog is empty,
-and **one item is open** — WP-CLI, REST and blocks, a phase that has not
-started. Everything else on the list below is closed.
+and **two items are open** — routing administrator creation through a helper
+(small, measured), and WP-CLI/REST/blocks, a phase that has not started.
 
 **Trust the tools over this file.** At the start of a session run
 `python3 bin/verify.py --quiet` and `git log --oneline -3` in each repo. Between
@@ -77,17 +77,28 @@ Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 
 ## Remaining work, in order
 
-**One item is actually open: number 1.** Two and four are closed; three is
-shipped. Nothing here blocks a release.
+**Two items are open: 1 and 2.** Three has nothing actionable left, four is
+shipped and five is closed. Nothing here blocks a release.
 
-1. **WP-CLI, REST API and Gutenberg blocks across the collection.** The only
+1. **Route administrator creation through a helper (§7.2.2).** Small, mechanical
+   and now measured: four plugins route it (wp-dbmanager, wp-polls, wp-print,
+   wp-sweep), **twelve create administrators inline across 55 call sites**, and
+   three create none. All three plugins that need the super admin grant
+   (wp-sweep, wp-dbmanager, wp-print) are already routed, so every one of the
+   twelve wants the helper for shape, without a grant.
+
+   §7.2.2 said eleven and claimed the helper was already on every plugin when it
+   was on four. Nothing checks it, which is why it drifted — worth a `verify.py`
+   rule once the twelve are done, or it will drift again.
+
+2. **WP-CLI, REST API and Gutenberg blocks across the collection.** The only
    substantial item, and a phase of its own rather than a cleanup. `wp-sweep`
    already has `WP_Sweep_Command` and `WP_Sweep_API` and is the reference; §13.3
    pins the naming (`wp wp-sweep`, `wp-sweep/v1`) and the reason — the bare
    nouns it replaced were names any plugin could have claimed, and neither
    WordPress nor WP-CLI detects the collision.
 
-2. **Read the diffs for voice.** The mechanical half is done and closed. What
+3. **Read the diffs for voice.** The mechanical half is done and closed. What
    is left is a human read, and the measurements below say where *not* to spend
    it.
 
@@ -119,7 +130,7 @@ shipped. Nothing here blocks a release.
    splitting each plugin along age rather than meaning, and canonicalisation
    walked past it because nothing compared the halves. `verify.py` checks it now.
 
-3. ~~**The wp-draftsforfriends API question.**~~ **Decided and shipped
+4. ~~**The wp-draftsforfriends API question.**~~ **Decided and shipped
    2026-08-03.** Lester's call: ship the three actions, and do the URL filter
    properly rather than cheaply.
 
@@ -150,7 +161,7 @@ shipped. Nothing here blocks a release.
    else depends on its shape.** A producer and a parser that never share a code
    path are a bug the moment either becomes public.
 
-4. ~~**Sweep for assertions whose two operands are both literals.**~~ **Done
+5. ~~**Sweep for assertions whose two operands are both literals.**~~ **Done
    2026-08-03. One finding across all nineteen**, in wp-downloadmanager:
    `assertTrue( true )` standing in for "serve() returned rather than ending the
    request". Reaching the line was the real assertion, but that form would also
