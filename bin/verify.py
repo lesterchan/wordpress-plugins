@@ -628,6 +628,22 @@ def verify(slug, name, prefix, port, root):
     r.check(not wrong, "@package is the plugin display name everywhere",
             "; ".join(wrong[:3]) + (" (+%d more)" % (len(wrong) - 3) if len(wrong) > 3 else ""))
 
+    # --- §11 ships no raster image -----------------------------------------
+    # Satisfied everywhere and enforced nowhere until 2026-08-03: §11 replaced
+    # every GIF and PNG in the collection with inline SVG, and nothing compared
+    # the result, so the next one added would have shipped. The rule is about
+    # what reaches a user, so tests/ and the E2E fixtures are out of scope --
+    # only what the deploy would carry.
+    rasters = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        for fn in filenames:
+            if fn.lower().endswith((".png", ".gif", ".jpg", ".jpeg", ".bmp", ".ico")):
+                rasters.append(os.path.relpath(os.path.join(dirpath, fn), root))
+
+    r.check(not rasters, "§11 ships no raster image",
+            "; ".join(rasters[:3]) + (" (+%d more)" % (len(rasters) - 3) if len(rasters) > 3 else ""))
+
     # --- the session-start hook is one file, not twenty --------------------
     # It installs the toolchain CI gates on -- Node 24, phpcs, npm ci -- and
     # names no plugin, branching on what it finds instead. Same reasoning as

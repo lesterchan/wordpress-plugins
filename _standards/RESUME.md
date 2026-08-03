@@ -418,6 +418,39 @@ and nothing short of running the suite will tell you.
   `testsEnvironment`/`env`/`testsPort`. §10 pins that `.wp-env.json` shape in
   all 19, so it will need changing together when wp-env drops them.
 
+## Is the collection compliant? What checks what
+
+Asked on 2026-08-03, and worth keeping because the answer is not "run
+`verify.py` again".
+
+**The mechanical half is continuously checked and green**, so re-auditing
+nineteen plugins against fifteen sections by hand buys nothing. `bin/verify.py`
+is 86 checks covering §1, §1.1, §2, §3, §4, §5, §6, §7, §8, §9, §10 and §14;
+the shared metadata fixture covers §13, including the shared-row contract that
+two plugins violated. Both run on every push.
+
+**The audit worth doing is the spec against the checks, not the plugins against
+the spec.** Every defect found today — `@package` split along file age, the
+metadata fixture free to drift, the hook copied twenty times with nothing
+comparing it — was a rule the spec implied and nothing enforced. That audit
+found two more:
+
+* **§11, ship no raster image.** Satisfied by all nineteen and enforced by
+  nothing: the GIFs and PNGs were replaced with inline SVG during the fan-out
+  and never compared since, so the next one added would have shipped. Now a
+  `verify.py` check, proven by planting a GIF in wp-ban.
+* **§12's `package.json` script list is stale, and every plugin diverges from
+  it identically.** The spec says the scripts are *exactly* `lint:js`,
+  `lint:js:fix`, `test`, `test:js`, `test:js:watch`. In fact all nineteen also
+  carry `test:e2e` and `test:e2e:headed`, added when Playwright landed and never
+  written back into §12; and seven have no `test:js`/`test:js:watch` because
+  they have no vitest suite. **Nothing checks it, which is why nobody noticed
+  the spec had gone out of date.** Open: decide whether §12 should name the two
+  E2E scripts and make the vitest pair conditional, then check it.
+
+§15 is the order of work per plugin — process rather than state, and not
+checkable.
+
 ## Rules earned the hard way
 
 * **`register_setting()` attaches two things to the settings row, and
