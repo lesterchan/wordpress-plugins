@@ -198,6 +198,61 @@ release.
 and the SVN release itself. Lester does both by hand. Nothing here pushes, tags
 or touches SVN.
 
+## Waiting on Lester: the pre-revamp tags
+
+**None of the nineteen repositories carries a single git tag**, so there is no
+ref for "the plugin as it shipped before this work". The commit is identifiable
+in all nineteen — every one has a gap of months to years between its last
+release and the first campaign commit — and the table below is that boundary,
+with the version each was carrying. It has been checked: each commit's plugin
+header and `Stable tag` were compared, and the two disagreements are noted.
+
+`bin/tag-pre-revamp.sh` creates all nineteen as annotated tags and pushes them.
+It takes the directory holding the plugin repos, is safe to re-run, and refuses
+to guess: a shallow clone missing the commit is reported rather than tagged.
+
+**It has to run from Lester's machine.** The sandbox's git proxy answers a tag
+push with HTTP 403 while allowing branch pushes, so the tags cannot leave a
+session. They were created and verified in one; the container took them with it.
+
+| Plugin | Tag | Commit | Date |
+|---|---|---|---|
+| freemyinternet | 0.01 | `8a7a7a59` | 2020-05-20 |
+| wp-ban | 1.69.2 | `8f5452ac` | 2025-03-09 |
+| wp-commentnavi | 1.12.2 | `45b51b7d` | 2023-08-09 |
+| wp-dbmanager | 2.80.10 | `b7ad9070` | 2024-11-24 |
+| wp-downloadmanager | 1.69.1 | `416b9f54` | 2026-02-13 |
+| wp-draftsforfriends | 1.0.2 | `952592aa` | 2023-08-09 |
+| wp-email | 2.69.3 | `066014a9` | 2024-12-18 |
+| wp-pagenavi | 2.94.5 | `3a010444` | 2024-12-19 |
+| wp-pluginsused | 1.50.2 | `7cff1208` | 2023-08-09 |
+| wp-polls | 2.77.4 | `50adb772` | 2025-12-26 |
+| wp-postratings | 1.91.2 | `75e54f4f` | 2024-07-16 |
+| wp-postviews | 1.78 | `9b1c2c84` | 2026-01-16 |
+| wp-print | 2.58.2 | `dde8f97c` | 2023-09-08 |
+| wp-relativedate | 1.51 | `b7fa2f8d` | 2023-08-09 |
+| wp-serverinfo | 1.66 | `a7dc3cfe` | 2026-06-16 |
+| wp-showhide | 1.06 | `a1a0ee21` | 2025-11-28 |
+| wp-stats | 2.56.1 | `22839ce3` | 2026-06-22 |
+| wp-sweep | 1.2.0 | `cff61a76` | 2026-06-19 |
+| wp-useronline | 2.88.9 | `14d4edc2` | 2025-07-15 |
+
+Two things the boundary turned up, both about released state rather than tags:
+
+* **wp-email shipped with its header behind its `Stable tag`.** At `066014a9`
+  the header reads `2.69.2` and the `Stable tag` reads `2.69.3`, so wordpress.org
+  served that tree as 2.69.3 while every site running it reported 2.69.2 — a
+  standing update prompt that never clears. It had happened once before, at
+  2.69.0/2.69.1. The tag is named for what shipped, and says so.
+* **Five plugins carried `Stable tag: trunk`**, not four: freemyinternet,
+  wp-commentnavi, wp-draftsforfriends, wp-pluginsused and wp-relativedate. §14
+  says four. This is the git side of that claim rather than the SVN side, so it
+  is evidence and not proof, but the number to check is five.
+
+Deriving the boundary needs full history: the clones arrive shallow, holding
+only the campaign's own commits, and `git fetch --unshallow origin` is what
+makes the pre-revamp past visible at all.
+
 ## READ FIRST — CI and your machine are not the same environment
 
 Two divergences have each cost a day. Both have the same shape: something is
