@@ -57,8 +57,11 @@ differences between two plugins are name, features and capability.
   `{{SLUG}}` `{{NAME}}` `{{CLASS}}` `{{UNDER}}` `{{UPPER}}` `{{L10N}}`
   `{{DESCRIPTION}}`.
 * `.wp-env.json` — all 19 plugins in one WordPress on 8888/8889.
-* `bin/verify.py` — mechanical checker, ~40 rules per plugin.
-  `python3 bin/verify.py [slug…] [--quiet]`. Exit status is the failure count.
+* `bin/verify.py` — mechanical checker, **92 `check()` call sites**, not all of
+  which apply to every plugin. `python3 bin/verify.py [slug…] [--quiet]`; exit
+  status is the failure count. (This line said "~40 rules per plugin" and the
+  compliance section below said 86; neither had been counted. Recount with
+  `grep -c '\.check(' bin/verify.py` rather than trusting either.)
 * `bin/test-all.sh` — every plugin's PHPUnit suite in one container.
   `--multisite` for the network run. Keeps going past failures.
 * `bin/seed-demo.sh` — fills the root harness at http://localhost:8888
@@ -679,7 +682,7 @@ Asked on 2026-08-03, and worth keeping because the answer is not "run
 
 **The mechanical half is continuously checked and green**, so re-auditing
 nineteen plugins against fifteen sections by hand buys nothing. `bin/verify.py`
-is 86 checks covering §1, §1.1, §2, §3, §4, §5, §6, §7, §8, §9, §10 and §14;
+is 92 checks covering §1, §1.1, §2, §3, §4, §5, §6, §7, §8, §9, §10 and §14;
 the shared metadata fixture covers §13, including the shared-row contract that
 two plugins violated. Both run on every push.
 
