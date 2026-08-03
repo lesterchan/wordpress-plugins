@@ -665,6 +665,35 @@ def verify(slug, name, prefix, port, root):
                     "§12 package.json scripts match what the plugin has",
                     "; ".join(detail))
 
+    # --- §3.3 one spelling for an admin path --------------------------------
+    # A menu path is prose the reader retypes, so it is worth having exactly
+    # one shape for it. Two drifted independently and nothing compared them:
+    # four plugins wrote the separator as a Unicode arrow while fourteen wrote
+    # "->" (wp-serverinfo used the arrow throughout, wp-polls, wp-postviews and
+    # wp-sweep mixed both inside one file), and wp-print left four paths
+    # unmarked while every other plugin sets them in code or bold. Neither is a
+    # judgement call about voice; both are one spelling of one thing.
+    readme = read(os.path.join(root, "README.md")) or ""
+    arrows = [n for n, line in enumerate(readme.split("\n"), 1) if "→" in line]
+    r.check(not arrows, "§3.3 admin paths use -> rather than a Unicode arrow",
+            ", ".join("README.md:%d" % n for n in arrows[:3])
+            + (" (+%d more)" % (len(arrows) - 3) if len(arrows) > 3 else ""))
+
+    # Backticks or bold, so the path is not mistaken for prose. Anything inside
+    # a fenced block is already marked up and is skipped.
+    bare, fenced = [], False
+    for n, line in enumerate(readme.split("\n"), 1):
+        if line.startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        if re.search(r"(?:^|[^`*])WP-Admin\s*->", line):
+            bare.append(n)
+    r.check(not bare, "§3.3 admin paths are in backticks or bold",
+            ", ".join("README.md:%d" % n for n in bare[:3])
+            + (" (+%d more)" % (len(bare) - 3) if len(bare) > 3 else ""))
+
     # --- §7.2.2 administrators come from the helper -------------------------
     # §7.2.2 asks that every administrator a suite creates go through one
     # helper, so the question "what does this capability mean on a network"

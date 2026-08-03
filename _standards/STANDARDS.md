@@ -480,14 +480,6 @@ statement. Five did; the last of them, freemyinternet, was corrected on
 well as comparing the whole block, so the failure says which of the two is
 wrong.
 
-**This must be the "or later" form.** Five plugins — including wp-showhide —
-carry a v2-**only** block (`under the terms of the GNU General Public License,
-version 2, as published by the Free Software Foundation`, with no "or at your
-option any later version"). That contradicts the `License: GPLv2 or later`
-header two lines above it and the `GPL-2.0-or-later` in composer.json, so those
-five ship a self-contradicting licence statement. Fourteen already use the
-correct form; bring the other five into line, never the reverse.
-
 ### 3.2 `README.md` header
 
 Nine lines, lines 2–9 ending in **two spaces**, line 10 with none:
@@ -563,6 +555,15 @@ headings are free — `## Changelog` necessarily contains `### 2.0.0`, and
   major entry**. Do not bump the version, do not add a new heading.
 * Code fences are ` ```php ` or ` ```javascript ` only — `plugin_deploy.sh`
   rewrites exactly those two plus bare ` ``` ` into `~~~`, one per line.
+* **An admin path is written `` `WP-Admin -> Settings -> WP-Print` ``** — ASCII
+  `->` for the separator, and the whole path in backticks or bold so it is not
+  mistaken for prose. Both halves had drifted and nothing compared them: four
+  plugins used a Unicode arrow, three of them mixing both spellings inside one
+  file, and wp-print left four paths unmarked. `verify.py` checks both now.
+* **The path names the menu entry, not the plugin.** wp-print's install steps
+  said `Settings -> Print` while the menu reads `WP-Print` — and the same file
+  had it right seven lines later. Read the second argument of the
+  `add_*_page()` call rather than shortening the name by eye.
 
 ---
 
