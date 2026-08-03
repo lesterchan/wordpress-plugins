@@ -86,17 +86,46 @@ Nothing here blocks a release.
    nouns it replaced were names any plugin could have claimed, and neither
    WordPress nor WP-CLI detects the collision.
 
-2. **Read the diffs for voice and comment density** (tasks 5 and 7). `verify.py`
-   cannot see either. This is judgement work and cannot be delegated to a check.
+2. **Read the diffs for voice and comment density** (tasks 5 and 7). Partly
+   done 2026-08-03 — the measurable half is now measured and one defect it
+   exposed is fixed and mechanically checked. What is left is genuinely
+   judgement work and cannot be delegated.
+
+   What the numbers say, and why they need reading rather than acting on:
+   **raw comment share is misleading.** wp-polls looks worst on it (35.6 %
+   against wp-postratings' 46.6 % at almost the same size) and is in fact the
+   *best* explained plugin in the collection — 13.4 inline comments per 100
+   lines of code against a median near 4.7. Its share is low because it carries
+   a lot of code per docblock, not because anything is unexplained. Measure
+   inline explanation and docblock coverage separately or the two cancel out.
+
+   The mechanical half is clean: **all 1,871 functions across all nineteen have
+   a docblock**, and every file has a file-level docblock.
+
+   The defect this exposed was **`@package` drift** — four plugins
+   (wp-useronline, wp-postratings, wp-draftsforfriends, wp-sweep) carried the
+   lowercase slug in their older files and the display name in their newer ones,
+   splitting each plugin along age rather than meaning. `verify.py` now checks
+   it, which is what should have caught it during canonicalisation.
 
 3. **One open API question**, left deliberately for a collection-wide decision:
    whether wp-draftsforfriends gains `wp_draftsforfriends_share_created` /
    `_extended` / `_revoked` actions and a `_share_url` filter. New public API on
    a plugin that has never had any cannot be withdrawn once shipped.
 
-4. **Worth a sweep, not yet run:** assertions whose two operands both come from
-   literals written into the test. Two were found on 2026-08-03 by grepping one
-   narrow pattern (below); nothing has looked for the general shape.
+4. ~~**Sweep for assertions whose two operands are both literals.**~~ **Done
+   2026-08-03. One finding across all nineteen**, in wp-downloadmanager:
+   `assertTrue( true )` standing in for "serve() returned rather than ending the
+   request". Reaching the line was the real assertion, but that form would also
+   have passed if `serve()` printed an error on the way out — so it now captures
+   the output and asserts it is empty.
+
+   **A constant is not a literal.** The first pass counted `WP_SHOWHIDE_VERSION`
+   and `self::PER_PAGE` as literals and reported 73 findings, nearly all of them
+   `assertSame( '3.0.0', WP_SHOWHIDE_VERSION )` — which is a real test, because
+   the constant comes from the code under test. Only values written *in the
+   test file* count. Scope `foreach` sources per method too, or a literal array
+   in one test makes the next test's variable look literal.
 
 **Off this list on purpose:** screenshots into `~/svn/wordpress_plugins/…/assets/`
 and the SVN release itself. Lester does both by hand. Nothing here pushes, tags

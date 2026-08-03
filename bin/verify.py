@@ -604,6 +604,30 @@ def verify(slug, name, prefix, port, root):
                 "differs from _standards/templates; this file carries no "
                 "per-plugin text, so edit the template and copy it out")
 
+    # --- @package is the display name, everywhere ---------------------------
+    # Voice, and the sort verify.py can actually see. Two plugins had drifted:
+    # wp-useronline and wp-postratings carried the lowercase slug through
+    # includes/ while every newer file -- tests, bin, js, css -- used the
+    # display name, so the older half of each plugin was tagged one way and the
+    # newer half another. Nothing compared them, so it survived the whole
+    # canonicalisation pass.
+    #
+    # `lesterchan` is exempt: it is the shared metadata fixture, which is
+    # byte-identical in all nineteen and therefore names no plugin.
+    wrong = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS or d == "tests"]
+        for fn in filenames:
+            if not fn.endswith(".php"):
+                continue
+            body = read(os.path.join(dirpath, fn)) or ""
+            for tag in re.findall(r"@package\s+(\S+)", body):
+                if tag not in (name, "lesterchan"):
+                    rel = os.path.relpath(os.path.join(dirpath, fn), root)
+                    wrong.append("%s: @package %s" % (rel, tag))
+    r.check(not wrong, "@package is the plugin display name everywhere",
+            "; ".join(wrong[:3]) + (" (+%d more)" % (len(wrong) - 3) if len(wrong) > 3 else ""))
+
     # --- §7.4 phpunit configs ----------------------------------------------
     for cfg, marker in (("phpunit.xml.dist", None),
                         ("phpunit-multisite.xml.dist", 'name="WP_MULTISITE"')):
