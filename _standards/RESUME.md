@@ -86,27 +86,37 @@ Nothing here blocks a release.
    nouns it replaced were names any plugin could have claimed, and neither
    WordPress nor WP-CLI detects the collision.
 
-2. **Read the diffs for voice and comment density** (tasks 5 and 7). Partly
-   done 2026-08-03 — the measurable half is now measured and one defect it
-   exposed is fixed and mechanically checked. What is left is genuinely
-   judgement work and cannot be delegated.
+2. **Read the diffs for voice.** The mechanical half is done and closed. What
+   is left is a human read, and the measurements below say where *not* to spend
+   it.
 
-   What the numbers say, and why they need reading rather than acting on:
-   **raw comment share is misleading.** wp-polls looks worst on it (35.6 %
-   against wp-postratings' 46.6 % at almost the same size) and is in fact the
-   *best* explained plugin in the collection — 13.4 inline comments per 100
-   lines of code against a median near 4.7. Its share is low because it carries
-   a lot of code per docblock, not because anything is unexplained. Measure
-   inline explanation and docblock coverage separately or the two cancel out.
+   **Comment density is not a defect signal in this collection, and two
+   successive attempts to make it one were both wrong.** Recorded because the
+   error is easy to repeat:
 
-   The mechanical half is clean: **all 1,871 functions across all nineteen have
-   a docblock**, and every file has a file-level docblock.
+   * *Raw comment share* rates wp-polls worst (35.6 % against wp-postratings'
+     46.6 % at nearly the same size). wp-polls is in fact among the best
+     explained plugins here. Its share is low because it carries a lot of code
+     per docblock.
+   * *Counting only `//`* rates wp-relativedate worst in the collection, at 0.4
+     per 100 lines. It is second **best** at 15.4. The plugin explains itself in
+     `/* … */` blocks, which a `//`-only counter files as docblocks. wp-pluginsused
+     moved from second-worst to fifth-best for the same reason.
 
-   The defect this exposed was **`@package` drift** — four plugins
+   Measured properly — inline `//` plus non-docblock `/* */`, against code lines
+   — the collection spans 6.8 to 16.0 per 100, and **the low end is correct**.
+   wp-email's least-commented file is a `WP_Widget` subclass with 80 lines of
+   code and no inline explanation at all, because nothing in it is surprising.
+   Counting cannot tell "under-explained" from "nothing to explain"; only
+   reading can.
+
+   The mechanical half, all clean: **1,871 functions across all nineteen have a
+   docblock**, every file has a file-level docblock, and `@package` is the
+   display name everywhere. That last one was a real find — four plugins
    (wp-useronline, wp-postratings, wp-draftsforfriends, wp-sweep) carried the
    lowercase slug in their older files and the display name in their newer ones,
-   splitting each plugin along age rather than meaning. `verify.py` now checks
-   it, which is what should have caught it during canonicalisation.
+   splitting each plugin along age rather than meaning, and canonicalisation
+   walked past it because nothing compared the halves. `verify.py` checks it now.
 
 3. **One open API question**, left deliberately for a collection-wide decision:
    whether wp-draftsforfriends gains `wp_draftsforfriends_share_created` /
