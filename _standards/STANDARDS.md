@@ -1917,12 +1917,38 @@ Rules that keep the seven implementations honest:
 Not yet rolled out, but wp-sweep has set it and the rest of the collection
 copies it when that phase starts:
 
-* **WP-CLI command name is the plugin slug**: `wp wp-sweep`, registered as
-  `WP_CLI::add_command( WP_SWEEP_SLUG, … )`.
-* **REST namespace is `{{SLUG}}/v1`**: `wp-sweep/v1`.
+* **WP-CLI command name is the slug without the `wp-` prefix**: `wp sweep`,
+  not `wp wp-sweep`.
+* **REST namespace is the same name plus a version**: `sweep/v1`.
 
-Both were previously bare nouns — `wp sweep`, `sweep/v1` — that any plugin
-could have claimed, and neither WordPress nor WP-CLI detects the collision.
+**This reverses a decision, and the reversal is Lester's, 2026-08-04.** The
+section previously required the full slug — `wp wp-sweep`, `wp-sweep/v1` — on the
+grounds that a bare noun is a name any plugin could claim and that neither
+WordPress nor WP-CLI detects the collision. That risk is real and is accepted.
+Three things outweigh it:
+
+* **The `wp-` prefix is a wordpress.org directory convention, not a naming
+  convention for commands.** It exists because the directory is a flat namespace
+  of WordPress plugins. Carrying it into the command spells `wp` twice, and
+  `wp wp-sweep` reads as a mistake.
+* **The ecosystem settled this**: `wp wc`, `wp yoast`, `wp jetpack`. The norm is
+  the brand, not the slug. A collection that departs from it looks wrong rather
+  than looks careful.
+* **These are the names the released 1.2.0 already shipped**, so keeping them
+  costs nothing and changing them would have broken every script calling
+  `wp sweep` for a cosmetic gain. The prefixed form was a breaking change
+  invented by this campaign; dropping it deletes that breakage rather than
+  documenting it.
+
+**Where the collision risk actually lands.** Most of these slugs are distinctive
+enough that the bare noun is nobody else's plausible claim — `commentnavi`,
+`pagenavi`, `draftsforfriends`, `postratings`, `postviews`, `dbmanager`,
+`pluginsused`, `relativedate`, `showhide`, `useronline`, `freemyinternet`. Three
+are not: **`email`, `print` and `stats`** are names a dozen plugins might want.
+Those three are **not** settled by this section. If any of them ever earns a
+command or a namespace, decide it then — either a qualified name or a shared
+`wp lc <plugin>` parent — and record the answer here. Do not let this section be
+read as blanket permission to claim `wp email`.
 
 ---
 

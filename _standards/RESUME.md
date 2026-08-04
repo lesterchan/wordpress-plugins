@@ -255,13 +255,26 @@ with nothing mechanical left in it; five, six and seven are done.
 
 3. **WP-CLI, REST API and Gutenberg blocks across the collection.** The only
    substantial item, and a phase of its own rather than a cleanup. `wp-sweep`
-   already has `WP_Sweep_Command` and `WP_Sweep_API` and is the reference; §13.3
-   pins the naming (`wp wp-sweep`, `wp-sweep/v1`) and the reason — the bare
-   nouns it replaced were names any plugin could have claimed, and neither
-   WordPress nor WP-CLI detects the collision. **§13.3 pins only the naming, not
-   who gets what** — the scope call (which plugins earn a command, a namespace
-   or a block, and whether a block wraps the existing shortcode or replaces it)
-   is still open and is Lester's.
+   already has `WP_Sweep_Command` and `WP_Sweep_API` and is the reference.
+
+   **§13.3's naming was reversed on 2026-08-04, by Lester.** It is now the slug
+   **without** the `wp-` prefix — `wp sweep`, `sweep/v1` — not `wp wp-sweep`.
+   The `wp-` prefix is a wordpress.org directory convention rather than a
+   command-naming one, the ecosystem norm is the brand (`wp wc`, `wp yoast`),
+   and these are the names the released 1.2.0 already shipped. So the change
+   **deletes a breaking change** this campaign had invented and documented:
+   wp-sweep's README carried a FAQ entry, two `BREAKING:` changelog lines and an
+   Upgrade Notice paragraph telling scripted callers to edit, all of which
+   became false. §13.3 has the full reasoning.
+
+   **Three names are deliberately left open**: `email`, `print` and `stats` are
+   bare nouns a dozen plugins might want, and §13.3 says explicitly that it does
+   not settle them. Decide each if and when it earns a command — a qualified
+   name, or a shared `wp lc <plugin>` parent.
+
+   **§13.3 pins only the naming, not who gets what** — the scope call (which
+   plugins earn a command, a namespace or a block, and whether a block wraps the
+   existing shortcode or replaces it) is still open and is Lester's.
 
 4. **Read the diffs for voice.** The mechanical half is done and closed. What
    is left is a human read, and the measurements below say where *not* to spend
