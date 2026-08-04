@@ -205,6 +205,34 @@ CUSTOM_CAPABILITIES = {
 }
 
 
+# §4.2.1 / §4.2.2: the tab strip of every plugin that has one, in order.
+#
+# §4.2.2 pins two of these labels by name -- they are `Settings` and `Templates`
+# and nothing else -- and §4.2.1's table pins the data-screen tab of three
+# plugins. The rest are pinned here for the same reason SHIPS_AS is: five of the
+# six tabbed plugins disagreed with each other before §4.2.2 was written
+# (`Poll Options`, `Poll Templates`, `General`), the renames were done by hand in
+# six repositories, and a rename that stops at the tab strip sends the README and
+# the e2e suite to a screen name that no longer exists.
+#
+# wp-serverinfo is in the table although its tabs are panels of one read-only
+# report rather than §4.2.1 screens-turned-tabs. The section does not govern it;
+# the drift it prevents is the same.
+TAB_LABELS = {
+    "wp-ban": ["Stats", "Settings", "Templates"],
+    "wp-downloadmanager": ["Settings", "Templates"],
+    "wp-draftsforfriends": ["Shared Drafts", "Settings"],
+    "wp-email": ["Settings", "Templates"],
+    "wp-polls": ["Settings", "Templates"],
+    "wp-postratings": ["Settings", "Templates"],
+    "wp-postviews": ["Settings", "Templates"],
+    "wp-print": ["Settings", "Templates"],
+    "wp-serverinfo": ["General", "PHP", "MySQL", "memcached", "Redis"],
+    "wp-stats": ["Statistics", "Settings"],
+    "wp-useronline": ["Users Online", "Settings", "Templates"],
+}
+
+
 def class_constants(root, includes):
     """Every `const NAME = '<literal>';` in shipped PHP, as (name, value, file).
 
@@ -1149,6 +1177,49 @@ def verify(slug, name, prefix, port, root):
                     "§2.7 the custom capability is still defined",
                     "no class defines CAPABILITY = '%s'"
                     % CUSTOM_CAPABILITIES[slug])
+
+    # --- §4.2.1 / §4.2.2 the tab strip --------------------------------------
+    # Every tabbed screen builds its strip from one tabs() returning slug =>
+    # label, so the labels are readable without running anything. Two things are
+    # checked: the strip is exactly what the standard says it is, in order, and
+    # -- separately, because it needs no table and so survives a plugin the
+    # table has not heard of -- no label is one of the spellings §4.2.2 retires.
+    #
+    # `Options` is banned outright: the page is already Settings, so a tab
+    # called `Poll Options` says the same thing twice and is what five of the
+    # six tabbed plugins were doing.
+    #
+    # §4.2.2's other half -- a label must not repeat a word the surrounding
+    # context already supplies -- is deliberately NOT checked. The section says
+    # in as many words that the obvious mechanical reading ("drop the plugin
+    # name") is wrong and leads somewhere silly, and that the test is whether
+    # the word is doing work where it stands. A check for it would fire on
+    # `Users Online` and miss `E-Mail Templates`, which is worse than none.
+    labels = []
+    tabs_file = None
+    for path in sorted(glob.glob(os.path.join(includes, "*.php"))):
+        body = read(path) or ""
+        m = re.search(r"function\s+tabs\s*\([^)]*\)\s*\{(.*?)\n\t\}", body,
+                      re.S)
+        if not m:
+            continue
+        tabs_file = os.path.relpath(path, root)
+        labels = re.findall(r"__\(\s*'([^']+)'", m.group(1))
+        break
+
+    if slug in TAB_LABELS:
+        r.check(labels == TAB_LABELS[slug], "§4.2.1 the tab strip, in order",
+                "%s has %s, want %s"
+                % (tabs_file or "no tabs() found", labels, TAB_LABELS[slug]))
+    else:
+        r.check(not labels, "§4.2.1 a tab strip the standard does not know",
+                "%s builds tabs %s; add them to TAB_LABELS and to §4.2.1"
+                % (tabs_file, labels))
+
+    for label in labels:
+        r.check("Options" not in label,
+                "§4.2.2 a tab is never named Options",
+                "%r in %s -- the page is already Settings" % (label, tabs_file))
 
     return r
 
