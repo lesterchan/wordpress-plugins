@@ -189,11 +189,17 @@ RETIRED_CONSTS = {
 # §2.7's custom capabilities, one per plugin. Everything not named here gates on
 # manage_options, and a plugin may never reach for a sibling's capability.
 #
-# §2.7 lists five of these -- wp-email, wp-postratings, wp-dbmanager,
-# wp-draftsforfriends and wp-downloadmanager -- and omits two that ship:
-# wp-polls' manage_polls, which has been in that plugin since long before this
-# campaign, and wp-sweep's activate_plugins, which §2.2 and §7.2.2 both name
-# while §2.7's list does not. The list wants those two added.
+# §2.7 listed five of these and omitted two that ship -- wp-polls' manage_polls
+# and wp-sweep's activate_plugins. Both were added to the section on 2026-08-04,
+# so this map and §2.7 now agree; check them against each other before changing
+# either.
+#
+# The name is a shade loose and worth reading carefully: only four of the seven
+# are *custom*, in the sense that the plugin must add_cap() them into existence
+# -- manage_downloads, manage_email, manage_polls and manage_ratings.
+# install_plugins, activate_plugins and publish_posts are core's, held by every
+# administrator already and nobody's to grant. §2.7 draws that line, and the
+# add_cap() rule below depends on it.
 CUSTOM_CAPABILITIES = {
     "wp-dbmanager": "install_plugins",
     "wp-downloadmanager": "manage_downloads",
@@ -1249,6 +1255,37 @@ def verify(slug, name, prefix, port, root):
         r.check(value in allowed_caps, "§2.7 capability is the one §2.7 names",
                 "%s in %s, allowed here: %s"
                 % (value, where, ", ".join(sorted(allowed_caps))))
+
+        # §2.7: a plugin gating on anything other than manage_options is taking
+        # an exception, and "the reason goes in a docblock at the gate". The
+        # reason cannot be judged mechanically, but its absence can: a constant
+        # carrying nothing but a one-line summary and its @var has not argued
+        # anything. wp-dbmanager is the model -- it says why install_plugins is
+        # right and why that is not drift -- and wp-polls had four bare lines
+        # until 2026-08-04, which is how a deliberate decision becomes something
+        # the next reader "tidies up".
+        if "manage_options" == value:
+            continue
+
+        block = ""
+        for path in [main] + sorted(glob.glob(os.path.join(includes, "*.php"))):
+            body = read(path) or ""
+            m = re.search(
+                r"(/\*\*(?:(?!\*/).)*?\*/)\s*const CAPABILITY\s*=\s*'%s'"
+                % re.escape(value), body, re.S)
+            if m:
+                block = m.group(1)
+                break
+
+        # Lines of actual prose: not the delimiters, not the @var, not blanks.
+        prose = [ln for ln in block.split("\n")
+                 if re.match(r"^\s*\*\s+\S", ln) and "@" not in ln]
+
+        r.check(len(prose) >= 3,
+                "§2.7 a capability that is not manage_options argues for itself",
+                "%s in %s has %d line(s) of reasoning on its constant; §2.7 "
+                "asks why this gate is not manage_options"
+                % (value, where, len(prose)))
 
     if any(cname == "CAPABILITY" for cname, _, _ in consts):
         # The default passed to the filter need not be the bare constant:
