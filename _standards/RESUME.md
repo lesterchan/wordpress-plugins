@@ -3,32 +3,34 @@
 State of the consistency programme as of **2026-08-04**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
-**In one line:** all nineteen plugins are green on CI, the pre-revamp tags are
-cut and pushed, and **three items are open** — the eleven end-to-end migration
-tests (item 1c), the WP-CLI/REST/blocks phase, and the screenshot recapture
-Lester asked for on 2026-08-04. Items 1 and 2 are otherwise closed. Nothing is
-waiting on Lester except the scope call in item 3.
+**In one line:** all nineteen plugins are green, the pre-revamp tags are cut and
+pushed, and **three items are open** — eleven end-to-end migration tests, the
+WP-CLI/REST/blocks phase, and a screenshot recapture Lester is doing himself.
+**Start at item 1.** Nothing is waiting on Lester except the scope call in item 2.
 
-**The release blocker is closed, and so is all of item 1 except (c).** Items
-1(a), 1(b), 1(d), 1(e) and 1(f) all landed on 2026-08-04: wp-dbmanager's
-migration is fixed with a `verify.py` rule behind it, eight plugins gained a
-stock-defaults fixture, and the false `register_setting()` docblock turned out
-to be in three plugins rather than one. **1(c) — eleven end-to-end migration
-tests — is what remains**, and the notes below say what to write them against.
+**The bug backlog is empty and every rule the spec states now has something
+behind it.** 2026-08-04 closed the §7.6.1 release blocker, the spec-against-checks
+audit and a capability audit that fell out of it. `bin/verify.py` grew from 93
+checks to 127, and 41 of the spec's 48 sections are mechanically enforced, up
+from 31. "Closed on 2026-08-04" has the findings.
 
-**§7.6.1 was overstated, and the correction matters before writing 1(c).**
-Core's `update_option()` already falls back to `add_option()` when the
-`default_option_*` filter is what answered `$old_value`, so the *write* half of
-the shape is mostly core's problem and not ours. The *read* half is the real
-defect and always was: a bare `get_option()` behind an `is_array()` guard skips
-the fold-in while the legacy row is deleted regardless. Measured, not assumed —
-see "Rules earned the hard way".
+**Read this before writing item 1.** §7.6.1 was overstated in this file for a
+week, and the correction is the difference between eleven useful tests and
+eleven that pass without proving anything. Core's `update_option()` already
+falls back to `add_option()` when the `default_option_*` filter is what answered
+`$old_value`, **so the write half is mostly core's problem**. The read half is
+the real defect and always was: a bare `get_option()` behind an `is_array()`
+guard skips the fold-in while the legacy row is deleted regardless. Aim at the
+read. Measured, not assumed — see "Rules earned the hard way".
 
-**Green tools were not enough, and that is the lesson of the day.** Nineteen
+**Green tools were not enough, and that is the lesson of the week.** Nineteen
 suites, `verify.py` at zero and CI green across the board, while a data-loss
-migration sat one hook-ordering accident away from firing — because §7.6.1 was
-a rule the spec stated and nothing checked. Item 2 counts how much else is in
-that position: it was 16 of 48 on the morning of 2026-08-04 and is **6** now.
+migration sat one hook-ordering accident away from firing — because §7.6.1 was a
+rule the spec stated and nothing checked. The audit that found it worked by
+reading the *spec* and asking "what enforces this?", never by re-reading the
+plugins. It found four live defects and six sections that were themselves wrong.
+**A rule nothing checks is a rule that is probably also wrong**, not merely
+unenforced.
 
 **Trust the tools over this file.** At the start of a session run
 `python3 bin/verify.py --quiet` and `git log --oneline -3` in each repo. Between
@@ -88,68 +90,37 @@ differences between two plugins are name, features and capability.
 Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 `bin/test-e2e.sh`.
 
-## Current state — verified 2026-08-03
+## Current state — verified 2026-08-04
 
-* **CI green on all 19**, checked run by run rather than assumed. This line is
-  the one in this file most likely to be out of date by the time you read it —
-  it is true only of the commits listed by `git log --oneline -1` in each repo
-  on the date above. Re-check rather than trust it.
-* `verify.py` 0 across all 19.
-* PHPUnit green single site and multisite; Playwright green.
-* **Every assertion in the collection carries a failure message** — 7,879 of
-  7,879, up from 3,360 of 7,860 (42.7 %) when the work started. The total moves
-  with every commit; the ratio is the claim, and
+* **All twenty repositories are level with their remotes and clean**, and
+  `verify.py` is 0 across all 19. Both were checked by fetching rather than from
+  cached refs.
+* PHPUnit green single site and multisite on every plugin touched on 2026-08-04;
+  Playwright green where it was run (wp-email 45, wp-pluginsused 6). **The other
+  suites were not re-run that day** — this line is the one in this file most
+  likely to be stale by the time you read it, so re-check rather than trust it.
+* **Every assertion in the collection carries a failure message** — the total
+  moves with every commit, so the ratio is the claim:
   `python3 bin/measure_assertions.py /path/to/plugins/*` re-derives both.
 * The permalink audit of the E2E suites is complete — see below.
 * **No known plugin bug is outstanding.** wp-dbmanager's was fixed on
-  2026-08-04 (item 1a) and now has both a rule and a test behind it. The lesson
-  stands even though the line has flipped: it was latent rather than firing,
-  every suite was green, and nothing here caught it because `verify.py` had no
-  rule for it and no test took the admin path.
+  2026-08-04 and now has both a rule and a test behind it. The lesson stands
+  even though the line has flipped: it was latent rather than firing, every
+  suite was green, and nothing here caught it because `verify.py` had no rule
+  for it and no test took the admin path.
 
 ## Remaining work, in order
 
-**Four items are open: one (partly), two, three and eight.** Four is a human read
-with nothing mechanical left in it; five, six and seven are done.
+**Three items are open.** Item 1 is the whole of the next session's work; item 2
+is waiting on a decision from Lester; item 3 is Lester's to schedule. Everything
+else that was on this list is done — see "Closed on 2026-08-04" below, which
+keeps the findings and drops the instructions.
 
-1. **Close the §7.6.1 migration gap.** Audited 2026-08-03 and every figure below
-   re-checked by hand afterwards, because the audit came from an agent and this
-   file has been wrong about counted things before. **(a), (b), (e) and (f) are
-   done — 2026-08-04. (c) and (d) remain, and are the grind.**
+1. **Eleven plugins have a migration and no end-to-end test of it.** This was
+   item 1(c), the last open part of the §7.6.1 work, and it is the grind the
+   rest of that item cleared the way for.
 
-   ~~**(a) wp-dbmanager reads the settings row bare.**~~ **Fixed 2026-08-04**,
-   commit `472101e`. `includes/class-wp-dbmanager-options.php:211` was
-   `get_option( self::OPTION )` with no second argument while
-   `class-wp-dbmanager-settings.php:86` passes `'default' => …`, so the read
-   answered with the defaults array, `is_array( $current )` was true, the
-   fold-in was skipped and `dbmanager_options` was deleted anyway. Latent only
-   because `maybe_upgrade()` ran on `plugins_loaded` and `register_setting()` on
-   `admin_init`, one hook later.
-
-   It now reads `get_option( self::OPTION, false )`, which is what the plugin's
-   own `write()` already did. The count held up: **bare reads of the current
-   settings row, whole collection, one — this one.** A regression test seeds the
-   shipped defaults, registers the setting first so the filter is live, and
-   asserts the raw row; **confirmed to fail with the fix reverted.** The
-   pre-existing customised-fixture test passed throughout, which is item 1(d) in
-   miniature.
-
-   ~~**(b) Make it a `verify.py` rule.**~~ **Done 2026-08-04**, commit `a4b3b0c`.
-   Fails any shipped file reading the plugin's own settings row through a
-   one-argument `get_option()`. Proven both ways: planting a bare read in
-   wp-print reports `includes/class-wp-print-options.php:109`, and all nineteen
-   are green with it removed.
-
-   Two scoping decisions worth keeping. **The legacy row is deliberately not
-   covered** — `register_setting()` names the *current* row, so no
-   `default_option` filter exists for the old one and a bare read of it is
-   correct, which is what five plugins do. And it is **shipped code only, by
-   allow list** (`includes/` plus the root entry points), because tests read the
-   row bare on purpose to assert what is actually in the database — there are
-   about sixty such reads across the suites, every one of them right.
-
-   **(c) Eleven plugins have a migration and no end-to-end test of it.**
-   Counted, not assumed: fifteen plugins migrate, and four have
+   Counted, not assumed: fifteen plugins migrate and four have
    `tests/e2e/upgrade.spec.js` — freemyinternet, wp-ban, wp-pluginsused and
    wp-print. Missing: **wp-commentnavi, wp-dbmanager, wp-downloadmanager,
    wp-draftsforfriends, wp-email, wp-pagenavi, wp-polls, wp-postratings,
@@ -161,318 +132,75 @@ with nothing mechanical left in it; five, six and seven are done.
    admin request, *never* a reactivation, because reactivating is the WP-CLI
    path in disguise and takes the easy branch. Then assert the legacy rows are
    gone, the new row is present **read raw with the two-argument
-   `get_option()`**, and the value shows up on the far end. Reading it back
-   through the plugin's own getter proves nothing: the getter merges the
-   defaults, so a write that never happened is indistinguishable from one that
-   did. That is the trap wp-email, wp-postviews and wp-useronline are already in
-   — each has a defaults-equal fixture but asserts through the merging getter.
+   `get_option()`**, and the value shows up on the far end.
 
-   ~~**(d) Seed the shipped defaults, not just customised values.**~~ **Done
-   2026-08-04, across eight plugins rather than the seven this said.** The seven
-   named — wp-commentnavi, wp-dbmanager, wp-downloadmanager, wp-pagenavi,
-   wp-polls, wp-postratings, wp-stats — each seeded a fixture where every field
-   differs from the defaults, which cannot see the defect because the write
-   lands precisely *because* the values differ. Each now has a stock fixture
-   beside the customised one, not replacing it: the all-customised policy is
-   right for "did the values carry across" and is stated deliberately at
-   `wp-polls/tests/test-migration.php:14-18`.
+   **Aim the assertions at the read, not the write, and know why.** The PHPUnit
+   half of this work (item 1d, done) established the distinction the hard way:
 
-   Every stock fixture is **built from the plugin's own `defaults()`** — through
-   `legacy_map()` where one exists — rather than typed out, so a changed default
-   cannot quietly turn it back into a second customised fixture.
+   * **A bare `get_option()` behind an `is_array()` guard is the real defect.**
+     Nothing in core saves you: the fold-in is skipped and the legacy row is
+     deleted regardless. wp-print, wp-pluginsused and wp-dbmanager each had it.
+   * **A bare `update_option()` is mostly core's problem and core handles it.**
+     `update_option()` asks the `default_option_*` filter what it would answer
+     and calls `add_option()` when that is what `$old_value` was. The one gap is
+     the comparison *above* that fallback — and it sanitises before it compares,
+     so a sanitiser that alters its input at all closes even that.
 
-   The eighth is the trap named in (c): wp-email, wp-postviews and wp-useronline
-   asserted the migrated row with a **one-argument `get_option()`**. All three
-   register a `default`, so once that filter is live an absent row reads back as
-   the defaults array and `assertIsArray()` passes whether or not anything was
-   written — wp-useronline's idempotency test compared two such reads, which
-   agree with each other either way. **Demonstrated rather than argued:** with
-   wp-postviews' write mutated to a no-op, the one-argument form passes and the
-   two-argument form fails on the same broken migration. wp-postviews also
-   gained the stock fixture; its `stage_legacy_install()` with no arguments was
-   already exactly defaults-equal and nothing had ever used it for this.
+   So a test written to catch a bad write will pass on nine plugins out of
+   twelve and prove nothing. **Read the row raw and assert what is in it.**
 
-   **What (d) actually established, and it refines §7.6.1 again.** Whether a
-   plugin survives the write-side gap is decided by **whether its sanitiser
-   returns the defaults unchanged** — `update_option()` sanitises before it
-   compares, so a sanitiser that alters its input pushes execution past the
-   early return and into core's `add_option()` fallback. Measured across the
-   collection on 2026-08-04 by asking each plugin whether
-   `sanitize_option( OPTION, defaults() )` comes back identical to `defaults()`:
-   **three do — wp-dbmanager, wp-pluginsused, wp-stats — and all three already
-   have a `write()` helper**, so nothing was live. The rest are held up by their
-   sanitiser and nothing else.
+   **Seed the shipped defaults, not customised values.** A customised fixture
+   cannot see this shape at all: the write lands precisely *because* the values
+   differ. Every plugin now has a stock-defaults PHPUnit fixture built from its
+   own `defaults()` — through `legacy_map()` where one exists — and those are
+   the fixtures to port into the E2E suites rather than inventing new ones.
 
-   The sharpest illustration is wp-commentnavi and wp-pagenavi, which carry
-   **byte-identical migrations**. Remove `write()`'s `add_option()` branch and
-   wp-commentnavi goes red while wp-pagenavi stays green, purely because one
-   sanitiser is idempotent on the defaults and the other is not. That is the
-   argument for `write()` being explicit rather than inheriting whichever
-   accident happens to hold — and it was found by running the mutation on both
-   instead of assuming the second behaved like the first.
+   **Registering the setting is what makes it the admin path.** A migration test
+   that does not is testing WP-CLI. In the browser that is automatic; in `wpEval`
+   it is not.
 
-   ~~**(e) wp-polls decides its own correctness by two adjacent lines.**~~
-   **Done 2026-08-04**, commit `6eaa803` — but the premise was wrong and the
-   correction is the useful part. `WP_Polls_Options::save()` did go through a
-   bare `update_option()`, and `WP_Polls_Install::init()` (wp-polls.php:71) and
-   `WP_Polls_Settings::init()` (:77) do both hook `admin_init` at priority 10 —
-   **but no data was ever at risk**, because core covers the write side. See the
-   corrected §7.6.1 note under "Rules earned the hard way".
+   Read "READ FIRST — CI and your machine are not the same environment" and
+   "E2E lessons that will recur" before writing the first line. Between them
+   they account for most of the time this work has cost before.
 
-   `save()` adds the row itself now, so neither the hook order nor the
-   sanitiser's behaviour has to hold. It is hardening and is committed as
-   hardening. **Two tests came with it** and are the item 1(d) fixture for this
-   plugin — a stock-defaults install built from `legacy_map()` rather than typed
-   out. Both were confirmed to fail against a `save()` mutated to write nothing;
-   **neither fails against the bare `update_option()`, because there is nothing
-   there to catch**, and a test that was left in claiming otherwise would have
-   been the collection's fourth "test that cannot fail". One such test was
-   written and deleted rather than committed.
+   **Run E2E one plugin at a time.** Four concurrent Playwright runs tore each
+   other down on a 7.6 GiB Docker.
 
-   ~~**(f) Two comments that will mislead the next reader.**~~ **Done
-   2026-08-04**, commits `38c7b39` (wp-pluginsused) and `e19f8ba`
-   (freemyinternet). The first said "This assertion currently fails, and it is
-   right to" about an assertion that passes — **verified by running the suite,
-   6/6 green**, not by reading the code — so it was telling somebody to wave
-   through a real regression. It now says what the assertion pins, keeps the
-   original defect in the past tense because the shape is worth recognising, and
-   ends by forbidding the weakening to the reactivation path.
+2. **WP-CLI, REST API and Gutenberg blocks across the collection.** The only
+   substantial item left, and a phase of its own rather than a cleanup.
+   `wp-sweep` already has `WP_Sweep_Command` and `WP_Sweep_API` and is the
+   reference.
 
-   The second claimed `register_setting()` is passed a `default` when
-   `class-freemyinternet-settings.php` passes only `type` and
-   `sanitize_callback`. The code was right either way; the comment is what gets
-   copied into the next plugin, and it was describing a trap as though it were
-   armed.
-
-   **That second one was three plugins, not one**, found while doing (d):
-   wp-commentnavi and wp-pagenavi carry the identical false claim and were fixed
-   the same day (`72ee34b`, `83ed675`). Exactly three plugins pass no `default`
-   — freemyinternet, wp-commentnavi, wp-pagenavi — and all three had a docblock
-   saying they did. One wrong sentence, copied to precisely the set of plugins
-   it was wrong about. Their tests now register the setting **with** a default,
-   which is the change a future release makes without thinking about
-   migrations, and require the fold-in to land anyway.
-
-   **Docker, wp-env and Playwright all run on Lester's machine** — the
-   egress block that made these CI-only was the cloud sandbox, not here. So (c)
-   and (d) can be written *and run* locally. Check
-   `wp option get permalink_structure` in the tests container first; see the
-   permalink section below.
-
-2. **Audit the spec against the checks — 17 of 48 sections have nothing behind
-   them.** This is the audit that keeps finding real defects, and the one item 1
-   is a product of. Re-reading nineteen plugins against the spec buys nothing:
-   the mechanical half is checked on every push and is green. Reading the *spec*
-   and asking "what enforces this?" has found every defect of the last week —
-   `@package` split along file age, §11's raster ban satisfied by all nineteen
-   and enforced by nothing, §12's script list stale in all nineteen identically,
-   and §7.6.1, which is item 1.
-
-   Measured 2026-08-03 by cross-referencing the `§` citations in `bin/verify.py`
-   and `templates/helper-metadata-testcase.php` against the section headings in
-   STANDARDS. **Done 2026-08-04.** It was 31 sections with a check and 17
-   without. Nine gained one — §2.2, §2.5, §2.7, §4.2.1, §4.2.2, §4.3 (partly),
-   §7.1, §7.2.4 (partly), §13.1 — plus §7.6.1 earlier the same day, so it is now
-   **41 with a check and 6 without**, and `verify.py` went from 93 `check()`
-   sites to 127. Each rule was proven both ways: plant the violation, watch it
-   fail, remove it, watch it pass.
-
-   **The six with nothing behind them, and why each stays that way:**
-
-   | Section | Why not |
-   |---|---|
-   | §4.4 Markup | judgement |
-   | §7.2.1 Process-wide state | needs the suite running |
-   | §7.2.3 A suite that dies is not one that passed | enforced by `bin/test-all.sh`; §7.2.3 now says so, so the next audit does not write a second check |
-   | §7.3 Coverage | a number, and gaming it is worse than missing it |
-   | §13.3 WP-CLI and REST naming | nothing to check until item 3 ships |
-   | §15 Order of work | process, not state |
-
-   Two more were attempted and deliberately abandoned, which is worth as much as
-   the nine: **§4.2.2's "do not repeat a word the context supplies"** — the
-   section itself says the obvious mechanical reading is wrong, and a check for
-   it fires on `Users Online` while missing `E-Mail Templates`. And **§2.7's
-   "every check of the plugin's own capability goes through one filter"**, which
-   cannot be separated mechanically from the core meta-caps, `unfiltered_html`
-   and editor gates the section explicitly exempts. Both were written, seen to
-   be useless, and deleted rather than left in looking like coverage.
-
-   **The rules found four real violations on their first run**, which is the
-   whole argument for auditing the spec rather than the plugins: wp-polls had
-   the collection's only test class following neither half of §7.1; wp-sweep's
-   AJAX suite extended core's base directly; wp-draftsforfriends' escaping test
-   used `<b>Title</b>` rather than any of §7.2.4's three canonical payloads; and
-   wp-email carried an unprefixed global filter callback in
-   `screen-standalone.php`, a file required at request time, where it was also a
-   redeclare fatal waiting to happen.
-
-   **The §2.7 question the audit raised was answered rather than deferred.**
-   The section said the custom capability gates data screens and Settings stays
-   on `manage_options`; three plugins did otherwise. The rule was qualified
-   rather than the plugins changed, because wp-dbmanager settles it: its
-   settings screen sets the `mysqldump` binary path, so whoever writes that can
-   make the plugin run an arbitrary binary as the web user. That screen is *more*
-   dangerous than its data screens and `install_plugins` is right — moving it to
-   `manage_options` would have been a downgrade dressed as compliance.
-
-   §2.7 now permits the exception **on condition the reason is argued in a
-   docblock at the gate**, and `verify.py` enforces the condition: a `CAPABILITY`
-   that is not `manage_options` must carry more than a summary line. wp-dbmanager
-   already had that docblock; wp-polls had four bare lines and wp-postratings
-   argued only the data half. Both were written up. **A condition nothing checks
-   is the state every defect this week came out of**, so the qualification was
-   not worth having until the check existed.
-
-   **Six sections were wrong and were corrected** (`ec58a1d`), each found by
-   trying to write its rule. §2.2 contradicted §2.1 about the four plugins that
-   store nothing, and cited wp-sweep as defining `CAPABILITY` twice when it has
-   no settings screen and defines it once. §2.5 claimed globals live only in
-   `template-tags.php` and `deprecated.php` — false in all nineteen, since every
-   `uninstall.php` declares one. §4.2.1's prose contradicted its own table.
-   §7.1 required a base class an AJAX suite cannot use. That is roughly the
-   ratio the programme has run at throughout: **a rule nothing checks is a rule
-   that is probably also wrong**, not merely unenforced.
-
-   **The generalisation, already in §7.2.2 and now earned twice:** a rule the
-   spec implies and nothing enforces is a rule nineteen copies will drift from,
-   and the drift is invisible precisely because every tool is green.
-
-3. **WP-CLI, REST API and Gutenberg blocks across the collection.** The only
-   substantial item, and a phase of its own rather than a cleanup. `wp-sweep`
-   already has `WP_Sweep_Command` and `WP_Sweep_API` and is the reference.
-
-   **§13.3's naming was reversed on 2026-08-04, by Lester.** It is now the slug
-   **without** the `wp-` prefix — `wp sweep`, `sweep/v1` — not `wp wp-sweep`.
-   The `wp-` prefix is a wordpress.org directory convention rather than a
-   command-naming one, the ecosystem norm is the brand (`wp wc`, `wp yoast`),
-   and these are the names the released 1.2.0 already shipped. So the change
-   **deletes a breaking change** this campaign had invented and documented:
-   wp-sweep's README carried a FAQ entry, two `BREAKING:` changelog lines and an
-   Upgrade Notice paragraph telling scripted callers to edit, all of which
-   became false. §13.3 has the full reasoning.
+   **The naming is settled** (§13.3, reversed by Lester 2026-08-04): the slug
+   **without** the `wp-` prefix — `wp sweep`, `sweep/v1`, not `wp wp-sweep`. The
+   `wp-` prefix is a wordpress.org directory convention rather than a naming rule
+   for what a plugin registers, the ecosystem norm is the brand (`wp wc`,
+   `wp yoast`), and these are the names the released 1.2.0 already shipped — so
+   the change *deleted* a breaking change this campaign had invented and
+   documented.
 
    **Three names are deliberately left open**: `email`, `print` and `stats` are
-   bare nouns a dozen plugins might want, and §13.3 says explicitly that it does
+   bare nouns a dozen plugins might want, and §13.3 says in terms that it does
    not settle them. Decide each if and when it earns a command — a qualified
    name, or a shared `wp lc <plugin>` parent.
 
-   **§13.3 pins only the naming, not who gets what** — the scope call (which
-   plugins earn a command, a namespace or a block, and whether a block wraps the
-   existing shortcode or replaces it) is still open and is Lester's.
+   **What is still open, and is Lester's:** the scope. Which plugins earn a
+   command, a namespace or a block, and whether a block wraps the existing
+   shortcode or replaces it. §13.3 pins only the naming.
 
-4. **Read the diffs for voice.** The mechanical half is done and closed. What
-   is left is a human read, and the measurements below say where *not* to spend
-   it.
-
-   **Comment density is not a defect signal in this collection, and two
-   successive attempts to make it one were both wrong.** Recorded because the
-   error is easy to repeat:
-
-   * *Raw comment share* rates wp-polls worst (35.6 % against wp-postratings'
-     46.6 % at nearly the same size). wp-polls is in fact among the best
-     explained plugins here. Its share is low because it carries a lot of code
-     per docblock.
-   * *Counting only `//`* rates wp-relativedate worst in the collection, at 0.4
-     per 100 lines. It is second **best** at 15.4. The plugin explains itself in
-     `/* … */` blocks, which a `//`-only counter files as docblocks. wp-pluginsused
-     moved from second-worst to fifth-best for the same reason.
-
-   Measured properly — inline `//` plus non-docblock `/* */`, against code lines
-   — the collection spans 6.8 to 16.0 per 100, and **the low end is correct**.
-   wp-email's least-commented file is a `WP_Widget` subclass with 80 lines of
-   code and no inline explanation at all, because nothing in it is surprising.
-   Counting cannot tell "under-explained" from "nothing to explain"; only
-   reading can.
-
-   The mechanical half, all clean: **every function in shipped code has a
-   docblock** — about 1,890 of them across the nineteen, a figure that moves
-   with every commit and is checked rather than tracked — every file has a
-   file-level docblock, and `@package` is the display name everywhere. That last
-   one was a real find — four plugins
-   (wp-useronline, wp-postratings, wp-draftsforfriends, wp-sweep) carried the
-   lowercase slug in their older files and the display name in their newer ones,
-   splitting each plugin along age rather than meaning, and canonicalisation
-   walked past it because nothing compared the halves. `verify.py` checks it now.
-
-5. ~~**The wp-draftsforfriends API question.**~~ **Decided and shipped
-   2026-08-03.** Lester's call: ship the three actions, and do the URL filter
-   properly rather than cheaply.
-
-   `wp_draftsforfriends_share_created`, `_extended` and `_revoked` each fire
-   after the write has succeeded, so a listener sees the stored row rather than
-   what the caller asked for. `extend()` passes the previous expiry alongside
-   the new one, because it cannot be recovered afterwards.
-
-   **The URL filter needed a refactor first, and this is the part worth
-   remembering.** `Shares::url()` wrote `?p=<id>&draftsforfriends=<hash>` and
-   `Preview::requested_hash()` read the query argument back — each holding the
-   string separately, so the link a friend was given and the check that lets
-   them read it agreed only by coincidence. Filtering the URL alone would have
-   let a site rewrite the link into a shape the plugin could not recognise, and
-   every share would have 404'd with nothing on the admin screens looking
-   wrong — which is the field bug fixed on 2026-08-02, reintroduced through an
-   extension point.
-
-   So the query argument is one constant both halves use, and the pair is
-   filterable together: `wp_draftsforfriends_share_url` writes the link,
-   `wp_draftsforfriends_requested_hash` reads it back. **They are one contract**,
-   documented as such, and pinned by a test that rewrites the URL into a path
-   segment, reads it back and still gets the draft — plus its mirror, which
-   honours only half and correctly gets nothing. The filtered hash is sanitised
-   on the way out, since it is the credential the preview is gated on.
-
-   The general rule: **before exposing a value through a filter, find out who
-   else depends on its shape.** A producer and a parser that never share a code
-   path are a bug the moment either becomes public.
-
-6. ~~**Sweep for assertions whose two operands are both literals.**~~ **Done
-   2026-08-03. One finding across all nineteen**, in wp-downloadmanager:
-   `assertTrue( true )` standing in for "serve() returned rather than ending the
-   request". Reaching the line was the real assertion, but that form would also
-   have passed if `serve()` printed an error on the way out — so it now captures
-   the output and asserts it is empty.
-
-   **A constant is not a literal.** The first pass counted `WP_SHOWHIDE_VERSION`
-   and `self::PER_PAGE` as literals and reported 73 findings, nearly all of them
-   `assertSame( '3.0.0', WP_SHOWHIDE_VERSION )` — which is a real test, because
-   the constant comes from the code under test. Only values written *in the
-   test file* count. Scope `foreach` sources per method too, or a literal array
-   in one test makes the next test's variable look literal.
-
-7. ~~**Route administrator creation through a helper (§7.2.2).**~~ **Done
-   2026-08-03.** Eleven plugins got a `create_admin()` on their shared test case
-   and **52 call sites now go through it**. None of the eleven takes a grant:
-   every one gates on `manage_options` or on a custom capability of its own, and
-   core's `map_meta_cap()` remaps neither. Only wp-sweep, wp-dbmanager and
-   wp-print grant super admin, which is what §7.2.2 always said.
-
-   Two things fell out of doing it. wp-ban's metadata fixture was granting super
-   admin to register a `manage_options` page — a fourth grant the section could
-   not account for, and now gone. And `verify.py` fails any plugin that reaches
-   the user factory for an administrator outside `helper-*.php`.
-
-   **The check is the point, not the refactor.** This paragraph's own numbers
-   were wrong twice: first "the helper is on every plugin" when it was on five,
-   then "twelve plugins, 55 sites" — that count included
-   `get_role( 'administrator' )`, which asserts a capability rather than creating
-   a user, and called wp-downloadmanager non-compliant one sentence after
-   describing its idiom as compliant. Both were prose about a number nothing
-   measured. The generalisation is in STANDARDS §7.2.2 and worth repeating here:
-   **audit the spec against the checks, not the plugins against the spec.**
-
-8. **Recapture every plugin's wordpress.org screenshots.** Asked for by Lester
+3. **Recapture every plugin's wordpress.org screenshots.** Asked for by Lester
    on 2026-08-04, which is what puts it on this list at all — see the note below
-   about SVN. **Deferred deliberately, not forgotten:** it wants Playwright and
-   a seeded WordPress, item 1(c) wants Playwright and eleven fresh E2E suites,
-   and this file's own E2E lesson is that four concurrent Playwright runs tore
-   each other down on a 7.6 GiB Docker. Lester's call was to record it and run
-   it after the E2E work lands. Do not start it alongside item 1(c).
+   about SVN. **Lester is doing this himself, on a day of his choosing.** Do not
+   start it alongside item 1: both want Playwright and a seeded WordPress, and
+   this file's own E2E lesson is what concurrent Playwright runs do to a 7.6 GiB
+   Docker.
 
    **Every screenshot in the collection is pre-revamp.** The admin UI was rebuilt
    wholesale — Settings API everywhere, `WP_List_Table` on every tabular screen,
-   one menu rule, renamed settings headings (§17's `<Name> Settings`) — so the
-   images no longer show the software. That is the reason to redo all nineteen
-   rather than only the five that fail the count check below.
+   one menu rule, renamed settings headings — so the images no longer show the
+   software. That is the reason to redo all nineteen rather than only the five
+   that fail the count check below. wp-sweep's are the most out of date of all:
+   its sweep screen gained group headings and icons on 2026-08-04.
 
    Counted 2026-08-04, `## Screenshots` lines in each repo's `README.md` against
    `screenshot-*` files in `~/svn/wordpress_plugins/<slug>/assets/`. **Fourteen
@@ -486,32 +214,78 @@ with nothing mechanical left in it; five, six and seven are done.
    | wp-sweep | 3 | 2 | one described and never shipped |
    | wp-useronline | 4 | 3 | one described and never shipped |
 
-   The rule wordpress.org actually applies is positional: `screenshot-N.png` is
-   captioned by the Nth line of the `== Screenshots ==` list, so a missing file
-   silently shifts every caption after it onto the wrong image. **The count
-   matching is necessary and not sufficient** — the fourteen that agree have
-   never been checked for whether each line still *describes* its image, and
-   after a UI rebuild the safe assumption is that none of them do.
+   The rule wordpress.org applies is positional: `screenshot-N.png` is captioned
+   by the Nth line of the `Screenshots` list, so a missing file silently shifts
+   every caption after it onto the wrong image. **The count matching is necessary
+   and not sufficient** — the fourteen that agree have never been checked for
+   whether each line still *describes* its image, and after a UI rebuild the safe
+   assumption is that none of them do.
 
-   How many to take is a judgement per plugin, not a number to preserve: the old
-   counts were set against the old screens. Lester's brief was explicit that the
-   current count is stale and the new one is ours to choose.
+   How many to take is a judgement per plugin, not a number to preserve. Lester's
+   brief was explicit that the current count is stale and the new one is ours to
+   choose.
 
    Notes for whoever runs it. `bin/seed-demo.sh` fills the root harness at
    http://localhost:8888 (admin / password) with the fixtures the suites use,
-   which is the site to photograph — it is a separate wp-env from any plugin's
-   tests environment. Read
+   which is the site to photograph — a separate wp-env from any plugin's tests
+   environment. Read
    https://developer.wordpress.org/plugins/wordpress-org/plugin-assets/ for the
-   naming and size rules before capturing. **Write only into
+   naming and size rules first. **Write only into
    `~/svn/wordpress_plugins/<slug>/assets/`**, touch nothing else in those
-   checkouts, and do not `svn add`, commit or push — the checkouts are otherwise
-   stale 2022-era trees (see Traps) and everything except the assets directory
-   should be left exactly as found.
+   checkouts, and do not `svn add`, commit or push — Lester commits the assets
+   with the release. The checkouts are otherwise stale 2022-era trees (see
+   Traps).
 
 **Off this list on purpose:** the SVN release itself. Lester does it by hand.
-Nothing here pushes, tags or touches SVN — **except item 8**, which Lester
-explicitly asked for on 2026-08-04 and which writes screenshots into
-`assets/` and nothing else.
+Nothing here pushes, tags or touches SVN — **except item 3**, which Lester
+explicitly asked for on 2026-08-04 and which writes screenshots into `assets/`
+and nothing else.
+
+**Reading the diffs for voice is no longer on this list**, and that is a
+decision rather than an oversight. The mechanical half is done and checked on
+every push; what was left was a human read with nothing to hand off, and it sat
+here for a week as a task nobody could pick up. What it *measured* is worth
+keeping and is under "Rules earned the hard way" — comment density is not a
+defect signal in this collection, and two successive attempts to make it one
+were both wrong.
+
+## Closed on 2026-08-04
+
+The instructions are gone; the findings are kept. Everything here was an item on
+the list above and is now either shipped or written into a check.
+
+* **The §7.6.1 release blocker** (was item 1a/1b). wp-dbmanager's migration read
+  its settings row bare — the read half of §7.6.1, the half core does not cover.
+  Fixed, and `verify.py` fails any shipped file reading the plugin's own settings
+  row through a one-argument `get_option()`. The legacy row is deliberately not
+  covered: `register_setting()` names the *current* row, so no `default_option`
+  filter exists for the old one and a bare read of it is correct, which is what
+  five plugins do. Shipped code only, by allow list, because tests read the row
+  bare on purpose — about sixty times, every one of them right.
+* **Stock-defaults fixtures** (was item 1d), eight plugins. Details are folded
+  into item 1 above, which is what they exist to serve.
+* **wp-polls' `save()`** (was item 1e) hardened to add the row itself. The
+  premise was wrong — no data was ever at risk — and it is committed as
+  hardening.
+* **Three false docblocks** (was item 1f). Exactly three plugins pass no
+  `default` to `register_setting()` — freemyinternet, wp-commentnavi,
+  wp-pagenavi — and all three carried a docblock claiming they did. One wrong
+  sentence, copied to precisely the set of plugins it was wrong about.
+* **The spec-against-checks audit** (was item 2). Nine sections gained a rule,
+  plus §7.6.1 and the two §2.7 rules: **41 of 48 sections have something
+  mechanical behind them**, up from 31, and `verify.py` went from 93 `check()`
+  sites to 127. Six sections were found to be simply wrong and were corrected.
+  The six sections still without a check are listed under "Is the collection
+  compliant?".
+* **The capability audit**, which fell out of it. Four plugins invent a
+  capability and three of the four granted something other than what they check.
+  Written up under "Rules earned the hard way".
+* **wp-sweep's WP-CLI and REST names** (part of item 2's fallout) restored to
+  what 1.2.0 shipped, deleting a documented breaking change.
+* Items 5, 6 and 7 closed on 2026-08-03: the wp-draftsforfriends API question,
+  the literal-assertion sweep, and routing administrator creation through a
+  helper. Their lessons are under "Rules earned the hard way" and "Tests that
+  cannot fail".
 
 ## The pre-revamp tags — done 2026-08-03
 
@@ -853,49 +627,66 @@ and nothing short of running the suite will tell you.
 
 ## Is the collection compliant? What checks what
 
-Asked on 2026-08-03, and worth keeping because the answer is not "run
-`verify.py` again".
+Worth keeping because the answer is not "run `verify.py` again".
 
-**The mechanical half is continuously checked and green**, so re-auditing
-nineteen plugins against fifteen sections by hand buys nothing. `bin/verify.py`
-is 127 checks covering §1, §1.1, §2, §3, §4, §5, §6, §7, §7.6.1, §8, §9, §10, §13.1 and §14;
-the shared metadata fixture covers §13, including the shared-row contract that
-two plugins violated. Both run on every push.
+**The mechanical half is continuously checked and green.** `bin/verify.py` is
+**127 checks**, and the shared metadata fixture covers §13 including the
+shared-row contract two plugins violated. Both run on every push. Re-auditing
+nineteen plugins against the spec by hand buys nothing.
+
+**41 of the spec's 48 sections have something mechanical behind them.** These
+six do not, and each stays that way for a reason:
+
+| Section | Why not |
+|---|---|
+| §4.4 Markup | judgement |
+| §7.2.1 Process-wide state | needs the suite running |
+| §7.2.3 A suite that dies is not one that passed | enforced by `bin/test-all.sh`; §7.2.3 says so, so the next audit does not write a second check |
+| §7.3 Coverage | a number, and gaming it is worse than missing it |
+| §13.3 WP-CLI and REST naming | nothing to check until item 2 ships |
+| §15 Order of work | process, not state |
+
+Two more were attempted and deliberately abandoned, which is worth as much as
+the rules that landed. **§4.2.2's "do not repeat a word the context supplies"** —
+the section itself says the obvious mechanical reading is wrong, and a check for
+it fires on `Users Online` while missing `E-Mail Templates`. And **§2.7's "every
+check of the plugin's own capability goes through one filter"**, which cannot be
+separated mechanically from the core meta-caps, `unfiltered_html` and editor
+gates the section explicitly exempts. Both were written, seen to be useless, and
+deleted rather than left in looking like coverage.
 
 **The audit worth doing is the spec against the checks, not the plugins against
-the spec.** Every defect found today — `@package` split along file age, the
-metadata fixture free to drift, the hook copied twenty times with nothing
-comparing it — was a rule the spec implied and nothing enforced. That audit
-found two more:
-
-* **§11, ship no raster image.** Satisfied by all nineteen and enforced by
-  nothing: the GIFs and PNGs were replaced with inline SVG during the fan-out
-  and never compared since, so the next one added would have shipped. Now a
-  `verify.py` check, proven by planting a GIF in wp-ban.
-* ~~**§12's `package.json` script list is stale.**~~ **Rewritten and checked
-  2026-08-03.** The spec named five scripts *exactly*; every plugin also carried
-  `test:e2e` and `test:e2e:headed`, added when Playwright landed and never
-  written back, and seven had no `test:js`/`test:js:watch` at all. So all
-  nineteen diverged from the spec, identically, and nothing noticed — there was
-  no check.
-
-  §12 now derives the set from what the plugin has rather than listing it: five
-  unconditional, plus the vitest pair **only** where `tests/js/` exists, which
-  is twelve of nineteen. The correlation was verified exact before the rule was
-  written — `test:js` present if and only if `tests/js/` present, no exceptions.
-  A `test:js` with no suite behind it is a green result that means nothing,
-  which is why the rule forbids rather than merely permits it.
-
-  `verify.py` derives the same set and compares, proven both ways: removing
-  `test:e2e` reports it missing, adding `test:js` to a plugin without a suite
-  reports it unexpected. §12's other claim — identical devDependency versions —
-  was checked at the same time and is true: seven packages, one version each
-  across all nineteen.
-
-§15 is the order of work per plugin — process rather than state, and not
-checkable.
+the spec.** Every defect of the last week came out of it: `@package` split along
+file age, the metadata fixture free to drift, §11's raster ban satisfied by all
+nineteen and enforced by nothing, §12's script list stale in all nineteen
+identically, §7.6.1, and the capability grants below. **A rule the spec implies
+and nothing enforces is a rule nineteen copies will drift from, and the drift is
+invisible precisely because every tool is green.**
 
 ## Rules earned the hard way
+
+* **Comment density is not a defect signal in this collection, and two
+  successive attempts to make it one were both wrong.** Recorded because the
+  error is easy to repeat, and because it is the clearest case of a measurement
+  that looked objective and was not:
+
+  * *Raw comment share* rates wp-polls worst (35.6 % against wp-postratings'
+    46.6 % at nearly the same size). wp-polls is in fact among the best
+    explained plugins here. Its share is low because it carries a lot of code
+    per docblock.
+  * *Counting only `//`* rates wp-relativedate worst in the collection, at 0.4
+    per 100 lines. It is second **best** at 15.4. The plugin explains itself in
+    `/* … */` blocks, which a `//`-only counter files as docblocks.
+    wp-pluginsused moved from second-worst to fifth-best for the same reason.
+
+  Measured properly — inline `//` plus non-docblock `/* */`, against code lines
+  — the collection spans 6.8 to 16.0 per 100, and **the low end is correct**.
+  wp-email's least-commented file is a `WP_Widget` subclass with 80 lines of
+  code and no inline explanation at all, because nothing in it is surprising.
+  **Counting cannot tell "under-explained" from "nothing to explain"; only
+  reading can.** The mechanical half is clean and checked: every function in
+  shipped code has a docblock, every file has a file-level one, and `@package`
+  is the display name everywhere.
 
 * **`register_setting()` attaches two things to the settings row, and
   activation and WP-CLI run neither** — a `sanitize_option_*` filter, and, where
@@ -922,7 +713,7 @@ checkable.
     all closes even that. wp-polls was measured against this and was never
     losing data.
 
-  The practical consequence for item 1(c): **assert the raw row, but do not
+  The practical consequence for the eleven E2E tests (item 1): **assert the raw row, but do not
   expect the bare `update_option()` to be what fails.** A migration test that
   goes red only when the read is bare is testing the thing that actually breaks.
 
@@ -1045,6 +836,27 @@ Kept short on purpose; the detail is in git.
   test on `save()`, and the E2E suite the comment was attached to. A third test
   was written, discovered to pass with the fix reverted, and deleted rather than
   committed. Item 8 added at Lester's request and deferred by his call.
+
+* **2026-08-04** — the §7.6.1 release blocker closed, the spec-against-checks
+  audit finished, and a capability audit found by it. `verify.py` 93 checks to
+  127; 31 of 48 sections enforced to 41. Six spec sections corrected, four live
+  defects fixed, three plugins' capability grants repaired. §13.3's naming
+  reversed by Lester, deleting a breaking change the campaign had invented.
+  wp-sweep's screen grouped under headings.
+
+  **Three claims in this file were found wrong while acting on them, and that
+  is the day's real output.** §7.6.1's write half is handled by core, so
+  wp-polls was never losing data. The wp-pluginsused comment about a failing
+  assertion was three fixes out of date. And two plugins with byte-identical
+  migrations behave differently under the same mutation, because one sanitiser
+  is idempotent on the defaults and the other is not. **All three were found by
+  running the thing rather than reading it** — a mutation test, an E2E suite,
+  and the same mutation run twice. A fourth test was written, discovered to pass
+  with the fix reverted, and deleted rather than committed.
+
+  This file was cut from 1,052 lines to its current length the same day: the
+  finished items became a findings list, and "read the diffs for voice" was
+  dropped as a task nobody could pick up while its measurements were kept.
 
 The programme found roughly **twenty-five spec bugs and eleven `verify.py`
 bugs**, every one because an agent pushed back rather than complied. The pattern
