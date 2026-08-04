@@ -1370,6 +1370,45 @@ def verify(slug, name, prefix, port, root):
                             "§4.3 a list table defines %s()" % method,
                             "%s in %s" % (cls, entry))
 
+    # --- §7.2.4 an escaping regression test exists, in the shape §7.2.4 asks --
+    # The coarse half, and it is worth saying plainly what it does not do:
+    # nothing here can enumerate the values a plugin echoes from the database,
+    # so this cannot tell a suite that covers every output surface from one that
+    # covers a single column. What it can do is fail the day the escaping test
+    # is deleted or watered down, which is the failure mode §7.2.4 was written
+    # against -- the guard is not "we escape carefully" but a test that goes red
+    # when an output stops escaping.
+    #
+    # The shape is checked because §7.2.4 insists on both halves and the reason
+    # is not obvious: escaping that dropped the value entirely passes the
+    # negative assertion while corrupting the data, and a poll answer that
+    # silently vanishes is its own bug. So one file must carry a canonical
+    # payload, an assertion that something is absent, and an assertion that
+    # something is present.
+    #
+    # Scoped to the plugins that store something. §7.2.4 opens "every plugin
+    # that echoes a value it read from the database"; the four §2.1 plugins that
+    # write no row at all have none to echo, and wp-relativedate's kses test
+    # deliberately asserts only the negative half because there is no stored
+    # value to preserve.
+    if slug not in STORES_NOTHING:
+        payloads = re.compile(r"<script>|onerror\s*=|onmouseover\s*=")
+        proof = None
+        for entry in sorted(os.listdir(tests) if os.path.isdir(tests) else []):
+            if not entry.startswith("test-") or not entry.endswith(".php"):
+                continue
+            body = read(os.path.join(tests, entry)) or ""
+            if (payloads.search(body)
+                    and "assertStringNotContainsString" in body
+                    and "assertStringContainsString" in body):
+                proof = entry
+                break
+
+        r.check(proof is not None,
+                "§7.2.4 an escaping regression test with a canonical payload",
+                "no tests/test-*.php holds one of §7.2.4's three payloads "
+                "together with both an absent- and a present- assertion")
+
     return r
 
 
