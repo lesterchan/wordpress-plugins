@@ -186,6 +186,25 @@ RETIRED_CONSTS = {
 }
 
 
+# §2.7's custom capabilities, one per plugin. Everything not named here gates on
+# manage_options, and a plugin may never reach for a sibling's capability.
+#
+# §2.7 lists five of these -- wp-email, wp-postratings, wp-dbmanager,
+# wp-draftsforfriends and wp-downloadmanager -- and omits two that ship:
+# wp-polls' manage_polls, which has been in that plugin since long before this
+# campaign, and wp-sweep's activate_plugins, which §2.2 and §7.2.2 both name
+# while §2.7's list does not. The list wants those two added.
+CUSTOM_CAPABILITIES = {
+    "wp-dbmanager": "install_plugins",
+    "wp-downloadmanager": "manage_downloads",
+    "wp-draftsforfriends": "publish_posts",
+    "wp-email": "manage_email",
+    "wp-polls": "manage_polls",
+    "wp-postratings": "manage_ratings",
+    "wp-sweep": "activate_plugins",
+}
+
+
 def class_constants(root, includes):
     """Every `const NAME = '<literal>';` in shipped PHP, as (name, value, file).
 
@@ -1070,6 +1089,66 @@ def verify(slug, name, prefix, port, root):
                     for cname, value, _ in consts),
                 "§2.2 OPTION names the settings row",
                 "no class defines OPTION = '%s_options'" % under)
+
+    # --- §2.7 capabilities --------------------------------------------------
+    # Two halves, both closed sets.
+    #
+    # The value: manage_options, or the one custom capability §2.7 names for
+    # this plugin and no other. A plugin quietly gating a screen on a sibling's
+    # capability, or inventing a new one, is a permission change nobody asked
+    # for, and it is invisible until a site notices a role can no longer reach a
+    # screen. wp-downloadmanager's `activate_plugins`-as-"level 10" (§7.2.2) is
+    # the shape: a capability standing in for something it does not mean.
+    #
+    # The route: §2.7 requires every check of the plugin's *own* capability to
+    # go through one apply_filters( '{{UNDER}}_capability', … ) so a site has a
+    # single place to move it. Core meta-capabilities, unfiltered_html and the
+    # editor-integration gates are explicitly NOT behind it -- five plugins were
+    # right to be ignoring the earlier absolute wording -- so this checks that
+    # the filter exists and wraps the constant, not that no other
+    # current_user_can() appears anywhere.
+    allowed_caps = {"manage_options"}
+    if slug in CUSTOM_CAPABILITIES:
+        allowed_caps.add(CUSTOM_CAPABILITIES[slug])
+
+    for cname, value, where in consts:
+        if cname != "CAPABILITY":
+            continue
+        r.check(value in allowed_caps, "§2.7 capability is the one §2.7 names",
+                "%s in %s, allowed here: %s"
+                % (value, where, ", ".join(sorted(allowed_caps))))
+
+    if any(cname == "CAPABILITY" for cname, _, _ in consts):
+        # The default passed to the filter need not be the bare constant:
+        # wp-downloadmanager picks between manage_options and its own capability
+        # on the context before filtering, which is exactly what §2.7 asks for.
+        # So this looks for the constant anywhere in the call's arguments rather
+        # than immediately after the hook name.
+        shipped_php = "\n".join(read(p) or "" for p in sorted(
+            glob.glob(os.path.join(includes, "*.php"))) + [main])
+        filtered = None
+        for m in re.finditer(
+                r"apply_filters(?:_ref_array)?\(\s*'%s_capability'"
+                % re.escape(under), shipped_php):
+            if "::CAPABILITY" in shipped_php[m.end():m.end() + 300]:
+                filtered = m
+                break
+        r.check(filtered is not None,
+                "§2.7 the capability is read through one filter",
+                "no apply_filters( '%s_capability', self::CAPABILITY, … )"
+                % under)
+
+        # A plugin that ships a custom capability must actually name it. This is
+        # the half that goes stale: §2.7's list is prose, and a plugin dropping
+        # its custom capability for manage_options would leave the list saying
+        # something no code does.
+        if slug in CUSTOM_CAPABILITIES:
+            r.check(any(cname == "CAPABILITY"
+                        and value == CUSTOM_CAPABILITIES[slug]
+                        for cname, value, _ in consts),
+                    "§2.7 the custom capability is still defined",
+                    "no class defines CAPABILITY = '%s'"
+                    % CUSTOM_CAPABILITIES[slug])
 
     return r
 
