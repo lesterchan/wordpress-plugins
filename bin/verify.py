@@ -622,19 +622,74 @@ def verify(slug, name, prefix, port, root):
     if not os.path.isdir(tests):
         r.check(False, "tests/ missing")
     else:
-        for entry in sorted(os.listdir(tests)):
-            full = os.path.join(tests, entry)
-            if os.path.isdir(full):
-                continue
-            if not entry.endswith(".php"):
-                continue
-            ok = (entry.startswith("test-") or entry.startswith("helper-")
-                  or entry in ("bootstrap.php", "index.php"))
-            r.check(ok, "tests file naming", entry)
+        # §7.1: every PHP file under tests/ is a test-, a helper-, or one of the
+        # two named files. Walked rather than listed, because tests/e2e/ and
+        # tests/js/ each carry an index.php and a suite that predates this rule
+        # could put a testcase in a subdirectory where nothing would look.
+        # tests/e2e/mu-plugins is out of scope: WordPress loads whatever is in
+        # a mu-plugins directory by filename, and §7.5's theme shims live there
+        # because that is where the wp-env mapping points. Requiring them to be
+        # test-*.php would be the §7.2.1 mistake -- a rule written before e2e
+        # existed firing on e2e scaffolding -- with the file moved rather than
+        # the rule widened.
+        for dirpath, dirnames, filenames in os.walk(tests):
+            dirnames[:] = [d for d in dirnames
+                           if d not in SKIP_DIRS and d != "mu-plugins"]
+            for entry in sorted(filenames):
+                if not entry.endswith(".php"):
+                    continue
+                rel = os.path.relpath(os.path.join(dirpath, entry), root)
+                ok = (entry.startswith("test-") or entry.startswith("helper-")
+                      or entry in ("bootstrap.php", "index.php"))
+                r.check(ok, "tests file naming", rel)
         r.check(os.path.exists(os.path.join(tests, "test-metadata.php")),
                 "tests/test-metadata.php present")
         r.check(not os.path.exists(os.path.join(tests, "phpunit-multisite.xml")),
                 "stray tests/phpunit-multisite.xml removed")
+
+        # §7.1: one class per file, named {{CLASS}}_<Area>_Test, extending
+        # {{CLASS}}_TestCase. Both halves matter and both had drifted in one
+        # file: wp-polls' schema migration tests were `Test_Migration_Schema
+        # extends WP_UnitTestCase`, which is the naming of no other file in the
+        # collection and skips the plugin's own fixture reset.
+        #
+        # The base is checked as "a {{CLASS}}_*TestCase" rather than literally
+        # {{CLASS}}_TestCase, because an AJAX suite cannot inherit from it --
+        # only WP_Ajax_UnitTestCase installs the handler that turns the
+        # endpoint's wp_send_json_*() into a catchable exception. wp-email and
+        # wp-sweep both answer that with a second plugin-owned base beside the
+        # first, which is the shape §7.1 wants and does not currently mention.
+        r.check(os.path.exists(os.path.join(tests, "helper-testcase.php")),
+                "§7.1 tests/helper-testcase.php present")
+
+        for entry in sorted(os.listdir(tests)):
+            if not entry.startswith("test-") or not entry.endswith(".php"):
+                continue
+            body = read(os.path.join(tests, entry)) or ""
+            declared = re.findall(
+                r"^\s*(?:final\s+|abstract\s+)?class\s+(\w+)"
+                r"(?:\s+extends\s+(\w+))?", body, re.M)
+
+            r.check(len(declared) == 1, "§7.1 one class per test file",
+                    "tests/%s declares %d" % (entry, len(declared)))
+
+            for cls, parent in declared:
+                r.check(re.match(r"^%s_\w+_Test$" % re.escape(prefix), cls),
+                        "§7.1 test class name",
+                        "%s in tests/%s, want %s_<Area>_Test"
+                        % (cls, entry, prefix))
+                # Plugin_Metadata_TestCase is the shared metadata fixture,
+                # byte-identical in all nineteen and deliberately naming no
+                # plugin -- it reaches the plugin's own base through a
+                # class_alias set in bootstrap.php. Its own check is the
+                # template comparison above.
+                r.check(parent == "Plugin_Metadata_TestCase"
+                        or (parent is not None
+                            and parent.startswith(prefix + "_")
+                            and parent.endswith("TestCase")),
+                        "§7.1 test class extends the plugin's own test case",
+                        "%s in tests/%s extends %s, want %s_TestCase"
+                        % (cls, entry, parent or "nothing", prefix))
 
     # --- §8 CI --------------------------------------------------------------
     ci = read(os.path.join(root, ".github", "workflows", "ci.yml"))
