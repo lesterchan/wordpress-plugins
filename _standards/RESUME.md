@@ -4,10 +4,10 @@ State of the consistency programme as of **2026-08-04**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line:** all nineteen plugins are green on CI, the pre-revamp tags are
-cut and pushed, and **four items are open** — the rest of the §7.6.1 migration
-test work, the spec-against-checks audit, the WP-CLI/REST/blocks phase, and a
-screenshot recapture Lester asked for on 2026-08-04. Nothing is waiting on
-Lester except the scope call in item 3.
+cut and pushed, and **three items are open** — the eleven end-to-end migration
+tests (item 1c), the WP-CLI/REST/blocks phase, and the screenshot recapture
+Lester asked for on 2026-08-04. Items 1 and 2 are otherwise closed. Nothing is
+waiting on Lester except the scope call in item 3.
 
 **The release blocker is closed, and so is all of item 1 except (c).** Items
 1(a), 1(b), 1(d), 1(e) and 1(f) all landed on 2026-08-04: wp-dbmanager's
@@ -28,7 +28,7 @@ see "Rules earned the hard way".
 suites, `verify.py` at zero and CI green across the board, while a data-loss
 migration sat one hook-ordering accident away from firing — because §7.6.1 was
 a rule the spec stated and nothing checked. Item 2 counts how much else is in
-that position: **16 of 48 sections**, now that §7.6.1 has a check of its own.
+that position: it was 16 of 48 on the morning of 2026-08-04 and is **6** now.
 
 **Trust the tools over this file.** At the start of a session run
 `python3 bin/verify.py --quiet` and `git log --oneline -3` in each repo. Between
@@ -64,12 +64,12 @@ differences between two plugins are name, features and capability.
 
 * `_standards/STANDARDS.md` — the spec. **15 numbered sections, 48 including
   subsections** (this line said 17 until 2026-08-03, and nothing had counted).
-  32 of the 48 have something mechanical behind them; see item 2.
+  41 of the 48 have something mechanical behind them; see item 2.
 * `_standards/templates/` — the files each plugin copies verbatim, placeholders
   `{{SLUG}}` `{{NAME}}` `{{CLASS}}` `{{UNDER}}` `{{UPPER}}` `{{L10N}}`
   `{{DESCRIPTION}}`.
 * `.wp-env.json` — all 19 plugins in one WordPress on 8888/8889.
-* `bin/verify.py` — mechanical checker, **93 `check()` call sites**, not all of
+* `bin/verify.py` — mechanical checker, **126 `check()` call sites**, not all of
   which apply to every plugin. `python3 bin/verify.py [slug…] [--quiet]`; exit
   status is the failure count. (This line said "~40 rules per plugin" and the
   compliance section below said 86; neither had been counted. Recount with
@@ -270,29 +270,51 @@ with nothing mechanical left in it; five, six and seven are done.
 
    Measured 2026-08-03 by cross-referencing the `§` citations in `bin/verify.py`
    and `templates/helper-metadata-testcase.php` against the section headings in
-   STANDARDS. It was 31 with a check and 17 without; §7.6.1 gained one on
-   2026-08-04, so it is now **32 with a check and these 16 without:**
+   STANDARDS. **Done 2026-08-04.** It was 31 sections with a check and 17
+   without. Nine gained one — §2.2, §2.5, §2.7, §4.2.1, §4.2.2, §4.3 (partly),
+   §7.1, §7.2.4 (partly), §13.1 — plus §7.6.1 earlier the same day, so it is now
+   **41 with a check and 6 without**, and `verify.py` went from 93 `check()`
+   sites to 126. Each rule was proven both ways: plant the violation, watch it
+   fail, remove it, watch it pass.
 
-   | Section | Mechanisable? |
+   **The six with nothing behind them, and why each stays that way:**
+
+   | Section | Why not |
    |---|---|
-   | §2.2 Class constants — one spelling each | **yes** — compare the constant names across the nineteen |
-   | §2.5 Functions | **yes** — same shape as §2.4, which is already checked |
-   | §2.7 Capabilities | **yes** — the custom-capability list is fixed and named in the section |
-   | §4.2.1 / §4.2.2 Tabs, and their names | **yes** — the tab labels are a closed set |
-   | §4.3 List tables | partly — "uses `WP_List_Table`" is checkable, "well" is not |
-   | §4.4 Markup | no — judgement |
-   | §7.1 Structure | **yes** — file naming and the `test-`/`helper-` split |
-   | §7.2.1 Process-wide state | no — needs the suite running |
-   | §7.2.3 A suite that dies is not one that passed | already enforced, but by `bin/test-all.sh` rather than a rule; **say so in the section** |
-   | §7.2.4 Escaping a stored value | partly |
-   | §7.3 Coverage | no — a number, and gaming it is worse than missing it |
-   | §13.1 The exact shape | **yes** — the fixture pins §13.2 already |
-   | §13.3 WP-CLI and REST naming | not yet — nothing to check until item 3 ships |
-   | §15 Order of work | no — process, not state |
+   | §4.4 Markup | judgement |
+   | §7.2.1 Process-wide state | needs the suite running |
+   | §7.2.3 A suite that dies is not one that passed | enforced by `bin/test-all.sh`; §7.2.3 now says so, so the next audit does not write a second check |
+   | §7.3 Coverage | a number, and gaming it is worse than missing it |
+   | §13.3 WP-CLI and REST naming | nothing to check until item 3 ships |
+   | §15 Order of work | process, not state |
 
-   Roughly nine are worth a rule. Do them one at a time and **prove each both
-   ways**: plant the violation, watch it fail, remove it, watch it pass. That is
-   what caught the §4.2 drift in two plugins and the §11 gap.
+   Two more were attempted and deliberately abandoned, which is worth as much as
+   the nine: **§4.2.2's "do not repeat a word the context supplies"** — the
+   section itself says the obvious mechanical reading is wrong, and a check for
+   it fires on `Users Online` while missing `E-Mail Templates`. And **§2.7's
+   "every check of the plugin's own capability goes through one filter"**, which
+   cannot be separated mechanically from the core meta-caps, `unfiltered_html`
+   and editor gates the section explicitly exempts. Both were written, seen to
+   be useless, and deleted rather than left in looking like coverage.
+
+   **The rules found four real violations on their first run**, which is the
+   whole argument for auditing the spec rather than the plugins: wp-polls had
+   the collection's only test class following neither half of §7.1; wp-sweep's
+   AJAX suite extended core's base directly; wp-draftsforfriends' escaping test
+   used `<b>Title</b>` rather than any of §7.2.4's three canonical payloads; and
+   wp-email carried an unprefixed global filter callback in
+   `screen-standalone.php`, a file required at request time, where it was also a
+   redeclare fatal waiting to happen.
+
+   **Six sections were wrong and were corrected** (`ec58a1d`), each found by
+   trying to write its rule. §2.2 contradicted §2.1 about the four plugins that
+   store nothing, and cited wp-sweep as defining `CAPABILITY` twice when it has
+   no settings screen and defines it once. §2.5 claimed globals live only in
+   `template-tags.php` and `deprecated.php` — false in all nineteen, since every
+   `uninstall.php` declares one. §4.2.1's prose contradicted its own table.
+   §7.1 required a base class an AJAX suite cannot use. That is roughly the
+   ratio the programme has run at throughout: **a rule nothing checks is a rule
+   that is probably also wrong**, not merely unenforced.
 
    **The generalisation, already in §7.2.2 and now earned twice:** a rule the
    spec implies and nothing enforces is a rule nineteen copies will drift from,
@@ -819,7 +841,7 @@ Asked on 2026-08-03, and worth keeping because the answer is not "run
 
 **The mechanical half is continuously checked and green**, so re-auditing
 nineteen plugins against fifteen sections by hand buys nothing. `bin/verify.py`
-is 93 checks covering §1, §1.1, §2, §3, §4, §5, §6, §7, §7.6.1, §8, §9, §10 and §14;
+is 126 checks covering §1, §1.1, §2, §3, §4, §5, §6, §7, §7.6.1, §8, §9, §10, §13.1 and §14;
 the shared metadata fixture covers §13, including the shared-row contract that
 two plugins violated. Both run on every push.
 
@@ -894,6 +916,23 @@ checkable.
   tests — the contract (absent from the uninstall list) and the behaviour (a
   seeded row survives) — because a test that walks the single list cannot see
   the defect. **Do not fold the lists back together.**
+
+* **The capability a plugin grants must be the capability it checks.** Four
+  plugins invent one — wp-downloadmanager, wp-email, wp-polls, wp-postratings —
+  and **three of the four granted something other than what they gate on**:
+  `add_cap()` took the constant or its literal string while every screen checked
+  `capability()`, the same value passed through the plugin's filter. A site
+  using that filter gets an administrator holding a capability nothing looks at
+  and screens gated on one nobody holds — locked out of its own plugin, silently.
+  Two of the three never removed the capability on uninstall either. Fixed
+  2026-08-04 and now a `verify.py` rule.
+
+  **The count is the lesson.** Seven plugins declare a `CAPABILITY` constant;
+  only four *create* one. `install_plugins`, `activate_plugins` and
+  `publish_posts` are core's and are nobody's to grant — an audit that counted
+  declarations rather than `add_cap()` calls would have looked at the wrong
+  seven and missed all three defects. **Ask which plugins create a thing, not
+  which mention it.**
 
 * **Capabilities do not mean the same thing on a network** (§7.2.2 has the
   table). Five plugins failed the first multisite run for this; in every case
