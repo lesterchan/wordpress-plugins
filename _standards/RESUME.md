@@ -132,7 +132,7 @@ keeps the findings and drops the instructions.
 
    | Plugin | State |
    |---|---|
-   | wp-postviews | spec written; the run reached **1 of its 8 tests, passing** — the front-end one, which is the distinctive test here — before the session ended |
+   | wp-postviews | spec written; **1 of its 8 passes** — the front-end one, which is the distinctive test here. Its *second* test then sat for 25 minutes without failing or finishing, twice. A single `wp eval` against that container answers in 2.3s, so the stall is not the harness being slow; suspect `installProbe()` or the `page.goto( post.link )` after it, and note that a blocking `execFileSync` inside a test cannot be interrupted by Playwright's timeout, so a stuck helper looks like a hang rather than a failure. Run that test on its own first. |
    | wp-polls | spec written, **never run**, uncommitted |
    | wp-postratings | spec written, **never run**, uncommitted |
    | wp-stats | spec written, **never run**, uncommitted |
