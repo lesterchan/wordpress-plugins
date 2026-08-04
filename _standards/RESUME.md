@@ -9,10 +9,12 @@ test work, the spec-against-checks audit, the WP-CLI/REST/blocks phase, and a
 screenshot recapture Lester asked for on 2026-08-04. Nothing is waiting on
 Lester except the scope call in item 3.
 
-**The release blocker is closed.** wp-dbmanager's migration is fixed, the defect
-has a `verify.py` rule behind it, and both stale comments are corrected — items
-1(a), 1(b), 1(e) and 1(f), all on 2026-08-04. What is left of item 1 is 1(c) and
-1(d), which are test-writing rather than bug-fixing.
+**The release blocker is closed, and so is all of item 1 except (c).** Items
+1(a), 1(b), 1(d), 1(e) and 1(f) all landed on 2026-08-04: wp-dbmanager's
+migration is fixed with a `verify.py` rule behind it, eight plugins gained a
+stock-defaults fixture, and the false `register_setting()` docblock turned out
+to be in three plugins rather than one. **1(c) — eleven end-to-end migration
+tests — is what remains**, and the notes below say what to write them against.
 
 **§7.6.1 was overstated, and the correction matters before writing 1(c).**
 Core's `update_option()` already falls back to `add_option()` when the
@@ -165,15 +167,49 @@ with nothing mechanical left in it; five, six and seven are done.
    did. That is the trap wp-email, wp-postviews and wp-useronline are already in
    — each has a defaults-equal fixture but asserts through the merging getter.
 
-   **(d) Seed the shipped defaults, not just customised values.** Seven suites —
-   wp-commentnavi, wp-dbmanager, wp-downloadmanager, wp-pagenavi, wp-polls,
-   wp-postratings, wp-stats — seed a fixture where every field differs from the
-   defaults. That fixture *cannot see this defect*: the write lands precisely
-   because the values differ. It is why wp-print's migration test passed
-   throughout the bug. Add one test each that seeds the stock values and asserts
-   the raw row. wp-polls states the all-customised policy deliberately at
-   `tests/test-migration.php:14-18` — that policy is right for "did the values
-   carry across" and wants a second fixture beside it, not a replacement.
+   ~~**(d) Seed the shipped defaults, not just customised values.**~~ **Done
+   2026-08-04, across eight plugins rather than the seven this said.** The seven
+   named — wp-commentnavi, wp-dbmanager, wp-downloadmanager, wp-pagenavi,
+   wp-polls, wp-postratings, wp-stats — each seeded a fixture where every field
+   differs from the defaults, which cannot see the defect because the write
+   lands precisely *because* the values differ. Each now has a stock fixture
+   beside the customised one, not replacing it: the all-customised policy is
+   right for "did the values carry across" and is stated deliberately at
+   `wp-polls/tests/test-migration.php:14-18`.
+
+   Every stock fixture is **built from the plugin's own `defaults()`** — through
+   `legacy_map()` where one exists — rather than typed out, so a changed default
+   cannot quietly turn it back into a second customised fixture.
+
+   The eighth is the trap named in (c): wp-email, wp-postviews and wp-useronline
+   asserted the migrated row with a **one-argument `get_option()`**. All three
+   register a `default`, so once that filter is live an absent row reads back as
+   the defaults array and `assertIsArray()` passes whether or not anything was
+   written — wp-useronline's idempotency test compared two such reads, which
+   agree with each other either way. **Demonstrated rather than argued:** with
+   wp-postviews' write mutated to a no-op, the one-argument form passes and the
+   two-argument form fails on the same broken migration. wp-postviews also
+   gained the stock fixture; its `stage_legacy_install()` with no arguments was
+   already exactly defaults-equal and nothing had ever used it for this.
+
+   **What (d) actually established, and it refines §7.6.1 again.** Whether a
+   plugin survives the write-side gap is decided by **whether its sanitiser
+   returns the defaults unchanged** — `update_option()` sanitises before it
+   compares, so a sanitiser that alters its input pushes execution past the
+   early return and into core's `add_option()` fallback. Measured across the
+   collection on 2026-08-04 by asking each plugin whether
+   `sanitize_option( OPTION, defaults() )` comes back identical to `defaults()`:
+   **three do — wp-dbmanager, wp-pluginsused, wp-stats — and all three already
+   have a `write()` helper**, so nothing was live. The rest are held up by their
+   sanitiser and nothing else.
+
+   The sharpest illustration is wp-commentnavi and wp-pagenavi, which carry
+   **byte-identical migrations**. Remove `write()`'s `add_option()` branch and
+   wp-commentnavi goes red while wp-pagenavi stays green, purely because one
+   sanitiser is idempotent on the defaults and the other is not. That is the
+   argument for `write()` being explicit rather than inheriting whichever
+   accident happens to hold — and it was found by running the mutation on both
+   instead of assuming the second behaved like the first.
 
    ~~**(e) wp-polls decides its own correctness by two adjacent lines.**~~
    **Done 2026-08-04**, commit `6eaa803` — but the premise was wrong and the
@@ -207,6 +243,15 @@ with nothing mechanical left in it; five, six and seven are done.
    `sanitize_callback`. The code was right either way; the comment is what gets
    copied into the next plugin, and it was describing a trap as though it were
    armed.
+
+   **That second one was three plugins, not one**, found while doing (d):
+   wp-commentnavi and wp-pagenavi carry the identical false claim and were fixed
+   the same day (`72ee34b`, `83ed675`). Exactly three plugins pass no `default`
+   — freemyinternet, wp-commentnavi, wp-pagenavi — and all three had a docblock
+   saying they did. One wrong sentence, copied to precisely the set of plugins
+   it was wrong about. Their tests now register the setting **with** a default,
+   which is the change a future release makes without thinking about
+   migrations, and require the fold-in to land anyway.
 
    **Docker, wp-env and Playwright all run on Lester's machine** — the
    egress block that made these CI-only was the cloud sandbox, not here. So (c)
