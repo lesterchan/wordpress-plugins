@@ -171,6 +171,55 @@ THEME_TEMPLATES = {
 
 SKIP_DIRS = {"vendor", "node_modules", ".git", ".idea", "tests", "artifacts"}
 
+# §2.2's retired spellings. Every one of these was in use somewhere in the
+# collection before the canonicalisation pass, and the section retires them by
+# name in favour of OPTION / VERSION / GROUP / PAGE / CAPABILITY plus SECTION_*.
+#
+# DB_VERSION, SLUG and SECTION are on the list as *class* constants only --
+# {{UPPER}}_DB_VERSION and {{UPPER}}_SLUG are §2.3 PHP defines and are required,
+# and SECTION_<NAME> is what SECTION was retired in favour of. So this is
+# matched against `const NAME =` and never against a bare identifier.
+RETIRED_CONSTS = {
+    "OPTION_NAME", "OPTION_GROUP", "PAGE_SLUG", "DB_VERSION_OPTION",
+    "VERSION_OPTION", "DB_VERSION_NAME", "DB_VERSION", "SLUG", "SECTION",
+    "VERSIONS_KEY", "HANDLE",
+}
+
+
+def class_constants(root, includes):
+    """Every `const NAME = '<literal>';` in shipped PHP, as (name, value, file).
+
+    Shipped code only, by allow list -- the root entry points plus includes/ --
+    for the same reason the §7.6.1 check uses one: a test may legitimately
+    define a constant of its own, and a deny list acquires a new member every
+    time somebody installs something.
+
+    Only string literals are collected. A constant whose value is an array or an
+    expression (PROXY_HEADERS, COLORS_BUILTIN) has no single spelling to compare
+    and is not what §2.2 is about.
+    """
+    found = []
+    files = [os.path.join(root, e) for e in sorted(os.listdir(root))
+             if e.endswith(".php")]
+    if os.path.isdir(includes):
+        files += [os.path.join(includes, e)
+                  for e in sorted(os.listdir(includes)) if e.endswith(".php")]
+
+    for path in files:
+        body = read(path) or ""
+        # Strip comments first, as the §4.2 and §7.6.1 checks do: §2.2's own
+        # retired names are quoted in the docblocks explaining the rename.
+        body = re.sub(r"/\*.*?\*/|//[^\n]*|^\s*\*[^\n]*$", "", body,
+                      flags=re.S | re.M)
+        for m in re.finditer(
+                r"\bconst\s+([A-Z][A-Z0-9_]*)\s*=\s*'([^']*)'\s*;", body):
+            found.append((m.group(1), m.group(2), os.path.relpath(path, root)))
+        # A constant with a non-string value still has a name to check.
+        for m in re.finditer(r"\bconst\s+([A-Z][A-Z0-9_]*)\s*=\s*(?!')", body):
+            found.append((m.group(1), None, os.path.relpath(path, root)))
+
+    return [(n, v, w) for n, v, w in found if v is not None or n in RETIRED_CONSTS]
+
 
 def read(path):
     try:
@@ -952,6 +1001,75 @@ def verify(slug, name, prefix, port, root):
                     continue
                 r.check(False, "admin hook suffix hardcoded, derive it (§4.1)",
                         "%s:%d: %s" % (rel, n, m.group(0)))
+
+    # --- §2.2 class constants have one spelling each ------------------------
+    # The five names are fixed and so are four of their five values, which makes
+    # this the cheapest section in the standard to check and one of the last to
+    # get a check. §2.2 exists because eleven different spellings were in use --
+    # OPTION_NAME, OPTION_GROUP, PAGE_SLUG, DB_VERSION_OPTION and friends -- and
+    # nothing has compared the nineteen since they were renamed.
+    #
+    # Values, not just names: a GROUP that stops matching OPTION splits the
+    # settings group from the row it saves into, which options.php answers with
+    # a redirect to a page that saves nothing, and no tool here would have seen
+    # it. §2.2 pins them equal for that reason.
+    consts = class_constants(root, includes)
+
+    for cname, value, where in consts:
+        if cname in RETIRED_CONSTS:
+            r.check(False, "§2.2 retired class constant",
+                    "%s in %s (see §2.2 for the replacement)" % (cname, where))
+            continue
+
+        want = {
+            "VERSION": under + "_version",
+            "GROUP": under + "_options",
+        }.get(cname)
+
+        if want is not None:
+            r.check(value == want, "§2.2 class constant value",
+                    "%s = %r in %s, want %r" % (cname, value, where, want))
+
+        # OPTION is the settings row on the class that owns the settings, and
+        # the volatile-data row (§2.1's `{{UNDER}}_<noun>`) on a class that owns
+        # one -- wp-ban's WP_Ban_Stats. Both are the plugin's own prefix.
+        if cname == "OPTION":
+            r.check(value.startswith(under + "_"), "§2.2 OPTION is a §2.1 row",
+                    "%s = %r in %s, want %s_*" % (cname, value, where, under))
+
+        if cname == "PAGE":
+            r.check(value == slug or value.startswith(slug + "-"),
+                    "§2.2 PAGE is the page slug",
+                    "%s = %r in %s, want %s or %s-*"
+                    % (cname, value, where, slug, slug))
+
+        # §4.2: SECTION_<NAME> = '{{UNDER}}_<name>'. Nineteen plugins agree
+        # today; nothing compared them, and a section id is what
+        # add_settings_section() and do_settings_sections() have to agree on.
+        if cname.startswith("SECTION_"):
+            expect = under + "_" + cname[len("SECTION_"):].lower()
+            r.check(value == expect, "§4.2 SECTION_ constant value",
+                    "%s = %r in %s, want %r" % (cname, value, where, expect))
+
+    names = {cname for cname, _, _ in consts}
+
+    # A plugin that stores nothing at all (§2.1) has no row for OPTION or
+    # VERSION to name, which is why four of the nineteen define neither. §2.2
+    # says "every plugin defines OPTION and VERSION" and is wrong about those
+    # four -- the rule that survives contact with §2.1 is this one.
+    if slug in STORES_NOTHING:
+        for cname in ("OPTION", "VERSION"):
+            r.check(cname not in names,
+                    "§2.1 a plugin that stores nothing names no row",
+                    "%s is defined but the plugin writes no option row" % cname)
+    else:
+        for cname in ("OPTION", "VERSION"):
+            r.check(cname in names, "§2.2 class constant defined", cname)
+
+        r.check(any(cname == "OPTION" and value == under + "_options"
+                    for cname, value, _ in consts),
+                "§2.2 OPTION names the settings row",
+                "no class defines OPTION = '%s_options'" % under)
 
     return r
 
