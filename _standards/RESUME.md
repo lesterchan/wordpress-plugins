@@ -1,22 +1,32 @@
 # Resume here
 
-State of the consistency programme as of **2026-08-03**. Read this, then
+State of the consistency programme as of **2026-08-04**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line:** all nineteen plugins are green on CI, the pre-revamp tags are
-cut and pushed, and **three items are open** — a migration gap that blocks a
-release, the spec-against-checks audit that found it, and the WP-CLI/REST/blocks
-phase that has not started. Nothing is waiting on Lester.
+cut and pushed, and **four items are open** — the rest of the §7.6.1 migration
+test work, the spec-against-checks audit, the WP-CLI/REST/blocks phase, and a
+screenshot recapture Lester asked for on 2026-08-04. Nothing is waiting on
+Lester except the scope call in item 3.
 
-**The bug backlog is no longer empty.** An audit on 2026-08-03 found one live
-defect (wp-dbmanager's migration) and eleven plugins whose migration has no
-end-to-end test. Item 1 below is the plan; start there rather than here.
+**The release blocker is closed.** wp-dbmanager's migration is fixed, the defect
+has a `verify.py` rule behind it, and both stale comments are corrected — items
+1(a), 1(b), 1(e) and 1(f), all on 2026-08-04. What is left of item 1 is 1(c) and
+1(d), which are test-writing rather than bug-fixing.
+
+**§7.6.1 was overstated, and the correction matters before writing 1(c).**
+Core's `update_option()` already falls back to `add_option()` when the
+`default_option_*` filter is what answered `$old_value`, so the *write* half of
+the shape is mostly core's problem and not ours. The *read* half is the real
+defect and always was: a bare `get_option()` behind an `is_array()` guard skips
+the fold-in while the legacy row is deleted regardless. Measured, not assumed —
+see "Rules earned the hard way".
 
 **Green tools were not enough, and that is the lesson of the day.** Nineteen
 suites, `verify.py` at zero and CI green across the board, while a data-loss
 migration sat one hook-ordering accident away from firing — because §7.6.1 was
 a rule the spec stated and nothing checked. Item 2 counts how much else is in
-that position: **17 of 48 sections.**
+that position: **16 of 48 sections**, now that §7.6.1 has a check of its own.
 
 **Trust the tools over this file.** At the start of a session run
 `python3 bin/verify.py --quiet` and `git log --oneline -3` in each repo. Between
@@ -52,12 +62,12 @@ differences between two plugins are name, features and capability.
 
 * `_standards/STANDARDS.md` — the spec. **15 numbered sections, 48 including
   subsections** (this line said 17 until 2026-08-03, and nothing had counted).
-  31 of the 48 have something mechanical behind them; see item 2.
+  32 of the 48 have something mechanical behind them; see item 2.
 * `_standards/templates/` — the files each plugin copies verbatim, placeholders
   `{{SLUG}}` `{{NAME}}` `{{CLASS}}` `{{UNDER}}` `{{UPPER}}` `{{L10N}}`
   `{{DESCRIPTION}}`.
 * `.wp-env.json` — all 19 plugins in one WordPress on 8888/8889.
-* `bin/verify.py` — mechanical checker, **92 `check()` call sites**, not all of
+* `bin/verify.py` — mechanical checker, **93 `check()` call sites**, not all of
   which apply to every plugin. `python3 bin/verify.py [slug…] [--quiet]`; exit
   status is the failure count. (This line said "~40 rules per plugin" and the
   compliance section below said 86; neither had been counted. Recount with
@@ -89,49 +99,52 @@ Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
   with every commit; the ratio is the claim, and
   `python3 bin/measure_assertions.py /path/to/plugins/*` re-derives both.
 * The permalink audit of the E2E suites is complete — see below.
-* **One known plugin bug is outstanding** — wp-dbmanager's migration reads its
-  settings row bare; see item 1. It is latent rather than firing, which is why
-  every suite is green and why nothing here caught it: `verify.py` had no rule
-  for it and no test takes the admin path. Green tools are what this line used
-  to be based on, and they were not enough.
+* **No known plugin bug is outstanding.** wp-dbmanager's was fixed on
+  2026-08-04 (item 1a) and now has both a rule and a test behind it. The lesson
+  stands even though the line has flipped: it was latent rather than firing,
+  every suite was green, and nothing here caught it because `verify.py` had no
+  rule for it and no test took the admin path.
 
 ## Remaining work, in order
 
-**Three items are open: one, two and three.** Four is a human read with
-nothing mechanical left in it; five, six and seven are done. **Item one blocks a
-release** — it is the same data-loss shape as the two blockers the E2E sweep
-found, and it is one line of code plus a missing test.
+**Four items are open: one (partly), two, three and eight.** Four is a human read
+with nothing mechanical left in it; five, six and seven are done.
 
 1. **Close the §7.6.1 migration gap.** Audited 2026-08-03 and every figure below
    re-checked by hand afterwards, because the audit came from an agent and this
-   file has been wrong about counted things before. Do these in order; the first
-   is ten minutes and the rest is a grind.
+   file has been wrong about counted things before. **(a), (b), (e) and (f) are
+   done — 2026-08-04. (c) and (d) remain, and are the grind.**
 
-   **(a) wp-dbmanager reads the settings row bare, and it is the only plugin
-   that does.** `includes/class-wp-dbmanager-options.php:211` is
-   `$current = get_option( self::OPTION );` with no second argument, while
-   `class-wp-dbmanager-settings.php:86` passes `'default' => …` to
-   `register_setting()`. With that `default_option_*` filter live, the read
-   answers with the defaults array, `is_array( $current )` is true, the fold-in
-   at `:214` is skipped — and `:222` deletes `dbmanager_options` anyway. That is
-   the wp-print blocker exactly.
+   ~~**(a) wp-dbmanager reads the settings row bare.**~~ **Fixed 2026-08-04**,
+   commit `472101e`. `includes/class-wp-dbmanager-options.php:211` was
+   `get_option( self::OPTION )` with no second argument while
+   `class-wp-dbmanager-settings.php:86` passes `'default' => …`, so the read
+   answered with the defaults array, `is_array( $current )` was true, the
+   fold-in was skipped and `dbmanager_options` was deleted anyway. Latent only
+   because `maybe_upgrade()` ran on `plugins_loaded` and `register_setting()` on
+   `admin_init`, one hook later.
 
-   **It does not fire today, and only because of hook order.**
-   `maybe_upgrade()` is called from `class-wp-dbmanager.php:65` on
-   `plugins_loaded`; `register_setting()` runs on `admin_init`, one hook later,
-   so the filter is not attached yet. Move the call to `admin_init` — which is
-   where five siblings put theirs — and a stock 3.0.0 install loses its settings
-   silently. Fix: `get_option( self::OPTION, false )`, which is what the
-   plugin's own `write()` at `:175` already does, and what the other fourteen
-   migrations already do. Verified by counting: **bare reads, whole collection,
-   one — this one.**
+   It now reads `get_option( self::OPTION, false )`, which is what the plugin's
+   own `write()` already did. The count held up: **bare reads of the current
+   settings row, whole collection, one — this one.** A regression test seeds the
+   shipped defaults, registers the setting first so the filter is live, and
+   asserts the raw row; **confirmed to fail with the fix reverted.** The
+   pre-existing customised-fixture test passed throughout, which is item 1(d) in
+   miniature.
 
-   **(b) Make it a `verify.py` rule**, because that is the only thing that stops
-   it coming back. Fail any plugin whose migration reads its own settings row
-   through a one-argument `get_option()`. Prove it both ways as usual: plant a
-   bare read in a clean plugin and watch it fail, fix wp-dbmanager and watch it
-   pass. A one-line defect that fourteen plugins avoid by convention is exactly
-   the drift §1's note is about.
+   ~~**(b) Make it a `verify.py` rule.**~~ **Done 2026-08-04**, commit `a4b3b0c`.
+   Fails any shipped file reading the plugin's own settings row through a
+   one-argument `get_option()`. Proven both ways: planting a bare read in
+   wp-print reports `includes/class-wp-print-options.php:109`, and all nineteen
+   are green with it removed.
+
+   Two scoping decisions worth keeping. **The legacy row is deliberately not
+   covered** — `register_setting()` names the *current* row, so no
+   `default_option` filter exists for the old one and a bare read of it is
+   correct, which is what five plugins do. And it is **shipped code only, by
+   allow list** (`includes/` plus the root entry points), because tests read the
+   row bare on purpose to assert what is actually in the database — there are
+   about sixty such reads across the suites, every one of them right.
 
    **(c) Eleven plugins have a migration and no end-to-end test of it.**
    Counted, not assumed: fifteen plugins migrate, and four have
@@ -162,21 +175,38 @@ found, and it is one line of code plus a missing test.
    `tests/test-migration.php:14-18` — that policy is right for "did the values
    carry across" and wants a second fixture beside it, not a replacement.
 
-   **(e) wp-polls decides its own correctness by two adjacent lines.**
-   `WP_Polls_Install::init()` and `WP_Polls_Settings::init()` both hook
-   `admin_init` at priority 10, so the migration wins on insertion order alone.
-   Give it a `write()` helper modelled on `WP_Print_Options::write()` so the
-   outcome stops depending on which line came first.
+   ~~**(e) wp-polls decides its own correctness by two adjacent lines.**~~
+   **Done 2026-08-04**, commit `6eaa803` — but the premise was wrong and the
+   correction is the useful part. `WP_Polls_Options::save()` did go through a
+   bare `update_option()`, and `WP_Polls_Install::init()` (wp-polls.php:71) and
+   `WP_Polls_Settings::init()` (:77) do both hook `admin_init` at priority 10 —
+   **but no data was ever at risk**, because core covers the write side. See the
+   corrected §7.6.1 note under "Rules earned the hard way".
 
-   **(f) Two comments that will mislead the next reader.**
-   `wp-pluginsused/tests/e2e/upgrade.spec.js:95-110` still says "This assertion
-   currently fails, and it is right to." **The fix landed** — `options.php:162`,
-   `:200` and `:207` all use the two-argument read and `:163` uses
-   `add_option()` — so the comment now tells somebody to wave through a real
-   regression. And `freemyinternet/includes/class-freemyinternet-options.php`
-   claims `register_setting()` is passed a `default`; `class-freemyinternet-settings.php`
-   passes only `type` and `sanitize_callback`. The code is right either way, but
-   the comment is what gets copied into the next plugin.
+   `save()` adds the row itself now, so neither the hook order nor the
+   sanitiser's behaviour has to hold. It is hardening and is committed as
+   hardening. **Two tests came with it** and are the item 1(d) fixture for this
+   plugin — a stock-defaults install built from `legacy_map()` rather than typed
+   out. Both were confirmed to fail against a `save()` mutated to write nothing;
+   **neither fails against the bare `update_option()`, because there is nothing
+   there to catch**, and a test that was left in claiming otherwise would have
+   been the collection's fourth "test that cannot fail". One such test was
+   written and deleted rather than committed.
+
+   ~~**(f) Two comments that will mislead the next reader.**~~ **Done
+   2026-08-04**, commits `38c7b39` (wp-pluginsused) and `e19f8ba`
+   (freemyinternet). The first said "This assertion currently fails, and it is
+   right to" about an assertion that passes — **verified by running the suite,
+   6/6 green**, not by reading the code — so it was telling somebody to wave
+   through a real regression. It now says what the assertion pins, keeps the
+   original defect in the past tense because the shape is worth recognising, and
+   ends by forbidding the weakening to the reactivation path.
+
+   The second claimed `register_setting()` is passed a `default` when
+   `class-freemyinternet-settings.php` passes only `type` and
+   `sanitize_callback`. The code was right either way; the comment is what gets
+   copied into the next plugin, and it was describing a trap as though it were
+   armed.
 
    **Docker, wp-env and Playwright all run on Lester's machine** — the
    egress block that made these CI-only was the cloud sandbox, not here. So (c)
@@ -195,7 +225,8 @@ found, and it is one line of code plus a missing test.
 
    Measured 2026-08-03 by cross-referencing the `§` citations in `bin/verify.py`
    and `templates/helper-metadata-testcase.php` against the section headings in
-   STANDARDS. **31 sections have a check; these 17 do not:**
+   STANDARDS. It was 31 with a check and 17 without; §7.6.1 gained one on
+   2026-08-04, so it is now **32 with a check and these 16 without:**
 
    | Section | Mechanisable? |
    |---|---|
@@ -210,7 +241,6 @@ found, and it is one line of code plus a missing test.
    | §7.2.3 A suite that dies is not one that passed | already enforced, but by `bin/test-all.sh` rather than a rule; **say so in the section** |
    | §7.2.4 Escaping a stored value | partly |
    | §7.3 Coverage | no — a number, and gaming it is worse than missing it |
-   | §7.6 / §7.6.1 Upgrade and migration tests | **yes, and item 1 does it** |
    | §13.1 The exact shape | **yes** — the fixture pins §13.2 already |
    | §13.3 WP-CLI and REST naming | not yet — nothing to check until item 3 ships |
    | §15 Order of work | no — process, not state |
@@ -333,9 +363,58 @@ found, and it is one line of code plus a missing test.
    measured. The generalisation is in STANDARDS §7.2.2 and worth repeating here:
    **audit the spec against the checks, not the plugins against the spec.**
 
-**Off this list on purpose:** screenshots into `~/svn/wordpress_plugins/…/assets/`
-and the SVN release itself. Lester does both by hand. Nothing here pushes, tags
-or touches SVN.
+8. **Recapture every plugin's wordpress.org screenshots.** Asked for by Lester
+   on 2026-08-04, which is what puts it on this list at all — see the note below
+   about SVN. **Deferred deliberately, not forgotten:** it wants Playwright and
+   a seeded WordPress, item 1(c) wants Playwright and eleven fresh E2E suites,
+   and this file's own E2E lesson is that four concurrent Playwright runs tore
+   each other down on a 7.6 GiB Docker. Lester's call was to record it and run
+   it after the E2E work lands. Do not start it alongside item 1(c).
+
+   **Every screenshot in the collection is pre-revamp.** The admin UI was rebuilt
+   wholesale — Settings API everywhere, `WP_List_Table` on every tabular screen,
+   one menu rule, renamed settings headings (§17's `<Name> Settings`) — so the
+   images no longer show the software. That is the reason to redo all nineteen
+   rather than only the five that fail the count check below.
+
+   Counted 2026-08-04, `## Screenshots` lines in each repo's `README.md` against
+   `screenshot-*` files in `~/svn/wordpress_plugins/<slug>/assets/`. **Fourteen
+   agree and five do not**, and the five disagreeing is the smaller problem:
+
+   | Plugin | README lines | assets | |
+   |---|---|---|---|
+   | freemyinternet | 3 | 1 | two described and never shipped |
+   | wp-polls | 9 | 10 | one shipped and never described |
+   | wp-postratings | 5 | 6 | one shipped and never described |
+   | wp-sweep | 3 | 2 | one described and never shipped |
+   | wp-useronline | 4 | 3 | one described and never shipped |
+
+   The rule wordpress.org actually applies is positional: `screenshot-N.png` is
+   captioned by the Nth line of the `== Screenshots ==` list, so a missing file
+   silently shifts every caption after it onto the wrong image. **The count
+   matching is necessary and not sufficient** — the fourteen that agree have
+   never been checked for whether each line still *describes* its image, and
+   after a UI rebuild the safe assumption is that none of them do.
+
+   How many to take is a judgement per plugin, not a number to preserve: the old
+   counts were set against the old screens. Lester's brief was explicit that the
+   current count is stale and the new one is ours to choose.
+
+   Notes for whoever runs it. `bin/seed-demo.sh` fills the root harness at
+   http://localhost:8888 (admin / password) with the fixtures the suites use,
+   which is the site to photograph — it is a separate wp-env from any plugin's
+   tests environment. Read
+   https://developer.wordpress.org/plugins/wordpress-org/plugin-assets/ for the
+   naming and size rules before capturing. **Write only into
+   `~/svn/wordpress_plugins/<slug>/assets/`**, touch nothing else in those
+   checkouts, and do not `svn add`, commit or push — the checkouts are otherwise
+   stale 2022-era trees (see Traps) and everything except the assets directory
+   should be left exactly as found.
+
+**Off this list on purpose:** the SVN release itself. Lester does it by hand.
+Nothing here pushes, tags or touches SVN — **except item 8**, which Lester
+explicitly asked for on 2026-08-04 and which writes screenshots into
+`assets/` and nothing else.
 
 ## The pre-revamp tags — done 2026-08-03
 
@@ -682,7 +761,7 @@ Asked on 2026-08-03, and worth keeping because the answer is not "run
 
 **The mechanical half is continuously checked and green**, so re-auditing
 nineteen plugins against fifteen sections by hand buys nothing. `bin/verify.py`
-is 92 checks covering §1, §1.1, §2, §3, §4, §5, §6, §7, §8, §9, §10 and §14;
+is 93 checks covering §1, §1.1, §2, §3, §4, §5, §6, §7, §7.6.1, §8, §9, §10 and §14;
 the shared metadata fixture covers §13, including the shared-row contract that
 two plugins violated. Both run on every push.
 
@@ -724,11 +803,31 @@ checkable.
 * **`register_setting()` attaches two things to the settings row, and
   activation and WP-CLI run neither** — a `sanitize_option_*` filter, and, where
   a `default` is passed, a `default_option_*` filter that answers `get_option()`
-  with the shipped defaults for a row that does not exist. Every migration that
-  reads or writes through the bare `get_option()`/`update_option()` pair is
-  therefore correct under WP-CLI and wrong on the one path a real update takes.
-  Written up as **§7.6.1**. **Any migration test that only runs under WP-CLI is
-  testing the easy path.** Four variants were found across five plugins.
+  with the shipped defaults for a row that does not exist. Written up as
+  **§7.6.1**. **Any migration test that only runs under WP-CLI is testing the
+  easy path.** Four variants were found across five plugins.
+
+  **The read half and the write half are not equally dangerous, and this file
+  said they were until 2026-08-04.** Read `wp-includes/option.php` before
+  writing another word about either.
+
+  * **Reading is the real defect.** A bare `get_option()` behind an
+    `is_array()`/`false ===` guard cannot tell an absent row from a defaulted
+    one, so the fold-in is skipped while the legacy row is deleted regardless.
+    Nothing in core saves you. This is what wp-print, wp-pluginsused and
+    wp-dbmanager each had, and it is what `verify.py` now fails.
+  * **Writing is mostly core's problem, and core handles it.**
+    `update_option()` asks the `default_option_*` filter what it would answer
+    and calls `add_option()` when that is what `$old_value` was. The one gap is
+    the comparison *above* that fallback, which returns early when the value
+    being written is identical to the one just read — and `update_option()`
+    **sanitises before it compares**, so a sanitiser that alters its input at
+    all closes even that. wp-polls was measured against this and was never
+    losing data.
+
+  The practical consequence for item 1(c): **assert the raw row, but do not
+  expect the bare `update_option()` to be what fails.** A migration test that
+  goes red only when the read is bare is testing the thing that actually breaks.
 
 * **One list must not drive both the migration and uninstall.** Both §13.2
   shared-row violations (wp-polls, wp-downloadmanager) were that design: the
@@ -821,6 +920,17 @@ Kept short on purpose; the detail is in git.
   that records a migration becomes wrong the moment the migration lands** —
   BRIEFS still instructed an agent to create wp-relativedate's options row, which
   has existed since 2026-07-30. What was worth keeping was extracted first.
+
+* **2026-08-04** — the §7.6.1 release blocker closed: wp-dbmanager fixed, a
+  `verify.py` rule behind it, wp-polls hardened, both misleading comments
+  corrected. Items 1(a), 1(b), 1(e), 1(f). Two claims in this file were found
+  wrong while acting on them, which is the day's real output: §7.6.1's write
+  half is handled by core, so wp-polls was never losing data; and the
+  wp-pluginsused comment about a failing assertion was three fixes out of date.
+  **Both were found by running the thing rather than reading it** — a mutation
+  test on `save()`, and the E2E suite the comment was attached to. A third test
+  was written, discovered to pass with the fix reverted, and deleted rather than
+  committed. Item 8 added at Lester's request and deferred by his call.
 
 The programme found roughly **twenty-five spec bugs and eleven `verify.py`
 bugs**, every one because an agent pushed back rather than complied. The pattern
