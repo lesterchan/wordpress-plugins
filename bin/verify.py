@@ -1409,6 +1409,48 @@ def verify(slug, name, prefix, port, root):
                 "no tests/test-*.php holds one of §7.2.4's three payloads "
                 "together with both an absent- and a present- assertion")
 
+    # --- §2.5 global functions ----------------------------------------------
+    # Same shape as §2.4, which has been checked since the fan-out: a name that
+    # reaches global scope is prefixed, and where it may live is a closed set.
+    #
+    # Two checks, because §2.5's two sentences say different things and only one
+    # of them survives contact with the collection. "Global functions exist only
+    # in template-tags.php and deprecated.php" is false in all nineteen --
+    # uninstall.php necessarily declares one, and §7.2.1 relies on it doing so
+    # -- so the enforceable rule is the second sentence: any other global
+    # function is prefixed {{UNDER}}_. template-tags.php and deprecated.php are
+    # exempt from the prefix because §2.5 requires the opposite of them: those
+    # names shipped in the last SVN release and are the documented public API.
+    #
+    # A global function inside a class-*.php file is a violation whichever way
+    # it is spelled -- that file declares a class, and "everything else is a
+    # class method" is unambiguous there.
+    #
+    # Column-anchored deliberately: every method in the collection is indented,
+    # so this cannot mistake one for a global function. A global function nested
+    # inside a conditional would slip through, which is a miss rather than a
+    # false alarm.
+    for path in shipped:
+        rel = os.path.relpath(path, root)
+        body = read(path) or ""
+        base = os.path.basename(path)
+
+        for m in re.finditer(r"^function\s+(\w+)\s*\(", body, re.M):
+            fn = m.group(1)
+            line = body.count("\n", 0, m.start()) + 1
+
+            if base.startswith("class-"):
+                r.check(False, "§2.5 a class file declares a global function",
+                        "%s() at %s:%d -- everything but a template tag or a "
+                        "deprecated shim is a class method" % (fn, rel, line))
+                continue
+
+            if base in ("template-tags.php", "deprecated.php"):
+                continue
+
+            r.check(fn.startswith(under + "_"), "§2.5 global function prefix",
+                    "%s() at %s:%d, want %s_*" % (fn, rel, line, under))
+
     return r
 
 
