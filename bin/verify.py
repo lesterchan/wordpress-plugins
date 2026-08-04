@@ -233,6 +233,14 @@ TAB_LABELS = {
 }
 
 
+# §13's seven: six contributors to the wp_stats_sections filter, plus wp-stats
+# which owns it and reads none of their option rows.
+WPSTATS_CONTRIBUTORS = {
+    "wp-downloadmanager", "wp-email", "wp-polls", "wp-postratings",
+    "wp-postviews", "wp-useronline",
+}
+
+
 def class_constants(root, includes):
     """Every `const NAME = '<literal>';` in shipped PHP, as (name, value, file).
 
@@ -1220,6 +1228,57 @@ def verify(slug, name, prefix, port, root):
         r.check("Options" not in label,
                 "§4.2.2 a tab is never named Options",
                 "%r in %s -- the page is already Settings" % (label, tabs_file))
+
+    # --- §13.1 the wp_stats_sections entry ----------------------------------
+    # The one cross-plugin contract, and the one place where changing a plugin
+    # in isolation breaks a sibling. §13.1 pins the array shape precisely
+    # because seven plugins implemented it in seven separate sessions; the
+    # shared metadata fixture pins §13.2's shared-row hazard, and this is the
+    # half of §13 nothing had compared.
+    #
+    # A key that drifts is silent in both directions: wp-stats skips a
+    # malformed entry rather than fatalling (§13.2), so a contributor keyed
+    # 'polls' instead of 'wp_polls' simply renders nothing, and the theme hook
+    # wp_stats_section_{key} a site had written moves out from under it.
+    if slug in WPSTATS_CONTRIBUTORS:
+        path = os.path.join(includes, "class-%s-wpstats.php" % slug)
+        body = read(path) or ""
+        rel = os.path.relpath(path, root)
+
+        r.check(body != "", "§13 the WPStats component exists", rel)
+
+        if body:
+            r.check("add_filter( 'wp_stats_sections'" in body,
+                    "§13 contributes through wp_stats_sections", rel)
+
+            m = re.search(
+                r"\$sections\['([a-z0-9_]+)'\]\s*=\s*array\((.*?)\n\t\t\);",
+                body, re.S)
+            r.check(m is not None, "§13.1 the entry is one array literal",
+                    "%s: no $sections['…'] = array( … ); found" % rel)
+
+            if m:
+                r.check(m.group(1) == under,
+                        "§13.1 the entry is keyed by {{UNDER}}",
+                        "%s keys it %r, want %r" % (rel, m.group(1), under))
+                for key in ("title", "priority", "render"):
+                    r.check("'%s'" % key in m.group(2),
+                            "§13.1 the entry names every key",
+                            "%s: no %r in the entry" % (rel, key))
+
+            # §13.1: a contributor that is opted out returns $sections
+            # untouched, and reads only its own row to decide.
+            r.check("stats_display" in body,
+                    "§13.1 the contributor honours its own stats_display",
+                    rel)
+
+    if slug == "wp-stats":
+        body = "\n".join(read(p) or "" for p in sorted(
+            glob.glob(os.path.join(includes, "*.php"))))
+        r.check("apply_filters( 'wp_stats_sections', array() )" in body,
+                "§13 wp-stats fires wp_stats_sections with an empty array")
+        r.check("'wp_stats_section_' . $key" in body,
+                "§13.1 wp-stats dispatches wp_stats_section_{key}")
 
     return r
 
