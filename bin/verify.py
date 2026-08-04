@@ -1280,6 +1280,41 @@ def verify(slug, name, prefix, port, root):
         r.check("'wp_stats_section_' . $key" in body,
                 "§13.1 wp-stats dispatches wp_stats_section_{key}")
 
+    # --- §4.3 list tables, the half that is checkable -----------------------
+    # "Every tabular data screen is a WP_List_Table subclass" splits into a half
+    # a reader can decide and a half only a reader can: which screens are
+    # tabular data screens is judgement -- wp-serverinfo's five key/value report
+    # tables are not, and §4.3's own deviations for wp-dbmanager are argued
+    # rather than derived -- but a class that calls itself a Table and is not
+    # one is mechanical. §2.4 makes `_Table` the suffix for exactly this thing,
+    # so the name is the claim and this checks the claim.
+    #
+    # no_items() and get_columns() are the two §4.3 asks for unconditionally.
+    # The rest of its list -- pagination at 20, sortable columns, hover row
+    # actions, bulk actions -- is prefaced "normally" and has two documented
+    # exceptions in wp-dbmanager alone, so it is not checked.
+    if os.path.isdir(includes):
+        for entry in sorted(os.listdir(includes)):
+            if not entry.endswith(".php"):
+                continue
+            body = read(os.path.join(includes, entry)) or ""
+            for m in re.finditer(
+                    # \b after _Table, or WP_DBManager_Tables -- the ops
+                    # component, not a list table -- matches on its own prefix.
+                    r"^\s*(?:final\s+|abstract\s+)?class\s+(\w+_Table)\b"
+                    r"(?:\s+extends\s+(\w+))?", body, re.M):
+                cls, parent = m.group(1), m.group(2)
+                r.check(parent == "WP_List_Table",
+                        "§4.3 a _Table class is a WP_List_Table",
+                        "%s in %s extends %s" % (cls, entry, parent or "nothing"))
+                r.check(entry.endswith("-table.php"),
+                        "§2.4 a list table lives in class-*-table.php",
+                        "%s declares %s" % (entry, cls))
+                for method in ("no_items", "get_columns"):
+                    r.check(re.search(r"function\s+%s\s*\(" % method, body),
+                            "§4.3 a list table defines %s()" % method,
+                            "%s in %s" % (cls, entry))
+
     return r
 
 
