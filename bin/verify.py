@@ -747,6 +747,47 @@ def verify(slug, name, prefix, port, root):
                 "ci.yml matches the shared template",
                 "differs from _standards/templates (§8)")
 
+    # --- §2.7 the capability granted is the capability checked --------------
+    # Four plugins create a capability of their own -- wp-downloadmanager,
+    # wp-email, wp-polls, wp-postratings -- and every screen gates on the
+    # FILTERED value, {{UNDER}}_capability applied to the constant. Granting the
+    # constant, or its literal string, while checking the filtered one means a
+    # site that uses the filter hands its administrator a capability nothing
+    # looks at and gates every screen on one nobody holds. The owner is locked
+    # out of their own plugin and no log says why. Three of the four had it on
+    # 2026-08-04; only wp-postratings did not.
+    #
+    # A literal that is NOT the plugin's current capability is deliberately
+    # allowed: wp-dbmanager removes 'manage_database', the capability it retired
+    # in 2.80.6, and there is no accessor for a capability that no longer
+    # exists. Only the current one has to go through the filter.
+    cap_files = [os.path.join(root, e) for e in sorted(os.listdir(root))
+                 if e.endswith(".php")]
+    if os.path.isdir(includes):
+        cap_files += [os.path.join(includes, e)
+                      for e in sorted(os.listdir(includes))
+                      if e.endswith(".php")]
+    current_caps = set(
+        re.findall(r"const CAPABILITY\s*=\s*'([a-z_]+)'",
+                   "\n".join(read(p) or "" for p in cap_files)))
+    for path in cap_files:
+        body = re.sub(r"/\*.*?\*/|//[^\n]*|^\s*\*[^\n]*$", "", read(path) or "",
+                      flags=re.S | re.M)
+        for m in re.finditer(r"(?:add_cap|remove_cap)\(\s*([^;)]+?)\s*\)", body):
+            arg = m.group(1).strip()
+            literal = re.fullmatch(r"'([a-z_]+)'", arg)
+            # The filtered accessor is the only correct spelling; a constant is
+            # the bug, and a literal is the bug only when it names the
+            # capability this plugin currently checks.
+            bad = arg.endswith("::CAPABILITY") or (
+                literal is not None and literal.group(1) in current_caps)
+            if bad:
+                r.check(False,
+                        "§2.7 the granted capability goes through the filter",
+                        "%s at %s:%d, want %s::capability()"
+                        % (arg, os.path.relpath(path, root),
+                           body.count("\n", 0, m.start()) + 1, prefix + "_Admin"))
+
     # --- the metadata fixture is one file, not nineteen --------------------
     # This started as four different implementations of the same walk, so
     # excluding one directory took four edits and the hardcoded-list variant
