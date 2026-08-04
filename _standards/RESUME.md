@@ -4,10 +4,10 @@ State of the consistency programme as of **2026-08-05**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line:** all nineteen plugins are green, the pre-revamp tags are cut and
-pushed, and **three items are open** — four end-to-end migration tests (down
-from eleven; seven landed on 2026-08-05), the WP-CLI/REST/blocks phase, and a
-screenshot recapture Lester is doing himself. **Start at item 1.** Nothing is
-waiting on Lester except the scope call in item 2.
+pushed, every migrating plugin now has a browser test of its migration, and
+**two items are open** — the WP-CLI/REST/blocks phase, which needs a scope call
+from Lester, and a screenshot recapture Lester is doing himself. **There is no
+grind left on this list.**
 
 **The bug backlog is empty and every rule the spec states now has something
 behind it.** 2026-08-04 closed the §7.6.1 release blocker, the spec-against-checks
@@ -15,14 +15,15 @@ audit and a capability audit that fell out of it. `bin/verify.py` grew from 93
 checks to 127, and 41 of the spec's 48 sections are mechanically enforced, up
 from 31. "Closed on 2026-08-04" has the findings.
 
-**Read this before writing item 1.** §7.6.1 was overstated in this file for a
-week, and the correction is the difference between eleven useful tests and
-eleven that pass without proving anything. Core's `update_option()` already
+**Read this before writing another migration test.** §7.6.1 was overstated in
+this file for a week, and the correction is the difference between a useful test
+and one that passes without proving anything. Core's `update_option()` already
 falls back to `add_option()` when the `default_option_*` filter is what answered
 `$old_value`, **so the write half is mostly core's problem**. The read half is
 the real defect and always was: a bare `get_option()` behind an `is_array()`
 guard skips the fold-in while the legacy row is deleted regardless. Aim at the
-read. Measured, not assumed — see "Rules earned the hard way".
+read. Measured, not assumed — see "Rules earned the hard way". The eleven suites
+written on 2026-08-05 are all built on it.
 
 **Green tools were not enough, and that is the lesson of the week.** Nineteen
 suites, `verify.py` at zero and CI green across the board, while a data-loss
@@ -67,7 +68,8 @@ differences between two plugins are name, features and capability.
 
 * `_standards/STANDARDS.md` — the spec. **15 numbered sections, 48 including
   subsections** (this line said 17 until 2026-08-03, and nothing had counted).
-  41 of the 48 have something mechanical behind them; see item 2.
+  41 of the 48 have something mechanical behind them; see "Is the collection
+  compliant?".
 * `_standards/templates/` — the files each plugin copies verbatim, placeholders
   `{{SLUG}}` `{{NAME}}` `{{CLASS}}` `{{UNDER}}` `{{UPPER}}` `{{L10N}}`
   `{{DESCRIPTION}}`.
@@ -91,15 +93,19 @@ differences between two plugins are name, features and capability.
 Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 `bin/test-e2e.sh`.
 
-## Current state — verified 2026-08-04
+## Current state — verified 2026-08-05
 
-* **All twenty repositories are level with their remotes and clean**, and
-  `verify.py` is 0 across all 19. Both were checked by fetching rather than from
-  cached refs.
-* PHPUnit green single site and multisite on every plugin touched on 2026-08-04;
-  Playwright green where it was run (wp-email 45, wp-pluginsused 6). **The other
-  suites were not re-run that day** — this line is the one in this file most
-  likely to be stale by the time you read it, so re-check rather than trust it.
+* `verify.py` is 0 across all 19.
+* **Eleven repositories gained a commit on 2026-08-05 that has not been pushed**
+  — the migration suites. `git log --oneline -1` in each says which.
+* Playwright green on every `upgrade.spec.js` written that day, and on the whole
+  file for wp-dbmanager (56 tests) and wp-email (9), which were run entire.
+  **The other suites' older specs were not re-run** — this line is the one in
+  this file most likely to be stale by the time you read it, so re-check rather
+  than trust it.
+* PHPUnit was **not** re-run on 2026-08-05. Nothing that day touched shipped
+  code — the eleven commits are `tests/e2e/` only — but that is an argument, not
+  a run.
 * **Every assertion in the collection carries a failure message** — the total
   moves with every commit, so the ratio is the claim:
   `python3 bin/measure_assertions.py /path/to/plugins/*` re-derives both.
@@ -112,100 +118,12 @@ Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 
 ## Remaining work, in order
 
-**Three items are open.** Item 1 is the whole of the next session's work; item 2
-is waiting on a decision from Lester; item 3 is Lester's to schedule. Everything
-else that was on this list is done — see "Closed on 2026-08-04" below, which
-keeps the findings and drops the instructions.
+**Two items are open**, and neither is a grind. Item 1 is waiting on a scope
+decision from Lester; item 2 is Lester's to schedule. Everything else that was
+on this list is done — see the two "Closed on" sections below, which keep the
+findings and drop the instructions.
 
-1. **Six plugins have a migration and no end-to-end test of it** — five of them
-   with the test already written and sitting unrun in the working tree. This was
-   item 1(c), the last open part of the §7.6.1 work, and it is the grind the
-   rest of that item cleared the way for.
-
-   Counted, not assumed: fifteen plugins migrate. Eleven now have a green
-   `tests/e2e/upgrade.spec.js` — freemyinternet, wp-ban, wp-pluginsused and
-   wp-print from before, plus **wp-commentnavi, wp-pagenavi, wp-dbmanager,
-   wp-email, wp-downloadmanager, wp-draftsforfriends and wp-useronline**, each
-   written, run to green and committed on 2026-08-05.
-
-   **Four are left, and the state each is in:**
-
-   | Plugin | State |
-   |---|---|
-   | wp-postviews | spec written; **1 of its 8 passes** — the front-end one, which is the distinctive test here. Its *second* test then sat for 25 minutes without failing or finishing, twice. A single `wp eval` against that container answers in 2.3s, so the stall is not the harness being slow; suspect `installProbe()` or the `page.goto( post.link )` after it, and note that a blocking `execFileSync` inside a test cannot be interrupted by Playwright's timeout, so a stuck helper looks like a hang rather than a failure. Run that test on its own first. |
-   | wp-polls | spec written, **never run**, uncommitted |
-   | wp-postratings | spec written, **never run**, uncommitted |
-   | wp-stats | spec written, **never run**, uncommitted |
-
-   **All four are working-tree changes and nothing more.** `git status` in each
-   repo shows an untracked `tests/e2e/upgrade.spec.js` and, for three of them, a
-   modified `tests/e2e/helpers.js`. They are deliberately not committed: every
-   one of the seven that has been run needed at least one fix on its first run,
-   so committing them unrun would be committing tests nobody has watched fail —
-   and the e2e job in CI would go red on a guess. Run
-   `bin/test-e2e.sh upgrade.spec.js`, fix, then commit.
-
-   **Expect them to need fixing in the same three places**, because the ones
-   that were run all did:
-
-   * a scalar legacy row reads back as a **string** (see the E2E lessons). The
-     four remaining specs have had this applied by eye and not by running, so it
-     is the first thing to check against a failure;
-   * for wp-postratings, wp-postviews and wp-stats a `wp eval` call **is itself
-     the upgrade**, so the fixture has to be seeded and read back inside one
-     call — the helpers already do this, but any new assertion placed between
-     the seeding and the `page.goto()` re-breaks it;
-   * an assertion about which row wins when both the legacy and the current one
-     exist. wp-downloadmanager's turned out to be the opposite of what the test
-     assumed, and the migration was right.
-
-   **Each run is slow and gets slower.** A six-test suite took two minutes on an
-   idle machine and over an hour with an editor and a dozen wp-env stacks up.
-   `docker ps` and stop everything but the plugin being tested; the runs are
-   almost entirely `npx --yes @wordpress/env run` startup rather than browser
-   time.
-
-   `wp-print/tests/e2e/upgrade.spec.js` is the reference and the shape is fixed:
-   seed the legacy rows with `wpEval`, **assert the fixture really is
-   pre-migration**, then `page.goto( '/wp-admin/index.php' )` — an ordinary
-   admin request, *never* a reactivation, because reactivating is the WP-CLI
-   path in disguise and takes the easy branch. Then assert the legacy rows are
-   gone, the new row is present **read raw with the two-argument
-   `get_option()`**, and the value shows up on the far end.
-
-   **Aim the assertions at the read, not the write, and know why.** The PHPUnit
-   half of this work (item 1d, done) established the distinction the hard way:
-
-   * **A bare `get_option()` behind an `is_array()` guard is the real defect.**
-     Nothing in core saves you: the fold-in is skipped and the legacy row is
-     deleted regardless. wp-print, wp-pluginsused and wp-dbmanager each had it.
-   * **A bare `update_option()` is mostly core's problem and core handles it.**
-     `update_option()` asks the `default_option_*` filter what it would answer
-     and calls `add_option()` when that is what `$old_value` was. The one gap is
-     the comparison *above* that fallback — and it sanitises before it compares,
-     so a sanitiser that alters its input at all closes even that.
-
-   So a test written to catch a bad write will pass on nine plugins out of
-   twelve and prove nothing. **Read the row raw and assert what is in it.**
-
-   **Seed the shipped defaults, not customised values.** A customised fixture
-   cannot see this shape at all: the write lands precisely *because* the values
-   differ. Every plugin now has a stock-defaults PHPUnit fixture built from its
-   own `defaults()` — through `legacy_map()` where one exists — and those are
-   the fixtures to port into the E2E suites rather than inventing new ones.
-
-   **Registering the setting is what makes it the admin path.** A migration test
-   that does not is testing WP-CLI. In the browser that is automatic; in `wpEval`
-   it is not.
-
-   Read "READ FIRST — CI and your machine are not the same environment" and
-   "E2E lessons that will recur" before writing the first line. Between them
-   they account for most of the time this work has cost before.
-
-   **Run E2E one plugin at a time.** Four concurrent Playwright runs tore each
-   other down on a 7.6 GiB Docker.
-
-2. **WP-CLI, REST API and Gutenberg blocks across the collection.** The only
+1. **WP-CLI, REST API and Gutenberg blocks across the collection.** The only
    substantial item left, and a phase of its own rather than a cleanup.
    `wp-sweep` already has `WP_Sweep_Command` and `WP_Sweep_API` and is the
    reference.
@@ -227,12 +145,11 @@ keeps the findings and drops the instructions.
    command, a namespace or a block, and whether a block wraps the existing
    shortcode or replaces it. §13.3 pins only the naming.
 
-3. **Recapture every plugin's wordpress.org screenshots.** Asked for by Lester
+2. **Recapture every plugin's wordpress.org screenshots.** Asked for by Lester
    on 2026-08-04, which is what puts it on this list at all — see the note below
    about SVN. **Lester is doing this himself, on a day of his choosing.** Do not
-   start it alongside item 1: both want Playwright and a seeded WordPress, and
-   this file's own E2E lesson is what concurrent Playwright runs do to a 7.6 GiB
-   Docker.
+   run it while anything else wants Playwright and a seeded WordPress: this
+   file's own E2E lesson is what concurrent runs do to a 7.6 GiB Docker.
 
    **Every screenshot in the collection is pre-revamp.** The admin UI was rebuilt
    wholesale — Settings API everywhere, `WP_List_Table` on every tabular screen,
@@ -276,7 +193,7 @@ keeps the findings and drops the instructions.
    Traps).
 
 **Off this list on purpose:** the SVN release itself. Lester does it by hand.
-Nothing here pushes, tags or touches SVN — **except item 3**, which Lester
+Nothing here pushes, tags or touches SVN — **except item 2**, which Lester
 explicitly asked for on 2026-08-04 and which writes screenshots into `assets/`
 and nothing else.
 
@@ -287,6 +204,41 @@ here for a week as a task nobody could pick up. What it *measured* is worth
 keeping and is under "Rules earned the hard way" — comment density is not a
 defect signal in this collection, and two successive attempts to make it one
 were both wrong.
+
+## Closed on 2026-08-05 — the eleven migration suites
+
+**Every migrating plugin now has a browser test of its migration.** Fifteen
+migrate; all fifteen have a green `tests/e2e/upgrade.spec.js`. The eleven
+written on 2026-08-05 were wp-commentnavi (7 tests), wp-pagenavi (7),
+wp-dbmanager (6), wp-email (9), wp-downloadmanager (6), wp-draftsforfriends (8),
+wp-useronline (6), wp-polls (8), wp-stats (6), wp-postratings (7) and
+wp-postviews (8) — 78 tests, each run to green before it was committed.
+
+The findings, all of which are now in the E2E lessons and none of which reading
+the code would have produced:
+
+* **A `wp eval` call is a full WordPress request**, so for the five plugins that
+  migrate on `plugins_loaded` or `init` it *is* the upgrade. Seeding the legacy
+  rows in one call and reading them back in a second finds them already
+  migrated: the browser request that follows has nothing left to do and the
+  suite is testing WP-CLI. Seed and read back inside one call.
+* **A scalar legacy row reads back as a string.** Arrays keep their types, being
+  serialised. Every reader casts, so it has never mattered — but four suites
+  asserted integers on the first run and were wrong about every install there is.
+* **wp-downloadmanager's legacy row wins over an existing current row**, which
+  is the opposite of what its test assumed and what the migration means. Pinned
+  in both directions now, because the wrong reading is the plausible one.
+* **A blocking `execFileSync` inside a test cannot be interrupted by Playwright's
+  timeout**, so a slow helper reads as a hang rather than a failure. Two runs
+  were abandoned on that before the machine turned out to be the cause; a single
+  `wp eval` answers in 2.3s on an idle box and the same suite that took an hour
+  under load took two minutes without it.
+
+wp-commentnavi's and wp-pagenavi's were confirmed by mutation, run separately
+rather than one assumed from the other: three of seven tests went red in each.
+The other nine rest on the collection's usual guard — every one of them failed
+at least once on its first run and was fixed, which is the same evidence in a
+less deliberate form.
 
 ## Closed on 2026-08-04
 
@@ -301,8 +253,9 @@ the list above and is now either shipped or written into a check.
   filter exists for the old one and a bare read of it is correct, which is what
   five plugins do. Shipped code only, by allow list, because tests read the row
   bare on purpose — about sixty times, every one of them right.
-* **Stock-defaults fixtures** (was item 1d), eight plugins. Details are folded
-  into item 1 above, which is what they exist to serve.
+* **Stock-defaults fixtures** (was item 1d), eight plugins. They are the
+  fixtures the eleven E2E migration suites were built from — a customised row
+  cannot see §7.6.1 at all.
 * **wp-polls' `save()`** (was item 1e) hardened to add the row itself. The
   premise was wrong — no data was ever at risk — and it is committed as
   hardening.
@@ -700,7 +653,7 @@ six do not, and each stays that way for a reason:
 | §7.2.1 Process-wide state | needs the suite running |
 | §7.2.3 A suite that dies is not one that passed | enforced by `bin/test-all.sh`; §7.2.3 says so, so the next audit does not write a second check |
 | §7.3 Coverage | a number, and gaming it is worse than missing it |
-| §13.3 WP-CLI and REST naming | nothing to check until item 2 ships |
+| §13.3 WP-CLI and REST naming | nothing to check until item 1 ships |
 | §15 Order of work | process, not state |
 
 Two more were attempted and deliberately abandoned, which is worth as much as
@@ -770,9 +723,10 @@ invisible precisely because every tool is green.**
     all closes even that. wp-polls was measured against this and was never
     losing data.
 
-  The practical consequence for the eleven E2E tests (item 1): **assert the raw row, but do not
-  expect the bare `update_option()` to be what fails.** A migration test that
-  goes red only when the read is bare is testing the thing that actually breaks.
+  The practical consequence, and what the eleven E2E suites were built on:
+  **assert the raw row, but do not expect the bare `update_option()` to be what
+  fails.** A migration test that goes red only when the read is bare is testing
+  the thing that actually breaks.
 
 * **One list must not drive both the migration and uninstall.** Both §13.2
   shared-row violations (wp-polls, wp-downloadmanager) were that design: the
@@ -894,23 +848,26 @@ Kept short on purpose; the detail is in git.
   was written, discovered to pass with the fix reverted, and deleted rather than
   committed. Item 8 added at Lester's request and deferred by his call.
 
-* **2026-08-05** — seven of item 1's eleven migration suites written, run to
-  green and committed: wp-commentnavi, wp-pagenavi, wp-dbmanager, wp-email,
-  wp-downloadmanager, wp-draftsforfriends and wp-useronline. Two findings came
-  out of running them, both now in the E2E lessons and both invisible to any
-  amount of reading: **a `wp eval` call is a full WordPress request**, so for the
-  five plugins that migrate on `plugins_loaded` or `init` the fixture cannot be
-  seeded in one call and read in another — the second call has already done the
-  upgrade; and **a scalar legacy row reads back as a string**, so an assertion on
-  an integer is an assertion about no install that exists. wp-commentnavi's and
-  wp-pagenavi's were confirmed by mutation, separately rather than one from the
-  other, and three of seven tests went red in each.
+* **2026-08-05** — item 1 closed. All eleven remaining migration suites written,
+  run to green and committed, 78 tests in all, so every one of the fifteen
+  migrating plugins now has a browser test of its migration. Three findings came
+  out of running them, all now in the E2E lessons and none of them producible by
+  reading: **a `wp eval` call is a full WordPress request**, so for the five
+  plugins that migrate on `plugins_loaded` or `init` the fixture cannot be seeded
+  in one call and read in another — the second call has already done the upgrade;
+  **a scalar legacy row reads back as a string**, so an assertion on an integer
+  is an assertion about no install that exists; and **wp-downloadmanager's legacy
+  row wins over an existing current row**, which is the opposite of what the test
+  assumed and what the code means.
 
-  The remaining four specs are written and sitting in their working trees
-  unrun. **Wall clock, not difficulty, is what stopped this**: a six-test suite
-  takes two minutes on an idle machine and over an hour on a busy one, because
-  almost all of it is `npx --yes @wordpress/env run` startup rather than browser
-  time.
+  Four suites failed on their first run and were fixed. wp-commentnavi's and
+  wp-pagenavi's were additionally confirmed by mutation, run separately rather
+  than one assumed from the other, and three of seven tests went red in each.
+
+  **Wall clock was the whole cost**: the same six-test suite takes two minutes on
+  an idle machine and over an hour with an editor and a dozen wp-env stacks up,
+  because almost all of it is `npx --yes @wordpress/env run` startup rather than
+  browser time. Two runs were abandoned as hangs before that was understood.
 
 * **2026-08-04** — the §7.6.1 release blocker closed, the spec-against-checks
   audit finished, and a capability audit found by it. `verify.py` 93 checks to
