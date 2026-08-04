@@ -69,7 +69,7 @@ differences between two plugins are name, features and capability.
   `{{SLUG}}` `{{NAME}}` `{{CLASS}}` `{{UNDER}}` `{{UPPER}}` `{{L10N}}`
   `{{DESCRIPTION}}`.
 * `.wp-env.json` — all 19 plugins in one WordPress on 8888/8889.
-* `bin/verify.py` — mechanical checker, **126 `check()` call sites**, not all of
+* `bin/verify.py` — mechanical checker, **127 `check()` call sites**, not all of
   which apply to every plugin. `python3 bin/verify.py [slug…] [--quiet]`; exit
   status is the failure count. (This line said "~40 rules per plugin" and the
   compliance section below said 86; neither had been counted. Recount with
@@ -274,7 +274,7 @@ with nothing mechanical left in it; five, six and seven are done.
    without. Nine gained one — §2.2, §2.5, §2.7, §4.2.1, §4.2.2, §4.3 (partly),
    §7.1, §7.2.4 (partly), §13.1 — plus §7.6.1 earlier the same day, so it is now
    **41 with a check and 6 without**, and `verify.py` went from 93 `check()`
-   sites to 126. Each rule was proven both ways: plant the violation, watch it
+   sites to 127. Each rule was proven both ways: plant the violation, watch it
    fail, remove it, watch it pass.
 
    **The six with nothing behind them, and why each stays that way:**
@@ -305,6 +305,23 @@ with nothing mechanical left in it; five, six and seven are done.
    wp-email carried an unprefixed global filter callback in
    `screen-standalone.php`, a file required at request time, where it was also a
    redeclare fatal waiting to happen.
+
+   **The §2.7 question the audit raised was answered rather than deferred.**
+   The section said the custom capability gates data screens and Settings stays
+   on `manage_options`; three plugins did otherwise. The rule was qualified
+   rather than the plugins changed, because wp-dbmanager settles it: its
+   settings screen sets the `mysqldump` binary path, so whoever writes that can
+   make the plugin run an arbitrary binary as the web user. That screen is *more*
+   dangerous than its data screens and `install_plugins` is right — moving it to
+   `manage_options` would have been a downgrade dressed as compliance.
+
+   §2.7 now permits the exception **on condition the reason is argued in a
+   docblock at the gate**, and `verify.py` enforces the condition: a `CAPABILITY`
+   that is not `manage_options` must carry more than a summary line. wp-dbmanager
+   already had that docblock; wp-polls had four bare lines and wp-postratings
+   argued only the data half. Both were written up. **A condition nothing checks
+   is the state every defect this week came out of**, so the qualification was
+   not worth having until the check existed.
 
    **Six sections were wrong and were corrected** (`ec58a1d`), each found by
    trying to write its rule. §2.2 contradicted §2.1 about the four plugins that
@@ -841,7 +858,7 @@ Asked on 2026-08-03, and worth keeping because the answer is not "run
 
 **The mechanical half is continuously checked and green**, so re-auditing
 nineteen plugins against fifteen sections by hand buys nothing. `bin/verify.py`
-is 126 checks covering §1, §1.1, §2, §3, §4, §5, §6, §7, §7.6.1, §8, §9, §10, §13.1 and §14;
+is 127 checks covering §1, §1.1, §2, §3, §4, §5, §6, §7, §7.6.1, §8, §9, §10, §13.1 and §14;
 the shared metadata fixture covers §13, including the shared-row contract that
 two plugins violated. Both run on every push.
 
