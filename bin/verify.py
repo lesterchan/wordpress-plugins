@@ -727,6 +727,47 @@ def verify(slug, name, prefix, port, root):
             ", ".join(inline[:3])
             + (" (+%d more)" % (len(inline) - 3) if len(inline) > 3 else ""))
 
+    # --- §7.6.1 the settings row is never read bare -------------------------
+    # register_setting() is passed a `default` in most of the collection, and
+    # that installs a default_option_{$option} filter which answers get_option()
+    # with the shipped defaults for a row that does not exist. So a one-argument
+    # read cannot tell an absent row from a defaulted one -- and a migration
+    # that guards its fold-in on `is_array()` therefore skips it, on the one
+    # path a real update takes, while deleting the legacy row it read anyway.
+    #
+    # Latent or live depends only on hook order, which is not a thing to rely
+    # on: wp-dbmanager avoided the data loss purely because maybe_upgrade() ran
+    # on plugins_loaded and register_setting() on admin_init, and moving the
+    # call to where five siblings put theirs would have armed it.
+    #
+    # The legacy row is deliberately not covered. register_setting() names the
+    # *current* row, so no default_option filter exists for the old one and a
+    # bare read of it is correct -- which is what five plugins do.
+    #
+    # Shipped code only, by allow list rather than deny list: tests read the row
+    # bare on purpose, to assert what is actually in the database.
+    bare = []
+    shipped = [os.path.join(root, e) for e in sorted(os.listdir(root))
+               if e.endswith(".php")]
+    if os.path.isdir(includes):
+        shipped += [os.path.join(includes, e)
+                    for e in sorted(os.listdir(includes)) if e.endswith(".php")]
+    for path in shipped:
+        body = read(path) or ""
+        # Strip comments first, exactly as the §4.2 check does: this section is
+        # explained at length in the very docblocks that sit above the code it
+        # is about, and prose describing the trap must not read as the trap.
+        body = re.sub(r"/\*.*?\*/|//[^\n]*|^\s*\*[^\n]*$", "", body,
+                      flags=re.S | re.M)
+        for m in re.finditer(
+                r"get_option\(\s*(?:self|[A-Za-z_][A-Za-z0-9_]*)::OPTION\s*\)",
+                body):
+            bare.append("%s:%d" % (os.path.relpath(path, root),
+                                   body.count("\n", 0, m.start()) + 1))
+    r.check(not bare,
+            "§7.6.1 the settings row is read with an explicit default",
+            ", ".join(bare))
+
     # --- §11 ships no raster image -----------------------------------------
     # Satisfied everywhere and enforced nowhere until 2026-08-03: §11 replaced
     # every GIF and PNG in the collection with inline SVG, and nothing compared
