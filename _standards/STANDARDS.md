@@ -254,9 +254,16 @@ const PAGE       = '{{SLUG}}';            // menu/page slug
 const CAPABILITY = 'manage_options';      // see §2.7
 ```
 
-Every plugin defines `OPTION` and `VERSION`. `GROUP`, `PAGE` and
-`CAPABILITY` are defined **only where the plugin has an admin screen** — they
-are meaningless without one, and wp-relativedate and wp-showhide have none.
+Every plugin **that stores a row** defines `OPTION` and `VERSION`. The four
+§2.1 plugins that store nothing at all — wp-relativedate, wp-serverinfo,
+wp-showhide and wp-sweep — define neither, and that is not an omission: a
+constant naming a row the plugin never writes is a promise it does not keep.
+
+`PAGE` and `CAPABILITY` are defined **only where the plugin has an admin
+screen** — wp-relativedate and wp-showhide have none. `GROUP` follows a
+**settings** screen specifically, which is not the same test: wp-serverinfo and
+wp-sweep both have admin screens and correctly define no `GROUP`, because
+neither calls `register_setting()`.
 
 `PAGE` lives on `Admin` where the plugin has one screen, and `Settings` reaches
 across to `WP_{{...}}_Admin::PAGE` when registering its sections.
@@ -266,8 +273,12 @@ settings screen needs two page slugs: `WP_Stats_Admin::PAGE = 'wp-stats'` for
 the menu, `WP_Stats_Settings::PAGE = 'wp-stats-settings'` for the settings page.
 `CAPABILITY` belongs on whichever class owns the screen it gates, read through
 the `{{UNDER}}_capability` filter (§2.7) — a plugin may define it twice, as
-wp-sweep does (`activate_plugins` for the data screen, `manage_options` for
-settings), provided both go through the one filter. Constants the list does not
+wp-email does (`manage_email` for the Logs screen, `manage_options` for
+settings) and wp-draftsforfriends does (`manage_options` and `publish_posts`),
+provided both go through the one filter. **This used to cite wp-sweep, which
+cannot illustrate it:** wp-sweep has no settings screen at all — §4.1 says so —
+and defines `CAPABILITY` once. That example outlived the code it described, in
+the section next door to the one warning about exactly that. Constants the list does not
 name, such as `WP_Sweep_API::REST_NAMESPACE`, live on the class that owns them.
 
 `OPTION_NAME`, `OPTION_GROUP`, `PAGE_SLUG`, `DB_VERSION_OPTION`,
@@ -330,12 +341,25 @@ component into a worse one to satisfy the list.
 
 ### 2.5 Functions
 
-Global functions exist only in `includes/template-tags.php` and
-`includes/deprecated.php`. Everything else is a class method. Template tags keep
-the names they shipped with in the last SVN release — those are the documented
-public API and must not be renamed.
+Global functions live in four places and nowhere else:
 
-Any other global function is prefixed `{{UNDER}}_`.
+* `includes/template-tags.php` — the documented public API. Template tags keep
+  the names they shipped with in the last SVN release and must not be renamed,
+  which is why they alone are exempt from the prefix rule below.
+* `includes/deprecated.php` — the same, for names being retired.
+* `uninstall.php` — every plugin declares one here, and §7.2.1 depends on it:
+  the uninstaller is `require_once`d by the suite, so the work has to be
+  reachable by calling a function rather than by including the file twice.
+* the main plugin file — activation and deactivation callbacks that have to be
+  registered while it loads.
+
+Everything else is a class method.
+
+**Any global function outside `template-tags.php` is prefixed `{{UNDER}}_`, and
+that is the half that is enforced.** This section used to name only the first
+two files, which was false in all nineteen plugins on the day it was written —
+every `uninstall.php` has always declared one. The rule nothing checked was the
+rule everything broke.
 
 ### 2.6 Hooks
 
@@ -396,12 +420,38 @@ An earlier version of this section said "every capability check goes through one
 filter" with no exceptions. That was wrong, and five plugins were right to be
 ignoring it.
 
-Existing custom capabilities to preserve: `wp-email` (`manage_email`),
-`wp-postratings` (`manage_ratings`), `wp-dbmanager` (`install_plugins`),
-`wp-draftsforfriends` (`publish_posts`), `wp-downloadmanager`
-(`manage_downloads`, which has shipped since its first release). The custom
-capability gates the plugin's **data** screens; Settings stays on
-`manage_options`.
+**Exactly four plugins invent a capability**, and the distinction matters more
+than the count: a capability is custom when the plugin has to *create* it with
+`add_cap()`. Those four are `wp-downloadmanager` (`manage_downloads`),
+`wp-email` (`manage_email`), `wp-polls` (`manage_polls`) and `wp-postratings`
+(`manage_ratings`). `wp-dbmanager` (`install_plugins`), `wp-sweep`
+(`activate_plugins`) and `wp-draftsforfriends` (`publish_posts`) gate on **core**
+capabilities, which every administrator already holds and which are nobody's to
+grant or revoke.
+
+**The capability a plugin grants must be the capability it checks.** Screens gate
+on the filtered value, so `add_cap()` and `remove_cap()` take
+`capability()` — never the `CAPABILITY` constant and never its literal string. A
+site that filters the capability would otherwise be handed one nothing looks at
+while every screen is gated on one nobody holds: locked out of its own plugin
+with nothing in any log to say why. Three of the four had this on 2026-08-04;
+`verify.py` checks it now. A literal naming a **retired** capability is still
+legal, because there is no accessor for one that no longer exists —
+wp-dbmanager's `remove_cap( 'manage_database' )` is the case.
+
+**Settings normally stays on `manage_options`, and there are argued
+exceptions.** The rule is that the custom capability gates the plugin's **data**
+screens. Where a plugin's settings are themselves at least as sensitive as its
+data, the settings screen may take the same or a higher capability, and **the
+reason goes in a docblock at the gate**. wp-dbmanager is why this is not
+absolute: its settings screen sets the `mysqldump` and `mysql` binary paths, so
+whoever can write them can make the plugin execute an arbitrary binary as the
+web user. That screen is *more* dangerous than its data screens, and
+`install_plugins` is correct. wp-polls and wp-postratings gate settings on their
+own capability because those settings govern exactly the data it covers.
+
+What is **not** permitted is a third capability belonging to neither set: the
+settings screen takes `manage_options` or the plugin's own, and nothing else.
 
 ---
 
@@ -742,7 +792,9 @@ Every settings screen is built from:
 
 **A plugin with exactly two screens is one page with tabs, not two submenus.**
 It keeps its top-level menu; what goes away is the submenu list. The data screen
-is the first tab and `Settings` is the last:
+is the first tab and `Settings` is the last **of the settings tabs**:
+where a plugin has templates, `Templates` follows `Settings`, as wp-ban and
+wp-useronline do — §4.2.2 requires that and this section's own table shows it.
 
 | Plugin | Tabs |
 |---|---|
@@ -968,6 +1020,15 @@ test asserting the plugin registers no `rtl` style data and ships no `*-rtl.css`
 * `tests/test-*.php` — every test file. One class per file, named
   `{{CLASS}}_<Area>_Test`, extending `{{CLASS}}_TestCase` (in
   `helper-testcase.php`) which itself extends `WP_UnitTestCase`.
+
+  **An AJAX suite is the sanctioned second base**, because it cannot use the
+  first: only `WP_Ajax_UnitTestCase` installs the handler that turns
+  `wp_send_json_*()` into a catchable exception, and without it the test takes
+  the process down (§7.2.3). Such a suite extends a plugin-owned
+  `{{CLASS}}_Ajax_TestCase` in `helper-ajax-testcase.php`, which extends
+  `WP_Ajax_UnitTestCase`. wp-email and wp-sweep both do this. What is not
+  permitted is extending core's class directly — the base has to be the
+  plugin's, so there is one place to put what the suite shares.
 * Test methods are `test_<what_it_asserts_in_words>()` — long and prose-like.
   They need no docblock, because the name is the documentation; add one only
   where it carries reasoning the name cannot, or where PHPUnit requires it
@@ -1220,6 +1281,11 @@ stopped at test 96 of 384, printed no summary, and was recorded as passing while
 46 tests had already errored. The harness now requires a line matching
 `OK (`, `OK, but `, `FAILURES!`, `ERRORS!` or `No tests executed`, and treats its
 absence as a failure. Do not remove that check.
+
+**This section is enforced by `bin/test-all.sh`, not by `bin/verify.py`**, and
+is the one rule in the standard whose check lives in the harness rather than in
+the checker. Said here so that an audit of the spec against the checks does not
+read it as unenforced and write a second one.
 
 ### 7.2.4 Escaping a stored value is a test, not a habit
 
