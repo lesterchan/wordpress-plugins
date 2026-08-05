@@ -608,11 +608,24 @@ and nothing short of running the suite will tell you.
   are in the root `CLAUDE.md`; **do not write a plugin file that assumes this
   checkout.**
 
-  **The lesson is bigger than the three entries.** An exclusion list is a deny
+  A fourth was added the same day from reasoning rather than from finding one on
+  disk: **`.DS_Store`**. The `$SRC_DIR/*` glob skips dotfiles, but only at the
+  top level — `--recursive` then copies everything *inside* the directories it
+  matched, dotfiles included. So `./.DS_Store` never shipped and
+  `includes/.DS_Store` always would have, and Finder writes those into any
+  folder somebody opens.
+
+  **The lesson is bigger than the four entries.** An exclusion list is a deny
   list, and a deny list acquires a new member every time the toolchain grows —
   which is the same trap §7.2.1 records for metadata tests scanning the plugin
   root. After changing anything about what lives in a plugin directory, dry-run
-  the deploy's rsync into a scratch directory and read what comes out.
+  the deploy's rsync into a scratch directory and read what comes out. Doing
+  exactly that is what turned up all four.
+
+  As of 2026-08-05 the audit is clean: across all nineteen, what ships is the
+  main plugin file, `includes/`, `js/`, `css/`, `tinymce/`, `index.php`,
+  `LICENSE`, `uninstall.php`, `README.md` (renamed to `readme.txt` by the
+  script) and wp-dbmanager's two `.txt` payloads. Nothing else.
 
 * **A cancelled CI run is not a failed one.** Every `ci.yml` sets
   `concurrency: cancel-in-progress: true`, so pushing a second commit while the
