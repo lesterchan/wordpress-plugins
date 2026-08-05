@@ -588,6 +588,24 @@ and nothing short of running the suite will tell you.
 
 ## Traps
 
+* **`CLAUDE.md` ships to wordpress.org.** `plugin_deploy.sh` copies
+  `$SRC_DIR/*`, which skips dotfiles — `.claude/` and `.github/` never leave —
+  but `CLAUDE.md` is not a dotfile and is not on the exclusion list, so it is in
+  the zip every user downloads. That is why the nineteen plugin files were made
+  standalone on 2026-08-05: no `_standards/` paths, no `§` citations, no dates,
+  no claims about the collection. The rule and its four failure modes are in the
+  root `CLAUDE.md`; **do not write a plugin file that assumes this checkout.**
+  Whether the deploy script should exclude it as well is Lester's call — the
+  script lives in `outside this repository` and nothing here touches
+  it.
+
+* **A cancelled CI run is not a failed one.** Every `ci.yml` sets
+  `concurrency: cancel-in-progress: true`, so pushing a second commit while the
+  first run is going kills the first. Five plugins showed a grey cancelled run
+  on 2026-08-05 for exactly that reason. The code is still covered — the
+  successor run contains the same tree — but if you want the history clean, let
+  a run finish before pushing again.
+
 * **A red job whose failing step is `Start wp-env` is an environment failure,
   not a finding.** wp-env's own Dockerfile fetches
   `https://composer.github.io/installer.sig` while building `tests-cli`; a
