@@ -587,16 +587,32 @@ and nothing short of running the suite will tell you.
 
 ## Traps
 
-* **`CLAUDE.md` ships to wordpress.org.** `plugin_deploy.sh` copies
-  `$SRC_DIR/*`, which skips dotfiles — `.claude/` and `.github/` never leave —
-  but `CLAUDE.md` is not a dotfile and is not on the exclusion list, so it is in
-  the zip every user downloads. That is why the nineteen plugin files were made
-  standalone on 2026-08-05: no `_standards/` paths, no `§` citations, no dates,
-  no claims about the collection. The rule and its four failure modes are in the
-  root `CLAUDE.md`; **do not write a plugin file that assumes this checkout.**
-  Whether the deploy script should exclude it as well is Lester's call — the
-  script lives in `outside this repository` and nothing here touches
-  it.
+* **`plugin_deploy.sh` rsyncs the working tree, not a clean export**, so
+  anything present on disk ships whether or not git tracks it. Three things were
+  going to wordpress.org that should not have been, all fixed in that script on
+  2026-08-05:
+
+  * `CLAUDE.md` and `AGENTS.md` — not dotfiles, so the `$SRC_DIR/*` glob did not
+    skip them the way it skips `.claude/` and `.github/`;
+  * **`artifacts/`** — Playwright's traces, failure screenshots and
+    `storage-states/admin.json`, which is a logged-in WordPress session cookie
+    for the local test container. It is in every plugin's `.gitignore`, which is
+    exactly why nobody saw it: `git status` is silent about it and the deploy
+    copies it anyway. All nineteen had one on disk. Running the browser suite
+    once and deploying afterwards was enough to publish it.
+
+  The plugin briefings were made standalone the same day for the same reason —
+  no `_standards/` paths, no `§` citations, no dates, no claims about the
+  collection — and that rule stands even now they are excluded, because anyone
+  cloning a plugin from GitHub is in the same position. The four failure modes
+  are in the root `CLAUDE.md`; **do not write a plugin file that assumes this
+  checkout.**
+
+  **The lesson is bigger than the three entries.** An exclusion list is a deny
+  list, and a deny list acquires a new member every time the toolchain grows —
+  which is the same trap §7.2.1 records for metadata tests scanning the plugin
+  root. After changing anything about what lives in a plugin directory, dry-run
+  the deploy's rsync into a scratch directory and read what comes out.
 
 * **A cancelled CI run is not a failed one.** Every `ci.yml` sets
   `concurrency: cancel-in-progress: true`, so pushing a second commit while the
