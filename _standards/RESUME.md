@@ -95,17 +95,16 @@ Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 
 ## Current state — verified 2026-08-05
 
-* `verify.py` is 0 across all 19.
-* **Eleven repositories gained a commit on 2026-08-05 that has not been pushed**
-  — the migration suites. `git log --oneline -1` in each says which.
-* Playwright green on every `upgrade.spec.js` written that day, and on the whole
-  file for wp-dbmanager (56 tests) and wp-email (9), which were run entire.
-  **The other suites' older specs were not re-run** — this line is the one in
-  this file most likely to be stale by the time you read it, so re-check rather
-  than trust it.
-* PHPUnit was **not** re-run on 2026-08-05. Nothing that day touched shipped
-  code — the eleven commits are `tests/e2e/` only — but that is an argument, not
-  a run.
+* `verify.py` is 0 across all 19, and all twenty repositories are level with
+  their remotes.
+* Playwright green on every `upgrade.spec.js` written on 2026-08-05. Only
+  wp-dbmanager was run as a **whole file** (56 tests); everywhere else the older
+  specs were not re-run that day. This line is the one in this file most likely
+  to be stale by the time you read it, so re-check rather than trust it.
+* PHPUnit was **not** re-run locally on 2026-08-05 — but CI ran the full six-row
+  matrix on every push, and the newest run on each of the nineteen is green.
+* **A cancelled run is not a failed one.** Pushing twice in quick succession
+  cancels the first run by design; see Traps.
 * **Every assertion in the collection carries a failure message** — the total
   moves with every commit, so the ratio is the claim:
   `python3 bin/measure_assertions.py /path/to/plugins/*` re-derives both.
