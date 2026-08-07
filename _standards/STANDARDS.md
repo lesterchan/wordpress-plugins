@@ -2093,7 +2093,7 @@ is the work.
 | wp-sweep | `wp sweep` **shipped** | `sweep/v1` **shipped** | — |
 | wp-polls | `wp polls` | `polls/v1` | `poll`, `page_polls` |
 | wp-postratings | `wp postratings` | `postratings/v1` | `ratings` |
-| wp-postviews | `wp postviews` | — | `views` |
+| wp-postviews | `wp postviews` | `postviews/v1` | `views` |
 | wp-useronline | `wp useronline` | `useronline/v1` | `page_useronline` |
 | wp-downloadmanager | `wp downloadmanager` | — | `download`, `page_downloads` |
 | wp-dbmanager | `wp dbmanager` | — | — |
@@ -2102,7 +2102,7 @@ is the work.
 | wp-showhide | — | — | `showhide` |
 | wp-stats | — | — | `page_stats` |
 | wp-pluginsused | — | — | its three list shortcodes |
-| wp-email | — | — | — |
+| wp-email | — | — *(excluded, see 13.4.5)* | — |
 | wp-print | — | — | — |
 | wp-relativedate | — | — | — |
 | freemyinternet, wp-commentnavi, wp-pagenavi, wp-serverinfo | — | — | — |
@@ -2113,35 +2113,88 @@ wp-serverinfo have no scriptable admin action and no self-contained front-end
 chunk. **Adding a command to a plugin that has no action to script is how a
 collection acquires nineteen commands nobody runs.**
 
-### 13.4.5 The three open names resolve themselves
+### 13.4.5 None of the three names has to be claimed — but read *why*
 
 §13.3 deliberately left `email`, `print` and `stats` unsettled, being bare nouns
-a dozen plugins might want. **Under this scope none of the three plugins earns a
-command or a namespace**, so nothing has to claim any of them: wp-email and
-wp-print register only inline shortcodes and have no scriptable admin action,
-and wp-stats renders other plugins' sections rather than owning data of its own.
+a dozen plugins might want. None of the three ends up being claimed, and **the
+reason differs by plugin.** An earlier draft gave one reason for all three, and
+it was false for one of them.
 
-The question was therefore contested only in the abstract. It stays open in
-§13.3 rather than being closed here, because the answer above is contingent: if
-wp-stats ever earns `wp stats`, the choice between a qualified name and a shared
-`wp lc <plugin>` parent has to be made then, and it is *this* line that should
-be deleted rather than §13.3's.
+**`print` and `stats`: nothing to build.** wp-print registers no
+`admin-ajax.php` action at all and already serves its printable page from the
+`/print/` rewrite endpoint — a JSON route returning that same HTML as a string
+has no client. wp-stats registers none either, and owns no data of its own: it
+renders whatever the `wp_stats_sections` filter collects from its companion
+plugins. A stats feed is a plausible thing to want, but it would be **surface
+this campaign invented**, which is what §13.4.1 exists to prevent.
+
+**`email`: there is something to build, and Lester's call on 2026-08-08 was not
+to.** This is the correction that matters, because the obvious reading of the
+code says otherwise and a future reader will find it. wp-email registers four
+`admin-ajax.php` actions and **two are `nopriv`**, so the earlier claim that it
+"earns nothing" was simply wrong. What they are, and why only one was ever a
+candidate:
+
+* `wp_ajax_nopriv_email` → `WP_Email_Form::process()` validates the
+  send-to-a-friend submission and sends it, **returning HTML either way** — a
+  rendered error list or a confirmation. A route answering
+  `{ sent, errors[] }` would genuinely improve on that, because today the
+  validation errors are expressible only as markup and no non-browser client can
+  read them.
+* `wp_ajax_nopriv_wp_email_captcha` → serves a **PNG** keyed by a one-shot
+  transient token, 404 on an unknown one, deliberately nonce-free because it is
+  an `<img src>` for a logged-out visitor. **This was never a REST candidate**:
+  REST is JSON, an image tag wants a binary body and cache headers, and a route
+  bypassing `rest_ensure_response()` is all cost.
+
+So wp-email would have gained exactly **one** route — and claiming a noun as
+contested as `email` on every site that installs the plugin, to host a single
+send endpoint, is a bad trade. The form stays on `admin-ajax.php`, where it
+works and where nothing is broken. **Do not "finish the job" by adding
+`email/v1` later**: the omission is the decision.
+
+If that is ever revisited, the alternatives are a qualified namespace
+(`lc-email/v1`) or the REST analogue of §13.3's shared parent
+(`lc/v1/email/send`) — not the bare noun.
+
+**The lesson underneath** is the one this collection keeps relearning: the scope
+table above was built by counting what each plugin registers, and two cells were
+filled in from memory instead. wp-email was given a blanket dash, and
+wp-postviews was given no namespace while registering
+`wp_ajax_nopriv_wp_postviews` — a logged-out visitor incrementing a counter,
+which is the definition of a route this section wants. Both were found by
+re-running the grep rather than by re-reading the table.
 
 ### 13.4.6 Order of work
 
-**Plugin by plugin, not surface by surface** — Lester's call, 2026-08-07. One
-plugin goes end to end before the next starts, so a half-finished surface never
-spans the collection.
+**Blocks are deferred; WP-CLI and REST go out across the collection first** —
+Lester's call, 2026-08-08, reversing the plugin-by-plugin order set on
+2026-08-07. That earlier decision is kept below rather than deleted, because the
+reason it was right is also the reason the reversal is.
 
-**wp-polls is first, and is the reference.** It is the only plugin that earns
-all three, so it is the only one whose first pass can produce a complete
-reference — a command, a namespace replacing an `admin-ajax.php` action, and two
-blocks wrapping two shortcodes of different shapes. Everything after it copies
-from a worked example rather than re-deriving one, which is the same reason
-wp-sweep was the reference for §13.3.
+**Why plugin by plugin was right at the time.** wp-polls earns all three, so
+taking one plugin end to end was the only way to get a complete worked example
+before anything was copied eighteen times. That has now happened for two of the
+three surfaces: `wp polls` and `polls/v1` are written, tested and merged into
+the reference, and §13.4.7's naming came out of building them rather than being
+guessed in advance.
 
-**wp-postratings is second**, because it has the same three-surface shape and so
-is the run that proves the reference transfers rather than fitting one plugin.
+**Why it changed.** Blocks are the one surface that is not more of the same.
+They add a JavaScript build to a collection that has never had one — `src/`,
+`build/`, `@wordpress/scripts`, a CI step, committed build output, and the
+deploy-exclusion hazard in §13.4.9. **Carrying that per plugin, interleaved with
+seven commands that need none of it, spreads a one-time decision across
+seventeen repositories.** The two surfaces that *are* more of the same should
+finish first, from a reference that already works.
+
+So: **wp-postratings next**, being the other plugin that earns both a command
+and a namespace, then the remaining commands, then the blocks as a phase of
+their own.
+
+Two things not to lose when the blocks phase starts: §13.4.9's `--exclude='src'`
+has to land **before** the first `src/` directory exists, not after, and the
+first block should still be wp-polls' — the reference plugin's third surface,
+built where the other two already are.
 
 ### 13.4.7 What the files are called
 
