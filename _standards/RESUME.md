@@ -1,6 +1,6 @@
 # Resume here
 
-State of the consistency programme as of **2026-08-05**. Read this, then
+State of the consistency programme as of **2026-08-07**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line:** all nineteen plugins are green, the pre-revamp tags are cut and
@@ -35,8 +35,11 @@ plugins. It found four live defects and six sections that were themselves wrong.
 unenforced.
 
 **Trust the tools over this file.** At the start of a session run
-`python3 bin/verify.py --quiet` and `git log --oneline -3` in each repo. Between
-them they tell you the true state without believing a word written here.
+`python3 bin/verify.py --quiet`, then in each repo `git fetch` followed by
+`git status -sb` and `git log --oneline -3`. Between them they tell you the true
+state without believing a word written here. **The `git fetch` is not
+optional** — a cloud session pushes to the remote, and until you fetch,
+`git status` reports a stale checkout as clean and level.
 
 ## What this is
 
@@ -93,10 +96,20 @@ differences between two plugins are name, features and capability.
 Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 `bin/test-e2e.sh`.
 
-## Current state — verified 2026-08-05
+## Current state — verified 2026-08-07
 
 * `verify.py` is 0 across all 19, and all twenty repositories are level with
   their remotes.
+* **The latest `ci.yml` run on each of the nineteen is green, and each is on
+  that repository's current `HEAD`** — checked with `gh run list` per repo
+  rather than assumed from the last push.
+* **A remote can be ahead of your checkout, and this file said otherwise.**
+  wp-sweep was one commit behind `origin/master` on 2026-08-07: `d690a00`,
+  *"tests: count sweep rows, not the group headings above them"*, authored in a
+  cloud session at 03:42 UTC on 2026-08-05 — after the line above was written
+  claiming all twenty were level. Fast-forwarded, and its CI is green on it.
+  **`git status` says nothing about this without a `git fetch` first**, which is
+  why the start-of-session check at the top of this file now has one.
 * Playwright green on every `upgrade.spec.js` written on 2026-08-05. Only
   wp-dbmanager was run as a **whole file** (56 tests); everywhere else the older
   specs were not re-run that day. This line is the one in this file most likely
@@ -143,6 +156,40 @@ findings and drop the instructions.
    **What is still open, and is Lester's:** the scope. Which plugins earn a
    command, a namespace or a block, and whether a block wraps the existing
    shortcode or replaces it. §13.3 pins only the naming.
+
+   **What the collection actually offers today**, counted 2026-08-07 by grepping
+   for `WP_CLI::add_command`, `register_rest_route`, `add_shortcode` and
+   `extends WP_Widget` in shipped code. This is the raw material for the scope
+   call, not a proposal — a shortcode is a block candidate and a widget is
+   evidence the output is already a self-contained chunk, but neither earns one
+   on its own:
+
+   | Plugin | CLI | REST | Widget | Public shortcodes |
+   |---|---|---|---|---|
+   | wp-sweep | ✓ | ✓ | | — |
+   | wp-polls | | | ✓ | `poll`, `page_polls` |
+   | wp-postratings | | | ✓ | `ratings` |
+   | wp-postviews | | | ✓ | `views` |
+   | wp-useronline | | | ✓ | `page_useronline` |
+   | wp-stats | | | ✓ | `page_stats` |
+   | wp-downloadmanager | | | ✓ | `download`, `page_download`, `page_downloads` |
+   | wp-email | | | | `email_link`, `donotemail` |
+   | wp-print | | | | `print_link`, `print_link_tag`, `donotprint` |
+   | wp-pluginsused | | | | `active_pluginsused`, `inactive_pluginsused`, `stats_pluginsused` |
+   | wp-relativedate | | | | `relativedate`, `relativetime` |
+   | wp-showhide | | | | `showhide` |
+
+   The seven not listed register none of the four: freemyinternet, wp-ban,
+   wp-commentnavi, wp-dbmanager, wp-draftsforfriends, wp-pagenavi, wp-serverinfo.
+   **That is not the same as earning nothing** — wp-dbmanager's backup and
+   optimise and wp-ban's ban list are the most obviously scriptable things in the
+   collection, and neither has a shortcode because neither renders anything.
+   **A block follows the front-end surface; a command follows the admin action.
+   They select different plugins**, which is why one scope decision cannot cover
+   both.
+
+   Two counts worth having before deciding: `wp-email` and `wp-print` are two of
+   the three names §13.3 deliberately leaves open, and both are in the table.
 
 2. **Recapture every plugin's wordpress.org screenshots.** Asked for by Lester
    on 2026-08-04, which is what puts it on this list at all — see the note below
