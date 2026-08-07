@@ -1,6 +1,6 @@
 # Resume here
 
-State of the consistency programme as of **2026-08-07**. Read this, then
+State of the consistency programme as of **2026-08-08**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line:** all nineteen plugins are green, the pre-revamp tags are cut and
@@ -106,7 +106,21 @@ differences between two plugins are name, features and capability.
 Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 `bin/test-e2e.sh`.
 
-## Current state — verified 2026-08-07
+## Current state — verified 2026-08-08
+
+**The whole collection was run, not sampled.** `bin/test-all.sh` and
+`bin/test-all.sh --multisite` both report **all 19 plugin suites passed**, and
+`verify.py` is 0. That sweep mattered more than it looks: **the nineteen README
+rewrites from the screenshot work are unpushed, so CI has never seen them**, and
+the shared metadata fixture is exactly what checks README structure, section
+order and changelog prefixes. Until this run, nothing had validated them.
+
+Browser suites, run one plugin at a time: wp-polls **45**, wp-postratings
+**66**, wp-useronline **92**. wp-useronline's was run twice — the first finished
+before its README landed, so it was not against the tree that was committed, and
+re-running was cheaper than arguing that a readme cannot affect a browser.
+
+phpcs, eslint and the assertion-message ratio are clean across all three.
 
 * `verify.py` is 0 across all 19, and all twenty repositories are level with
   their remotes.
