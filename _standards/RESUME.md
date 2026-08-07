@@ -604,6 +604,27 @@ time somebody installs something.
   three assertions in wp-dbmanager's first run failed on this and the reason took
   a mutation-shaped detour to find. The plugins that migrate on `admin_init` are
   unaffected: WP-CLI never fires it.
+* **Playwright's `request` fixture is logged in as the administrator, and a
+  "logged out" test that forgets it is testing the wrong person.**
+  `playwright.config.js` sets `use.storageState` for the whole suite, and every
+  fixture inherits it — `request` as much as `page`. A REST call made through it
+  therefore carries the admin session cookie, which is invisible until something
+  depends on *who* is asking.
+
+  It cost a wrong diagnosis on 2026-08-08. wp-polls' anonymous-vote test minted
+  the poll nonce through `wp eval`, which runs with nobody logged in, and posted
+  it through `request`, which was user 1 — so `wp_verify_nonce()` refused it and
+  the endpoint looked broken when the fixture was. **A nonce is tied to the user
+  it was made for**, so both sides have to be the same person.
+
+  The fix is a nested describe with
+  `test.use( { storageState: { cookies: [], origins: [] } } )`, and — this is the
+  part worth copying — **a test asserting the fixture really is logged out**,
+  because `/wp/v2/users/me` answers 401 to a visitor and 200 to an
+  administrator. Without it the anonymous test passes as the admin the day
+  somebody changes the storage state, and a vote is not the thing that would
+  tell you. Same family as "Tests that cannot fail" below.
+
 * **A scalar legacy row reads back as a string.** WordPress stores an option
   value as text, so `update_option( 'download_method', 2 )` is `"2"` on the way
   out and `"2"` is what the fold-in writes into the consolidated array. Arrays
