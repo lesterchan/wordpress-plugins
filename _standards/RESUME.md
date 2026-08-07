@@ -235,6 +235,41 @@ findings and drop the instructions.
 
    **What is left is the build**, and it is no longer a scope question.
 
+   **Three of the five plugins earning both surfaces are done and verified**, in
+   this order and for these reasons: wp-polls first as the reference, being the
+   only plugin earning all three surfaces; wp-postratings second, the same shape,
+   which is what proved the reference transfers rather than fits; wp-useronline
+   third, which is where the reference stopped being copyable — see below.
+
+   | Plugin | Command | Namespace | PHPUnit | Playwright |
+   |---|---|---|---|---|
+   | wp-polls | `wp polls` | `polls/v1` | 310 ×2 | 45 |
+   | wp-postratings | `wp postratings` | `postratings/v1` | 317 ×2 | 66 |
+   | wp-useronline | `wp useronline` | `useronline/v1` | 233 ×2 | 92 |
+
+   **Left to do: wp-postviews (both surfaces), then four commands with no
+   namespace** — wp-downloadmanager, wp-dbmanager, wp-draftsforfriends and
+   wp-ban. wp-email is excluded from REST by Lester's call; §13.4.5 says why, and
+   says not to finish the job later.
+
+   **wp-useronline is the one to read before writing the next.** Two things there
+   would have been wrong if the reference had been copied rather than thought
+   about, and both are the sort of thing consistency pressure produces:
+
+   * **It takes no nonce, and must not.** The other two check a per-item nonce
+     because the AJAX endpoints they were ported from check one. This one never
+     did, and `WP_UserOnline::ajax()` says why: a nonce cannot authenticate a
+     logged-out visitor, because anonymous nonces come from one session every
+     such caller shares. Two tests pin the *absence*, so a later tidy-up cannot
+     add the check and break every visitor who is not signed in.
+   * **Its command reads and never writes.** The plugin's admin offers no
+     destructive action and the table maintains itself, so a `purge` subcommand
+     would be a power the browser has never given anybody. A test asserts no
+     such subcommand exists.
+
+   **A rating, a vote and a heartbeat are not the same shape**, and §13.4.7's
+   naming table is the only part of this that copies cleanly.
+
    **wp-polls is started, on a branch, and is not on master.** `wp-polls`
    branch `wp-cli-rest-blocks`, one commit:
 
