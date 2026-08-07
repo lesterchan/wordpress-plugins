@@ -12,8 +12,10 @@ grind left on this list.**
 **The bug backlog is empty and every rule the spec states now has something
 behind it.** 2026-08-04 closed the §7.6.1 release blocker, the spec-against-checks
 audit and a capability audit that fell out of it. `bin/verify.py` grew from 93
-checks to 127, and 41 of the spec's 48 sections are mechanically enforced, up
-from 31. "Closed on 2026-08-04" has the findings.
+checks to 127, and mechanical enforcement went from 31 sections to 41 — of the
+48 the spec had **that day**; it has 58 now, and the arithmetic behind that 41
+has never closed. "Closed on 2026-08-04" has the findings and "Is the collection
+compliant?" has the discrepancy.
 
 **Read this before writing another migration test.** §7.6.1 was overstated in
 this file for a week, and the correction is the difference between a useful test
@@ -69,13 +71,13 @@ differences between two plugins are name, features and capability.
 
 ## What exists
 
-* `_standards/STANDARDS.md` — the spec. **15 numbered sections, 55 including
+* `_standards/STANDARDS.md` — the spec. **15 numbered sections, 58 including
   subsections** (this line said 17 until 2026-08-03 and 48 until 2026-08-07, and
   nothing had counted either time). Recount rather than trust it:
   `grep -oE '^#{2,4} [0-9]+(\.[0-9]+)*' _standards/STANDARDS.md | wc -l` — and
   note the `#{2,4}`, because §7.6.1 is the one heading four levels deep and a
-  `#{2,3}` pattern silently drops it. The jump from 48 to 55 is §13.4 and its six
-  subsections; see "Is the collection compliant?".
+  `#{2,3}` pattern silently drops it. The jump from 48 to 58 is §13.4 and its
+  nine subsections; see "Is the collection compliant?".
 * `_standards/templates/` — the files each plugin copies verbatim, placeholders
   `{{SLUG}}` `{{NAME}}` `{{CLASS}}` `{{UNDER}}` `{{UPPER}}` `{{L10N}}`
   `{{DESCRIPTION}}`.
@@ -809,7 +811,7 @@ Worth keeping because the answer is not "run `verify.py` again".
 shared-row contract two plugins violated. Both run on every push. Re-auditing
 nineteen plugins against the spec by hand buys nothing.
 
-**41 of the spec's 55 sections have something mechanical behind them**, and the
+**41 of the spec's 58 sections have something mechanical behind them**, and the
 denominator moved on 2026-08-07 when §13.4 added seven. These do not, and each
 stays that way for a reason:
 
@@ -820,7 +822,7 @@ stays that way for a reason:
 | §7.2.3 A suite that dies is not one that passed | enforced by `bin/test-all.sh`; §7.2.3 says so, so the next audit does not write a second check |
 | §7.3 Coverage | a number, and gaming it is worse than missing it |
 | §13.3 WP-CLI and REST naming | nothing to check until item 1 ships |
-| §13.4 and its six subsections | scope and process. **§13.4.2 is the exception and should get a rule when the first block lands**: "a plugin registering a block still registers the shortcode it wraps" is exactly the mechanical, drift-prone shape `verify.py` is for |
+| §13.4 and its nine subsections | scope and process, with three exceptions that should get rules as the surfaces land. **§13.4.2**: "a plugin registering a block still registers the shortcode it wraps". **§13.4.7**: the file and class names in its table, which is the shape `verify.py` already checks for `phpcs.xml` and `ci.yml`. **§13.4.9**: that `src` is on the deploy's exclusion list once any plugin has a `src/`. All three are mechanical and drift-prone, which is the definition of what belongs in `verify.py` |
 | §15 Order of work | process, not state |
 
 **The arithmetic here has never closed, and saying so is better than rounding

@@ -2143,6 +2143,77 @@ wp-sweep was the reference for §13.3.
 **wp-postratings is second**, because it has the same three-surface shape and so
 is the run that proves the reference transfers rather than fitting one plugin.
 
+### 13.4.7 What the files are called
+
+Two of the three surfaces already have a reference and are copied rather than
+decided. The naming rule they follow, stated once because it is not obvious from
+either example on its own: **the shipped class is named for the thing it is, and
+the test is named for the surface it exercises.** That is why `WP_Sweep_Command`
+is tested by `test-cli.php` and `WP_Sweep_API` by `test-rest-api.php`, and it is
+why the test files sit in an alphabetical row with `test-admin-ajax.php` — all
+named for what a user of the plugin can reach, not for the class behind it.
+
+| | Shipped class | Its file | Test class | Its file | Browser test |
+|---|---|---|---|---|---|
+| WP-CLI | `WP_{{...}}_Command` | `includes/class-{{SLUG}}-command.php` | `WP_{{...}}_CLI_Test` | `tests/test-cli.php` | — |
+| REST | `WP_{{...}}_API` | `includes/class-{{SLUG}}-api.php` | `WP_{{...}}_REST_API_Test` | `tests/test-rest-api.php` | `tests/e2e/rest.spec.js` |
+| Blocks | `WP_{{...}}_Blocks` | `includes/class-{{SLUG}}-blocks.php` | `WP_{{...}}_Blocks_Test` | `tests/test-blocks.php` | `tests/e2e/blocks.spec.js` |
+
+The class name is not free: §2.4's rule that a class lives in the file named
+after it is enforced by the shared metadata fixture, so `WP_Polls_Command` can
+only ever live in `class-wp-polls-command.php`.
+
+**One `WP_{{...}}_Blocks` class registers all of a plugin's blocks**, rather
+than a class per block. wp-polls has two and wp-downloadmanager has two; a class
+whose whole body is one `register_block_type_from_metadata()` call is a file per
+block for no gain, and the one-class-per-file rule would make it exactly that.
+
+Where the WP-CLI stand-ins are needed, they are `tests/helper-wp-cli.php` (the
+facade), `tests/helper-wp-cli-command.php` (the base class the command extends)
+and, only where the command prints a table, `tests/helper-wp-cli-utils.php` (the
+namespaced `format_items()`). Three files because the coding standard allows one
+class per file and that rule is not relaxed for the suite.
+
+### 13.4.8 A block's name is permanent, so it keeps the `wp-` prefix
+
+**This is the one place §13.3's reasoning does not carry**, and the difference is
+worth stating because the surface consistency argument points the wrong way.
+
+A block is `wp-polls/poll`, not `polls/poll`.
+
+§13.3 drops the `wp-` prefix for commands and namespaces because a collision
+there is survivable: WP-CLI gives the name to whichever plugin registered last
+and the loser's command is simply absent, which is visible immediately and fixed
+by deactivating something. **A block name is written into post content** — `<!--
+wp:wp-polls/poll -->` is saved in `post_content` and stays there for the life of
+the post. Two plugins claiming one block name means one of them renders the
+other's block inside somebody's published posts, and the damage is in the
+database rather than in a shell session.
+
+So blocks take the collision-resistant name, and the fact that it matches the
+plugin's directory on wordpress.org is a convenience rather than the reason.
+
+### 13.4.9 Blocks change what the deploy ships — read this before the first one
+
+`plugin_deploy.sh` rsyncs the working tree against an **exclusion list**, so
+anything a build step leaves on disk ships unless it is named. Adding blocks
+adds two directories and they want opposite treatment:
+
+* **`build/` must ship.** It is what `register_block_type_from_metadata()`
+  loads, and it is correctly not excluded today.
+* **`src/` must not.** Unbuilt JSX is of no use to a site and is not excluded
+  today, so **the first plugin to grow a `src/` directory ships its sources to
+  wordpress.org unless `--exclude='src'` is added first.**
+
+The build itself needs no new mechanism: the script already runs `$SRC_DIR/bin/build`
+before the rsync if that file exists, and `bin` is excluded from what ships.
+
+This is the fifth entry in a list whose lesson is that **a deny list acquires a
+new member every time the toolchain grows** — the same trap §7.2.1 records for
+metadata tests scanning the plugin root. The four before it were found by
+dry-running the rsync into a scratch directory and reading what came out; do
+that again once the first `src/` exists, rather than trusting this paragraph.
+
 ---
 
 ## 14. Versions and the release baseline
