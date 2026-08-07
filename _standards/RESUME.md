@@ -4,10 +4,15 @@ State of the consistency programme as of **2026-08-07**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line:** all nineteen plugins are green, the pre-revamp tags are cut and
-pushed, every migrating plugin now has a browser test of its migration, and
-**two items are open** — the WP-CLI/REST/blocks phase, which needs a scope call
-from Lester, and a screenshot recapture Lester is doing himself. **There is no
-grind left on this list.**
+pushed, every migrating plugin has a browser test of its migration, **the
+screenshots are recaptured** and item 1's scope is settled — so **one item is
+open**, the WP-CLI/REST/blocks build, with wp-polls' command finished and
+verified and its REST namespace and blocks still to write.
+
+**Two things need Lester and neither is a grind.** Nineteen README commits and
+71 new screenshots are sitting unpushed and uncommitted, waiting on the release
+he does by hand; and **there is one open bug**, wp-polls' widget, described
+under "The open bug" below.
 
 **The bug backlog is empty and every rule the spec states now has something
 behind it.** 2026-08-04 closed the §7.6.1 release blocker, the spec-against-checks
@@ -127,11 +132,35 @@ Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
   moves with every commit, so the ratio is the claim:
   `python3 bin/measure_assertions.py /path/to/plugins/*` re-derives both.
 * The permalink audit of the E2E suites is complete — see below.
-* **No known plugin bug is outstanding.** wp-dbmanager's was fixed on
-  2026-08-04 and now has both a rule and a test behind it. The lesson stands
-  even though the line has flipped: it was latent rather than firing, every
-  suite was green, and nothing here caught it because `verify.py` had no rule
-  for it and no test took the admin path.
+* **One plugin bug is outstanding** — wp-polls' widget, found 2026-08-07 while
+  photographing it. See "The open bug". The line before it said none was, and
+  that had been true since 2026-08-04.
+
+## The open bug — wp-polls' widget warns on the front end
+
+`WP_Polls_Widget::widget()` reads `$instance['title']`, `$instance['poll_id']`
+and `$instance['display_pollarchive']` with no defaults and no guard, so an
+instance missing any of those keys prints `Warning: Undefined array key` **into
+the middle of the rendered page**. `form()` parses defaults; `widget()` does not.
+
+**The count is what makes it a defect rather than a style note.** Seven plugins
+ship a `WP_Widget` subclass. Five — wp-stats, wp-postviews, wp-email,
+wp-downloadmanager, wp-postratings — open `widget()` with
+`wp_parse_args( (array) $instance, $this->defaults() )`. The sixth,
+wp-useronline, guards every read with `! empty()`. **wp-polls is the only one of
+the seven that does neither**, which is the exact shape this file keeps
+recording: one copy of a pattern drifting while every tool stays green.
+
+It was found by *looking at a screenshot of the widget*, not by any suite —
+`verify.py` has no rule for it and no test renders the widget with a partial
+instance. Two things to do rather than one: give `widget()` the `wp_parse_args()`
+its five siblings have, with a test that renders a partial instance and asserts
+no warning reaches the output; and consider a `verify.py` rule, since "every
+`widget()` parses its instance" is mechanical and there are seven copies of it.
+
+**Not fixed.** It is neither of the two items that were in flight, and the fix
+has a small design choice in it — add a `defaults()` method to match the five,
+or guard like wp-useronline — so it is Lester's call rather than a drive-by.
 
 ## Remaining work, in order
 
@@ -208,16 +237,21 @@ findings and drop the instructions.
      3.0.0 migration folds in and deletes, so the branch had been reading
      nothing for a whole major version.
 
-   **It is verified only as far as `php -l` and phpcs**, both clean, and phpcs
-   is one of the two CI jobs reproducible locally. PHPUnit and Playwright were
-   not run, because the wp-env harness was busy with item 2 — **which is exactly
-   the subset-of-the-checks trap that put four broken commits on master on
-   2026-08-03**, and is why this is on a branch. Before it merges: `bin/test.sh`,
-   `bin/test-multisite.sh`, `bin/test-e2e.sh`. Two things to look at first,
-   both predicted by reading and neither confirmed — `test-admin-ajax.php`'s
-   delete tests, since the action now fires from inside `delete()` rather than
-   after the notices, and `test_every_class_lives_in_the_file_named_after_it`,
-   which the two new files should satisfy.
+   **Now fully verified, 2026-08-08, and still not merged.** `bin/test.sh` 293
+   tests green, `bin/test-multisite.sh` 293 green, `bin/test-e2e.sh` 38 green,
+   phpcs clean. Both things predicted as at risk came through: the admin-ajax
+   delete tests pass with the action now firing from inside `delete()`, and the
+   two new files satisfy the class-file naming rule.
+
+   **The seventeen CLI tests were confirmed to bite**, per this file's own rule
+   that a new test is not believed until it has been seen to fail. Three
+   mutations to `WP_Polls_Poll` — stop clearing the answers table, ignore the
+   status filter, stop recomputing the stored latest poll — produced exactly
+   three failures, each in the test written for it, and the code was restored
+   and re-run green.
+
+   It stays on a branch only because merging is Lester's call, not because
+   anything is outstanding.
 
    **What is not started: `polls/v1` and the two blocks.** The namespace is
    meant to carry the vote that `wp_ajax_polls` carries today, and that is the
@@ -265,52 +299,17 @@ findings and drop the instructions.
    Two counts worth having before deciding: `wp-email` and `wp-print` are two of
    the three names §13.3 deliberately leaves open, and both are in the table.
 
-2. **Recapture every plugin's wordpress.org screenshots.** Asked for by Lester
-   on 2026-08-04, which is what puts it on this list at all — see the note below
-   about SVN. **Lester is doing this himself, on a day of his choosing.** Do not
-   run it while anything else wants Playwright and a seeded WordPress: this
-   file's own E2E lesson is what concurrent runs do to a 7.6 GiB Docker.
+2. **Recapture every plugin's wordpress.org screenshots — IN PROGRESS, not
+   done.** A first pass on 2026-08-07 produced 71 images across all nineteen and
+   rewrote every `## Screenshots` list to match, but **Lester reviewed them and
+   the coverage is short**: several plugins lost screens the old set had, and a
+   first pass that only ever adds what it thought to visit cannot notice what it
+   never opened. The counts below are the state after that pass, not a target.
 
-   **Every screenshot in the collection is pre-revamp.** The admin UI was rebuilt
-   wholesale — Settings API everywhere, `WP_List_Table` on every tabular screen,
-   one menu rule, renamed settings headings — so the images no longer show the
-   software. That is the reason to redo all nineteen rather than only the five
-   that fail the count check below. wp-sweep's are the most out of date of all:
-   its sweep screen gained group headings and icons on 2026-08-04.
-
-   Counted 2026-08-04, `## Screenshots` lines in each repo's `README.md` against
-   `screenshot-*` files in `~/svn/wordpress_plugins/<slug>/assets/`. **Fourteen
-   agree and five do not**, and the five disagreeing is the smaller problem:
-
-   | Plugin | README lines | assets | |
-   |---|---|---|---|
-   | freemyinternet | 3 | 1 | two described and never shipped |
-   | wp-polls | 9 | 10 | one shipped and never described |
-   | wp-postratings | 5 | 6 | one shipped and never described |
-   | wp-sweep | 3 | 2 | one described and never shipped |
-   | wp-useronline | 4 | 3 | one described and never shipped |
-
-   The rule wordpress.org applies is positional: `screenshot-N.png` is captioned
-   by the Nth line of the `Screenshots` list, so a missing file silently shifts
-   every caption after it onto the wrong image. **The count matching is necessary
-   and not sufficient** — the fourteen that agree have never been checked for
-   whether each line still *describes* its image, and after a UI rebuild the safe
-   assumption is that none of them do.
-
-   How many to take is a judgement per plugin, not a number to preserve. Lester's
-   brief was explicit that the current count is stale and the new one is ours to
-   choose.
-
-   Notes for whoever runs it. `bin/seed-demo.sh` fills the root harness at
-   http://localhost:8888 (admin / password) with the fixtures the suites use,
-   which is the site to photograph — a separate wp-env from any plugin's tests
-   environment. Read
-   https://developer.wordpress.org/plugins/wordpress-org/plugin-assets/ for the
-   naming and size rules first. **Write only into
-   `~/svn/wordpress_plugins/<slug>/assets/`**, touch nothing else in those
-   checkouts, and do not `svn add`, commit or push — Lester commits the assets
-   with the release. The checkouts are otherwise stale 2022-era trees (see
-   Traps).
+   **Do not treat count-matches-README as coverage.** That check passes on any
+   number, including a number that is too small — it only proves the captions
+   line up. It is the same trap as §7.2.1's: the mechanical check is necessary
+   and says nothing about whether the set is complete.
 
 **Off this list on purpose:** the SVN release itself. Lester does it by hand.
 Nothing here pushes, tags or touches SVN — **except item 2**, which Lester
@@ -747,6 +746,33 @@ and nothing short of running the suite will tell you.
   main plugin file, `includes/`, `js/`, `css/`, `tinymce/`, `index.php`,
   `LICENSE`, `uninstall.php`, `README.md` (renamed to `readme.txt` by the
   script) and wp-dbmanager's two `.txt` payloads. Nothing else.
+
+* **Never pipe a test run through `tail`, and this cost a diagnosis on
+  2026-08-08.** Two things go wrong at once. The exit status you see is
+  `tail`'s, so a suite that failed reports success — `bin/test-e2e.sh | tail -25`
+  came back "exit code 0" on a run with **13 failures**. And the failure detail
+  is thrown away: Playwright prints each failure's expected/received above the
+  summary, so a 25-line tail keeps the list of test names and none of the
+  reasons. Redirect to a file and read that.
+
+  What was left of that run was: 13 failed, 17 never ran, 8 passed in 1.8
+  minutes. **An immediate re-run with nothing changed passed 38 of 38 in 5.9
+  minutes.** Two hypotheses were tested against it and both died — the tests
+  database was not left as a network by the multisite suite, and PHPUnit had
+  already reinstalled it single-site before the failing run — and by then
+  Playwright's second run had cleared `artifacts/test-results/`, taking the
+  traces with it. **The cause is unknown and now unknowable**, which is the
+  whole point of the entry: the log was the only thing that could have said,
+  and a pipe through `tail` destroyed it.
+
+  The leading unproven candidate, for whoever sees it next: a stale
+  `artifacts/storage-states/admin.json`. PHPUnit reinstalls the database the
+  browser suite runs against — `bin/test-e2e.sh` says so in a comment and
+  re-activates the plugin and theme for exactly that reason — but a saved
+  logged-in session is a cookie for a user id in a database that has been
+  rebuilt, and every one of the 13 failures was in a spec that needs the admin.
+  **Delete that file and re-run before believing a red suite that follows a
+  PHPUnit run.**
 
 * **A cancelled CI run is not a failed one.** Every `ci.yml` sets
   `concurrency: cancel-in-progress: true`, so pushing a second commit while the
