@@ -2227,6 +2227,35 @@ and, only where the command prints a table, `tests/helper-wp-cli-utils.php` (the
 namespaced `format_items()`). Three files because the coding standard allows one
 class per file and that rule is not relaxed for the suite.
 
+**A command or a namespace is not finished until the README says so.** This was
+missed on the first three plugins and caught by Lester rather than by any check,
+which is what makes it worth stating: a command nobody is told about is a
+command nobody runs, and `README.md` ships to wordpress.org as `readme.txt`, so
+it is the only documentation most users will ever see. Two additions, both
+following wp-sweep, which has carried them since 1.2.0:
+
+* **`## Usage` gains a `### WP-CLI` block and a `### REST API` block** — a fenced
+  list of the actual invocations and routes, then anything a caller cannot
+  guess: what is public, what credential a write needs, and that the response
+  carries rendered markup because the site's templates decide what it looks
+  like.
+
+  **Where they go is settled by wp-sweep and is not the end of the section.**
+  Its `## Usage` runs: prose about the screen, `### WP-CLI`, `### REST API`,
+  then the reference material — `### Item names`, `### Filters`, `### Actions`.
+  So the order is **how a person uses it, then the two machine interfaces, then
+  the extension points**, and WP-CLI comes before REST. Appending them after a
+  plugin's filters and template-variable documentation is wrong; wp-polls was
+  written that way and moved.
+* **`## Changelog` gains `NEW:` bullets** under the version being prepared —
+  `NEW:` is one of the five prefixes the shared metadata fixture enforces, and
+  the right one, since none of this changes existing behaviour.
+
+**Say in both places that the `admin-ajax.php` action survives.** §13.4.2's
+promise about shortcodes applies here too, and a reader who sees a new REST
+route and no such sentence will reasonably assume the old endpoint is going
+away.
+
 ### 13.4.8 A block's name is permanent, so it keeps the `wp-` prefix
 
 **This is the one place §13.3's reasoning does not carry**, and the difference is
