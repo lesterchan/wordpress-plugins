@@ -132,11 +132,11 @@ Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
   moves with every commit, so the ratio is the claim:
   `python3 bin/measure_assertions.py /path/to/plugins/*` re-derives both.
 * The permalink audit of the E2E suites is complete — see below.
-* **One plugin bug is outstanding** — wp-polls' widget, found 2026-08-07 while
-  photographing it. See "The open bug". The line before it said none was, and
-  that had been true since 2026-08-04.
+* **No known plugin bug is outstanding.** wp-polls' widget was found on
+  2026-08-07 and fixed on 2026-08-08; the write-up is kept below because how it
+  was found is the useful part.
 
-## The open bug — wp-polls' widget warns on the front end
+## Closed 2026-08-08 — wp-polls' widget warned on the front end
 
 `WP_Polls_Widget::widget()` reads `$instance['title']`, `$instance['poll_id']`
 and `$instance['display_pollarchive']` with no defaults and no guard, so an
@@ -151,16 +151,29 @@ wp-useronline, guards every read with `! empty()`. **wp-polls is the only one of
 the seven that does neither**, which is the exact shape this file keeps
 recording: one copy of a pattern drifting while every tool stays green.
 
-It was found by *looking at a screenshot of the widget*, not by any suite —
-`verify.py` has no rule for it and no test renders the widget with a partial
-instance. Two things to do rather than one: give `widget()` the `wp_parse_args()`
-its five siblings have, with a test that renders a partial instance and asserts
-no warning reaches the output; and consider a `verify.py` rule, since "every
-`widget()` parses its instance" is mechanical and there are seven copies of it.
+**It was found by looking at a screenshot of the widget**, not by any suite.
+Nineteen green suites, `verify.py` at zero and CI green did not see it, because
+no test rendered the widget with a partial instance and no rule asked. That is
+the same shape as §7.6.1 and worth the same conclusion: **a rule nothing checks
+is a rule some copy has already drifted from.**
 
-**Not fixed.** It is neither of the two items that were in flight, and the fix
-has a small design choice in it — add a `defaults()` method to match the five,
-or guard like wp-useronline — so it is Lester's call rather than a drive-by.
+**Fixed 2026-08-08** the way the five siblings do it: a `defaults()` method read
+by *both* `widget()` and `form()`, so the two cannot disagree about what an
+unset key means — `form()` previously carried the same three defaults as an
+inline literal, which is the duplication that let `widget()` have none.
+
+Pinned by two tests. One renders an instance with **no keys at all** and asserts
+on the *warning* rather than the markup, because the visible damage was the
+notice; reverting the fix fails it with all three key names in the message. The
+other asserts the fallbacks are the same values the form offers.
+
+**Two things were deliberately not done.** `update()` returns `false` unless
+`$new_instance['submit']` is set, which is how an instance can be stored
+incomplete — but wp-stats and wp-downloadmanager guard the same way, so it is a
+three-plugin pattern rather than wp-polls drift, and changing it is a behaviour
+change nobody asked for. And **no `verify.py` rule was added**, though "every
+`widget()` parses its instance against defaults" is mechanical and there are
+seven copies of it. That rule is worth writing; it is not written.
 
 ## Remaining work, in order
 
@@ -299,17 +312,31 @@ findings and drop the instructions.
    Two counts worth having before deciding: `wp-email` and `wp-print` are two of
    the three names §13.3 deliberately leaves open, and both are in the table.
 
-2. **Recapture every plugin's wordpress.org screenshots — IN PROGRESS, not
-   done.** A first pass on 2026-08-07 produced 71 images across all nineteen and
-   rewrote every `## Screenshots` list to match, but **Lester reviewed them and
-   the coverage is short**: several plugins lost screens the old set had, and a
-   first pass that only ever adds what it thought to visit cannot notice what it
-   never opened. The counts below are the state after that pass, not a target.
+2. **The screenshots are recaptured — closed 2026-08-08.** 71 images across all
+   nineteen, every one taken against the rebuilt admin, and every
+   `## Screenshots` list rewritten to match. **Lester reviewed the set and
+   accepted the counts**, including the ten plugins that came back thinner than
+   the old set; the old counts described a UI that no longer exists, so
+   restoring them was never the goal.
 
-   **Do not treat count-matches-README as coverage.** That check passes on any
-   number, including a number that is too small — it only proves the captions
-   line up. It is the same trap as §7.2.1's: the mechanical check is necessary
-   and says nothing about whether the set is complete.
+   What is left is his and is not work: nineteen unpushed README commits, and
+   the image files in `~/svn/wordpress_plugins/*/assets/`, which need
+   `svn add`, `svn delete` and the commit he makes with the release. Counts
+   changed in both directions, so some files are new and some are gone.
+
+   **Two things this run established, both worth more than the images.**
+
+   *Count-matches-README is not coverage.* The check that passed on all nineteen
+   only proves the captions line up with the files; it passes on any number,
+   including one too small. It cannot answer "is a screen missing", and the
+   answer to that came from a human looking, not from the checker.
+
+   *A subagent's account of its own work is not evidence.* It reported that a
+   git fix had been blocked and supplied two commands to finish it; the reflog
+   showed it had already succeeded, and running them would have duplicated a
+   commit. It also reported the wp-polls widget defect accurately but understated
+   it — it named two siblings handling the instance properly where there are six.
+   **Check the repository, not the report.**
 
 **Off this list on purpose:** the SVN release itself. Lester does it by hand.
 Nothing here pushes, tags or touches SVN — **except item 2**, which Lester
@@ -747,6 +774,20 @@ and nothing short of running the suite will tell you.
   `LICENSE`, `uninstall.php`, `README.md` (renamed to `readme.txt` by the
   script) and wp-dbmanager's two `.txt` payloads. Nothing else.
 
+* **`--no-gpg-sign` does not cover a rebase.** These repositories are unsigned
+  by decision and the global `commit.gpgsign` is true, so every commit here
+  passes `--no-gpg-sign` — but a rebase makes its own commits and reads the
+  config directly. `git rebase master` stops on the first pick with *"error: you
+  have staged changes in your working tree"* and advises `git commit --amend
+  '-S'`, which is the real message wearing a disguise: the `-S` is the tell, and
+  the rebase has already decided to sign. It is not a conflict, and `git status`
+  says as much — *all conflicts fixed*.
+
+  Use `git -c commit.gpgsign=false rebase <base>`. The same applies to anything
+  else that commits on your behalf: `cherry-pick`, `revert`, `merge --no-ff`,
+  `commit --amend` inside a rebase. Seen 2026-08-08 rebasing wp-polls'
+  `wp-cli-rest-blocks` onto master.
+
 * **Never pipe a test run through `tail`, and this cost a diagnosis on
   2026-08-08.** Two things go wrong at once. The exit status you see is
   `tail`'s, so a suite that failed reports success — `bin/test-e2e.sh | tail -25`
@@ -765,14 +806,20 @@ and nothing short of running the suite will tell you.
   whole point of the entry: the log was the only thing that could have said,
   and a pipe through `tail` destroyed it.
 
-  The leading unproven candidate, for whoever sees it next: a stale
-  `artifacts/storage-states/admin.json`. PHPUnit reinstalls the database the
-  browser suite runs against — `bin/test-e2e.sh` says so in a comment and
-  re-activates the plugin and theme for exactly that reason — but a saved
-  logged-in session is a cookie for a user id in a database that has been
-  rebuilt, and every one of the 13 failures was in a spec that needs the admin.
-  **Delete that file and re-run before believing a red suite that follows a
-  PHPUnit run.**
+  **Three hypotheses have now been tested and all three are dead.** The tests
+  database was not left as a network by the multisite suite; PHPUnit had already
+  reinstalled it single-site before the failing run; and the one that sounded
+  best — a stale `artifacts/storage-states/admin.json`, since PHPUnit rebuilds
+  the database that saved session belongs to and all 13 failures were in specs
+  needing the admin — **was tried deliberately on 2026-08-08 and did not
+  reproduce**: the browser suite was run immediately after a PHPUnit run with
+  that same stale file in place, and passed 38 of 38.
+
+  So the honest state is **one unexplained red run against four green ones**,
+  and the entry stays here as a flake to watch rather than a diagnosis. If it
+  recurs: keep the log, and look at `17 did not run` first — Playwright abandoned
+  that run in 1.8 minutes against 5.9 to 7.2 for a full pass, so whatever it was
+  hit early and hit the harness rather than any one test.
 
 * **A cancelled CI run is not a failed one.** Every `ci.yml` sets
   `concurrency: cancel-in-progress: true`, so pushing a second commit while the
