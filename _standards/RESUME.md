@@ -69,10 +69,13 @@ differences between two plugins are name, features and capability.
 
 ## What exists
 
-* `_standards/STANDARDS.md` — the spec. **15 numbered sections, 48 including
-  subsections** (this line said 17 until 2026-08-03, and nothing had counted).
-  41 of the 48 have something mechanical behind them; see "Is the collection
-  compliant?".
+* `_standards/STANDARDS.md` — the spec. **15 numbered sections, 55 including
+  subsections** (this line said 17 until 2026-08-03 and 48 until 2026-08-07, and
+  nothing had counted either time). Recount rather than trust it:
+  `grep -oE '^#{2,4} [0-9]+(\.[0-9]+)*' _standards/STANDARDS.md | wc -l` — and
+  note the `#{2,4}`, because §7.6.1 is the one heading four levels deep and a
+  `#{2,3}` pattern silently drops it. The jump from 48 to 55 is §13.4 and its six
+  subsections; see "Is the collection compliant?".
 * `_standards/templates/` — the files each plugin copies verbatim, placeholders
   `{{SLUG}}` `{{NAME}}` `{{CLASS}}` `{{UNDER}}` `{{UPPER}}` `{{L10N}}`
   `{{DESCRIPTION}}`.
@@ -153,9 +156,40 @@ findings and drop the instructions.
    not settle them. Decide each if and when it earns a command — a qualified
    name, or a shared `wp lc <plugin>` parent.
 
-   **What is still open, and is Lester's:** the scope. Which plugins earn a
-   command, a namespace or a block, and whether a block wraps the existing
-   shortcode or replaces it. §13.3 pins only the naming.
+   **The scope is now settled too — Lester, 2026-08-07 — and is written up as
+   §13.4.** Three decisions, and the first two are his:
+
+   * **Blocks wrap the shortcode and never replace it.** The block's
+     `render_callback` calls the same method the shortcode callback calls; the
+     shortcode stays registered, supported and undeprecated. So a block costs an
+     existing install nothing: no migration, no Upgrade Notice, no breaking
+     change, and **no plugin's major version moves for a block**.
+   * **Plugin by plugin, not surface by surface.** One plugin goes end to end
+     before the next starts. **wp-polls is first and is the reference** — the
+     only plugin earning all three, so the only one whose first pass yields a
+     complete worked example. wp-postratings is second, being the same shape,
+     which is what proves the reference transfers rather than fits.
+   * **A block does not earn a namespace**, which is the finding that shrank this
+     phase most. Core routes `@wordpress/server-side-render` through
+     `/wp/v2/block-renderer/<name>`, so a dynamic block with a `render_callback`
+     gets its editor preview from core and registers no route. A namespace now
+     has to earn its place on its own evidence — an `admin-ajax.php` action
+     better expressed as a route — which is **four** plugins, not nineteen.
+
+   **The three surfaces select different plugins**, which is why one scope call
+   could not cover all three. Counted rather than guessed: four plugins earn
+   nothing at all (freemyinternet, wp-commentnavi, wp-pagenavi, wp-serverinfo),
+   the two most scriptable things here render no front end (wp-dbmanager's backup
+   and optimise, wp-ban's ban list), and the twelve with a shortcode are mostly
+   not the seven touching `admin-ajax.php`. §13.4.4 has the table.
+
+   **§13.3's three open names resolved themselves.** `email`, `print` and `stats`
+   were left unsettled as bare nouns anyone might claim — and under this scope
+   none of those three plugins earns a command or a namespace, so nothing has to
+   claim any of them. The question was contested only in the abstract. §13.4.5
+   says why that is contingent rather than closed.
+
+   **What is left is the build**, and it is no longer a scope question.
 
    **What the collection actually offers today**, counted 2026-08-07 by grepping
    for `WP_CLI::add_command`, `register_rest_route`, `add_shortcode` and
@@ -737,8 +771,9 @@ Worth keeping because the answer is not "run `verify.py` again".
 shared-row contract two plugins violated. Both run on every push. Re-auditing
 nineteen plugins against the spec by hand buys nothing.
 
-**41 of the spec's 48 sections have something mechanical behind them.** These
-six do not, and each stays that way for a reason:
+**41 of the spec's 55 sections have something mechanical behind them**, and the
+denominator moved on 2026-08-07 when §13.4 added seven. These do not, and each
+stays that way for a reason:
 
 | Section | Why not |
 |---|---|
@@ -747,7 +782,18 @@ six do not, and each stays that way for a reason:
 | §7.2.3 A suite that dies is not one that passed | enforced by `bin/test-all.sh`; §7.2.3 says so, so the next audit does not write a second check |
 | §7.3 Coverage | a number, and gaming it is worse than missing it |
 | §13.3 WP-CLI and REST naming | nothing to check until item 1 ships |
+| §13.4 and its six subsections | scope and process. **§13.4.2 is the exception and should get a rule when the first block lands**: "a plugin registering a block still registers the shortcode it wraps" is exactly the mechanical, drift-prone shape `verify.py` is for |
 | §15 Order of work | process, not state |
+
+**The arithmetic here has never closed, and saying so is better than rounding
+it.** Before 2026-08-07 this section claimed 41 enforced out of 48 and then
+listed six unenforced — which accounts for 47. So either the enforced count is
+42 or a seventh section is unchecked and unlisted, and **nothing has counted
+which**. Both numbers came from the 2026-08-04 audit and neither was re-derived
+afterwards. The way to settle it is the audit that produced every finding of
+that week — walk the spec section by section asking "what enforces this?" — not
+another guess in this paragraph. Until somebody does, **treat 41 as a lower
+bound rather than a measurement**.
 
 Two more were attempted and deliberately abandoned, which is worth as much as
 the rules that landed. **§4.2.2's "do not repeat a word the context supplies"** —

@@ -2018,6 +2018,133 @@ read as blanket permission to claim `wp email`.
 
 ---
 
+## 13.4 What earns a command, a namespace and a block — the phase-2 scope
+
+§13.3 pins what these things are *called*. This pins which plugins get one, and
+the two are separate questions because **the three surfaces do not select the
+same plugins**:
+
+* A **block** follows the front-end surface. Twelve plugins register a public
+  shortcode or a widget; seven register neither and cannot have one.
+* A **command** follows the admin action. The two most scriptable things in the
+  collection — wp-dbmanager's backup and optimise, wp-ban's ban list — render
+  nothing on the front end at all, so they appear in no block column.
+* A **namespace** follows a client that is not a browser following a link, which
+  is the smallest of the three for the reason immediately below.
+
+### 13.4.1 A block does not earn a namespace
+
+The tempting argument for registering nineteen REST namespaces is that a block
+needs one to preview itself in the editor. **It does not.** Core routes
+`@wordpress/server-side-render` through `/wp/v2/block-renderer/<name>`, a core
+endpoint that renders any block registered with a `render_callback` and
+PHP-side attributes. A dynamic block that wraps a shortcode gets its editor
+preview from core and registers no route of its own.
+
+So a namespace has to earn its place on its own evidence: an existing
+`admin-ajax.php` action that would be better as a route, or a client that is
+neither the editor nor a form post. Seven plugins touch `admin-ajax.php` —
+wp-ban, wp-email, wp-polls, wp-postratings, wp-postviews, wp-sweep and
+wp-useronline — and **those, not the twelve with shortcodes, are where the
+question is live**.
+
+### 13.4.2 Blocks wrap the shortcode. They never replace it.
+
+**Lester's call, 2026-08-07.** The block's `render_callback` calls the same
+method the shortcode callback calls. The shortcode stays registered, documented
+and supported, with no deprecation notice attached to it.
+
+The reason is arithmetic rather than taste: these plugins have shipped for
+fifteen years and more, and `[poll]`, `[ratings]` and `[views]` sit in an
+unknowable number of published posts on sites nobody here can survey. **A block
+is an addition to the collection's surface, never a replacement for part of
+it.** Two consequences follow and both are load-bearing:
+
+* **No migration, no Upgrade Notice, no breaking change.** A block is the one
+  thing in this campaign that costs an existing install nothing.
+* **No plugin's major version moves for a block.** §14's table is unaffected.
+
+Every shortcode callback in the collection is already a callable returning a
+string, so the wrapping is mechanical: the two entry points share one renderer
+and neither is the other's caller.
+
+### 13.4.3 An inline shortcode is not a block
+
+A block is a top-level chunk of a post. A shortcode that produces a fragment
+inside somebody's sentence is a **rich-text format**, and one that wraps content
+to suppress it is neither:
+
+* **Chunk output, so a block is right**: `poll`, `page_polls`, `ratings`,
+  `views`, `page_useronline`, `page_stats`, `download`, `page_download`,
+  `page_downloads`, `showhide`, and wp-pluginsused' three list shortcodes.
+* **Inline, so a block is wrong**: `relativedate`, `relativetime`, `print_link`,
+  `print_link_tag`, `email_link`. These belong in a sentence and a block would
+  put each on its own line.
+* **Enclosing markers, so neither**: `donotprint`, `donotemail`. They mark a
+  region for another plugin to strip and render nothing themselves.
+
+### 13.4.4 The scope
+
+Proposed 2026-08-07 from the counts above. wp-sweep's two are shipped; the rest
+is the work.
+
+| Plugin | Command | Namespace | Block |
+|---|---|---|---|
+| wp-sweep | `wp sweep` **shipped** | `sweep/v1` **shipped** | — |
+| wp-polls | `wp polls` | `polls/v1` | `poll`, `page_polls` |
+| wp-postratings | `wp postratings` | `postratings/v1` | `ratings` |
+| wp-postviews | `wp postviews` | — | `views` |
+| wp-useronline | `wp useronline` | `useronline/v1` | `page_useronline` |
+| wp-downloadmanager | `wp downloadmanager` | — | `download`, `page_downloads` |
+| wp-dbmanager | `wp dbmanager` | — | — |
+| wp-ban | `wp ban` | — | — |
+| wp-draftsforfriends | `wp draftsforfriends` | — | — |
+| wp-showhide | — | — | `showhide` |
+| wp-stats | — | — | `page_stats` |
+| wp-pluginsused | — | — | its three list shortcodes |
+| wp-email | — | — | — |
+| wp-print | — | — | — |
+| wp-relativedate | — | — | — |
+| freemyinternet, wp-commentnavi, wp-pagenavi, wp-serverinfo | — | — | — |
+
+The four plugins with nothing in any column earn nothing, and that is a result
+rather than an omission: freemyinternet, wp-commentnavi, wp-pagenavi and
+wp-serverinfo have no scriptable admin action and no self-contained front-end
+chunk. **Adding a command to a plugin that has no action to script is how a
+collection acquires nineteen commands nobody runs.**
+
+### 13.4.5 The three open names resolve themselves
+
+§13.3 deliberately left `email`, `print` and `stats` unsettled, being bare nouns
+a dozen plugins might want. **Under this scope none of the three plugins earns a
+command or a namespace**, so nothing has to claim any of them: wp-email and
+wp-print register only inline shortcodes and have no scriptable admin action,
+and wp-stats renders other plugins' sections rather than owning data of its own.
+
+The question was therefore contested only in the abstract. It stays open in
+§13.3 rather than being closed here, because the answer above is contingent: if
+wp-stats ever earns `wp stats`, the choice between a qualified name and a shared
+`wp lc <plugin>` parent has to be made then, and it is *this* line that should
+be deleted rather than §13.3's.
+
+### 13.4.6 Order of work
+
+**Plugin by plugin, not surface by surface** — Lester's call, 2026-08-07. One
+plugin goes end to end before the next starts, so a half-finished surface never
+spans the collection.
+
+**wp-polls is first, and is the reference.** It is the only plugin that earns
+all three, so it is the only one whose first pass can produce a complete
+reference — a command, a namespace replacing an `admin-ajax.php` action, and two
+blocks wrapping two shortcodes of different shapes. Everything after it copies
+from a worked example rather than re-deriving one, which is the same reason
+wp-sweep was the reference for §13.3.
+
+**wp-postratings is second**, because it has the same three-surface shape and so
+is the run that proves the reference transfers rather than fitting one plugin.
+
+---
+
 ## 14. Versions and the release baseline
 
 Queried from `plugins.svn.wordpress.org` — the local `~/svn/wordpress_plugins`
