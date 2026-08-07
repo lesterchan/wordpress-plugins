@@ -191,6 +191,44 @@ findings and drop the instructions.
 
    **What is left is the build**, and it is no longer a scope question.
 
+   **wp-polls is started, on a branch, and is not on master.** `wp-polls`
+   branch `wp-cli-rest-blocks`, one commit:
+
+   * `WP_Polls_Poll` — the poll operations with no presentation attached. It
+     exists because the admin handler interleaved `$wpdb` calls with the notice
+     markup announcing them, so a second caller could only copy the queries.
+     Every method returns data or a boolean and prints nothing.
+   * `WP_Polls_Command` — `wp polls list|get|open|close|delete`, required only
+     under `WP_CLI` because `WP_CLI_Command` does not exist on a web request.
+   * The admin's open, close and delete branches now call the service, so there
+     is one implementation rather than two. That removed three assignments that
+     were never read, one of them a query for `poll_latestpoll` — a row the
+     3.0.0 migration folds in and deletes, so the branch had been reading
+     nothing for a whole major version.
+
+   **It is verified only as far as `php -l` and phpcs**, both clean, and phpcs
+   is one of the two CI jobs reproducible locally. PHPUnit and Playwright were
+   not run, because the wp-env harness was busy with item 2 — **which is exactly
+   the subset-of-the-checks trap that put four broken commits on master on
+   2026-08-03**, and is why this is on a branch. Before it merges: `bin/test.sh`,
+   `bin/test-multisite.sh`, `bin/test-e2e.sh`. Two things to look at first,
+   both predicted by reading and neither confirmed — `test-admin-ajax.php`'s
+   delete tests, since the action now fires from inside `delete()` rather than
+   after the notices, and `test_every_class_lives_in_the_file_named_after_it`,
+   which the two new files should satisfy.
+
+   **What is not started: `polls/v1` and the two blocks.** The namespace is
+   meant to carry the vote that `wp_ajax_polls` carries today, and that is the
+   most safety-critical path in the plugin — repeat-vote checks, cookies, the
+   trusted-proxy header. **Writing a REST twin of it without being able to run
+   the vote-guard suite is the wrong order of work**, so it waits for the
+   harness rather than being written blind and reviewed twice.
+
+   One decision that follows from §13.4.2 and should be made the same way when
+   it lands: **the `admin-ajax.php` action stays registered.** A theme or a
+   cached script calling it is in the same position as a post containing a
+   shortcode, so the route is added beside it rather than in place of it.
+
    **What the collection actually offers today**, counted 2026-08-07 by grepping
    for `WP_CLI::add_command`, `register_rest_route`, `add_shortcode` and
    `extends WP_Widget` in shipped code. This is the raw material for the scope
