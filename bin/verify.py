@@ -1756,6 +1756,24 @@ def verify(slug, name, prefix, port, root):
                                             "blocks.spec.js")),
                 "§13.4.7 blocks have tests/e2e/blocks.spec.js")
 
+        # §13.4.10: both runners must build before they run. build/ is
+        # generated and gitignored, so a runner that skips this either fails on
+        # a checkout that has never been built, or -- the one that actually
+        # costs you -- silently tests the PREVIOUS build on a checkout where
+        # src/ has changed, and passes. The wording of the line is nobody's
+        # business; that it is invoked is.
+        for runner in ("test.sh", "test-e2e.sh"):
+            path = os.path.join(root, "bin", runner)
+            if not os.path.exists(path):
+                continue
+            r.check("bin/build" in (read(path) or ""),
+                    "§13.4.10 bin/%s builds before it runs" % runner,
+                    "src/ exists but bin/%s never invokes bin/build" % runner)
+
+        r.check(os.access(os.path.join(root, "bin", "build"), os.X_OK),
+                "§13.4.10 bin/build is executable",
+                "the deploy and both runners invoke it directly")
+
         # §13.4.8: a block name is written into post_content and outlives the
         # post, so it keeps the wp- prefix the command and namespace drop. The
         # name lives in block.json, which is the only place it is declared.

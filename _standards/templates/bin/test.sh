@@ -20,6 +20,20 @@ CWD=wp-content/plugins/$SLUG
 
 cd "$(dirname "$0")/.."
 
+# Blocks register from build/, which bin/build generates from src/ and which is
+# gitignored, so a checkout has none. A runner that skips this fails on a
+# checkout that has never been built -- and worse, on a checkout where src/ has
+# changed since the last build, silently tests the PREVIOUS build and passes.
+#
+# Guarded rather than unconditional so this one template serves the plugins
+# with blocks and the plugins without: eleven of the nineteen have no src/ and
+# no bin/build. A plugin that HAS one but whose runner does not call it is
+# caught by bin/verify.py instead.
+if [ -f bin/build ]; then
+	echo "==> Building blocks"
+	bin/build
+fi
+
 echo "==> Starting wp-env (PHP ${WP_ENV_PHP_VERSION:-default}, core ${WP_ENV_CORE:-default})"
 npx --yes @wordpress/env start
 

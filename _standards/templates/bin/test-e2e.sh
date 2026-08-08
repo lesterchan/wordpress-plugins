@@ -21,6 +21,20 @@ cd "$(dirname "$0")/.."
 PORT=$(node -p "require('./.wp-env.json').testsPort")
 export WP_BASE_URL="${WP_BASE_URL:-http://localhost:${PORT}}"
 
+# Blocks register from build/, which bin/build generates from src/ and which is
+# gitignored, so a checkout has none. A runner that skips this fails on a
+# checkout that has never been built -- and worse, on a checkout where src/ has
+# changed since the last build, silently tests the PREVIOUS build and passes.
+#
+# Guarded rather than unconditional so this one template serves the plugins
+# with blocks and the plugins without: eleven of the nineteen have no src/ and
+# no bin/build. A plugin that HAS one but whose runner does not call it is
+# caught by bin/verify.py instead.
+if [ -f bin/build ]; then
+	echo "==> Building blocks"
+	bin/build
+fi
+
 echo "==> Starting wp-env"
 npx --yes @wordpress/env start
 
