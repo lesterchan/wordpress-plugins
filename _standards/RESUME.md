@@ -158,6 +158,61 @@ phpcs, eslint and the assertion-message ratio are clean.
   2026-08-07 and fixed on 2026-08-08; the write-up is kept below because how it
   was found is the useful part.
 
+## Closed 2026-08-08 — the README audit, read as somebody installing the plugin
+
+Nineteen READMEs, audited for whether the instructions are *true* and then for
+whether they are *clear*. Both halves found something, and the split is worth
+keeping because they need completely different methods.
+
+**Correctness, and the mechanical checks did it in minutes.** Shortcodes named
+in a README against those registered: clean. Functions in `php` examples against
+those defined: clean, once example callbacks in filter docs are discounted.
+`Stable tag` against the plugin header, and `Requires at least` / `Requires PHP`
+against theirs: all nineteen consistent. Then the one that found things —
+**every backticked and bolded admin path, split on its arrows, each segment
+checked against the strings the plugin actually renders**:
+
+* **wp-polls** sent readers to `Polls -> Settings -> Poll Options` for
+  `Poll Archive -> Polls Archive URL`. The screen is **Poll Settings**, the
+  section **Archive**, the field **Poll Archive URL** — three wrong labels in
+  one sentence.
+* **wp-postratings** answered "How do I change the colour of the ratings?" with
+  "under **Ratings Colour**", which has never existed. The colours are a pair of
+  swatches per step of the scale, in the **Rated** and **Not rated** columns of
+  **Individual Rating Text and Value**.
+
+Both survived a whole major revamp. That check is now §3.3 in `verify.py`, and
+it reads JS as well as PHP because a block's inspector labels live in `src/` and
+appear nowhere in the PHP — a PHP-only scan calls wp-downloadmanager's real
+"File IDs" a lie. It reads `_x()` too, or wp-sweep's own menu title reads as a
+fiction.
+
+**Clarity, and nothing mechanical can do this.** Read cold, as somebody who has
+just found the plugin on wordpress.org, **fourteen of nineteen say what the
+plugin is in the first sentence**. Four did not and were rewritten — wp-polls
+("extremely customizable via templates and css styles… tons of options" never
+said it was a poll plugin, and it is the flagship), wp-dbmanager, wp-showhide
+and wp-relativedate, the last two also carrying typos nobody had noticed.
+
+**The check and the read find different things and neither substitutes for the
+other.** The mechanical pass cannot tell that a description says nothing; the
+read would never have caught "Ratings Colour", because it is a confident
+sentence about a plausible setting.
+
+**`## Installation` is now required of all nineteen** — Lester's call,
+overruling a proposal to give it only to the four plugins with a real first-run
+step, on the grounds that wordpress.org renders it as a tab and a tab present on
+some and missing on others reads as an omission. §3.3 records what must not
+happen to it. The move was worth more than the section: setup steps were sitting
+in `## Usage` in five plugins and in **`## Description`** in wp-print, and
+wp-dbmanager's "secure the backup folder" — the one step here with a security
+consequence — was the fourth bullet of a usage list.
+
+**One thing checked rather than assumed:** these READMEs use markdown headings
+where the wordpress.org format documents `== Section ==`, and the deploy does
+not convert them. The live wp-print readme (stable 2.58.3) has used `##` for
+years, so the parser handles it and nothing is missing.
+
 ## Closed 2026-08-08 — the blocks phase broke the metadata fixture two ways
 
 Eight plugins gained blocks; five of the eight went red on PHPUnit while
@@ -1156,9 +1211,20 @@ and nothing short of running the suite will tell you.
 Worth keeping because the answer is not "run `verify.py` again".
 
 **The mechanical half is continuously checked and green.** `bin/verify.py` is
-**127 checks**, and the shared metadata fixture covers §13 including the
-shared-row contract two plugins violated. Both run on every push. Re-auditing
-nineteen plugins against the spec by hand buys nothing.
+**152 checks** as of 2026-08-08, and the shared metadata fixture covers §13
+including the shared-row contract two plugins violated. Both run on every push.
+Re-auditing nineteen plugins against the spec by hand buys nothing.
+
+**But a green `verify.py` is not evidence the suites pass, and this bit on
+2026-08-08.** The two enforce overlapping rules from *separate sources*, and
+nothing links them. The canonical README section list lives in `verify.py` AND
+in `helper-metadata-testcase.php`; adding `## Installation` to the first and not
+the second gave 0 failing checks across 19 while seven plugins' CI went red on
+an array diff whose entire content was `+ 1 => 'Installation'`.
+
+So: **when you change a rule, grep for it in both files before believing
+either.** The overlap is not documented anywhere and there is no test that the
+two agree — which is itself worth fixing if this recurs a third time.
 
 **41 of the spec's 58 sections have something mechanical behind them**, and the
 denominator moved on 2026-08-07 when §13.4 added seven. These do not, and each
@@ -1170,8 +1236,7 @@ stays that way for a reason:
 | §7.2.1 Process-wide state | needs the suite running |
 | §7.2.3 A suite that dies is not one that passed | enforced by `bin/test-all.sh`; §7.2.3 says so, so the next audit does not write a second check |
 | §7.3 Coverage | a number, and gaming it is worse than missing it |
-| §13.3 WP-CLI and REST naming | nothing to check until item 1 ships |
-| §13.4 and its nine subsections | scope and process, with three exceptions that should get rules as the surfaces land. **§13.4.2**: "a plugin registering a block still registers the shortcode it wraps". **§13.4.7**: the file and class names in its table, which is the shape `verify.py` already checks for `phpcs.xml` and `ci.yml`. **§13.4.9**: that `src` is on the deploy's exclusion list once any plugin has a `src/`. All three are mechanical and drift-prone, which is the definition of what belongs in `verify.py` |
+| §13.4 and its subsections | scope and process. **Two of the three exceptions listed here are now closed**: §13.4.7's file and class names are checked, and §13.4.9's `--exclude='src'` is in `plugin_deploy.sh` and dry-run verified. **§13.4.2 is still open** — "a plugin registering a block still registers the shortcode it wraps" is mechanical and drift-prone, and every block plugin's own suite asserts it, but nothing checks it across the collection |
 | §15 Order of work | process, not state |
 
 **The arithmetic, measured on 2026-08-08 — and the measurement's limits matter
