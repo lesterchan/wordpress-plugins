@@ -2432,6 +2432,22 @@ that again when the first real `src/` exists, rather than trusting this
 paragraph: a scratch fixture proves the pattern matches, not that the toolchain
 puts everything where this assumed it would.
 
+**A failed build now stops the deploy, and did not before — added 2026-08-08.**
+`plugin_deploy.sh` ran `bin/build` without checking whether it worked, and the
+rsync copies the **working tree**, so a build that failed for any reason — no
+Node, a malformed `block.json`, a webpack error — left the previous `build/` on
+disk, or none at all, and the deploy published it. `build/` being gitignored is
+what makes this bite: on a fresh clone a failed build means the directory does
+not exist, `register()` skips registration, and the release reaches users as a
+plugin whose blocks silently never appear in the editor.
+
+Two guards, both checked by running them: a non-zero exit from `bin/build`
+aborts before anything is copied, and a plugin with a `src/` but no `bin/build`
+aborts too, because that combination cannot produce a `build/` at all. Not
+`set -e` for the whole script — `svn mkdir` on an existing directory and the
+`rm -rf` loop both fail harmlessly by design, and aborting on those would break
+every deploy including the eleven plugins with no blocks.
+
 **Done, against wp-polls' real `src/`, 2026-08-08** — and it found nothing new,
 which is the outcome worth recording because the instruction above assumed it
 might. `src/` absent, `build/` shipped complete with the nine files webpack and
