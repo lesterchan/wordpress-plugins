@@ -2196,6 +2196,27 @@ has to land **before** the first `src/` directory exists, not after, and the
 first block should still be wp-polls' — the reference plugin's third surface,
 built where the other two already are.
 
+### 13.4.6a What a route answers when it will not do the thing
+
+**Lester's call, 2026-08-08: a refusal is 403.** Three codes, and the line
+between them is *who decided*:
+
+| Code | When | Examples |
+|---|---|---|
+| **400** | the REST layer's own parameter validation rejected the request before the plugin saw it | a `validate_callback` failing — an unknown `mode`, a value outside a fixed list |
+| **403** | the request was well formed and understood, and **the plugin declined to act** | already voted, already rated, poll closed, rating off the scale, bad nonce, a site that counts views during the render |
+| **404** | the request named a resource that is not there | a poll or post id matching no row |
+
+The first draft used 400 for every refusal, which conflates "you sent me
+nonsense" with "I understood you and the answer is no". A client cannot tell
+from a 400 whether retrying differently would help; a 403 says plainly that it
+would not.
+
+**A missing resource stays 404 and is not folded into this**, for the reason
+§13.4.4's routes already record: existence is deliberately not a
+`validate_callback`, because a failed validator is a 400 and a deleted poll is
+not a malformed request.
+
 ### 13.4.7 What the files are called
 
 Two of the three surfaces already have a reference and are copied rather than

@@ -1614,6 +1614,24 @@ def verify(slug, name, prefix, port, root):
                     bare,
                     "'%s'" % registered.group(1) if registered else "no add_command() call"))
 
+        # A command offering --format=ids has to reduce its rows to that column.
+        #
+        # WP_CLI\Utils\format_items() hands `ids` straight to implode(), so rows
+        # that are associative arrays print as the word `Array`, once per row,
+        # with a PHP warning. Six commands advertised the format and six got
+        # this wrong, including one whose README documented a `| xargs` pipe
+        # built on it -- and every suite was green, because the WP_CLI stand-in
+        # records what it is handed instead of formatting it. Two agents
+        # inferred the bug from WP-CLI's source; running `wp polls list
+        # --format=ids` against a real WP-CLI is what settled it.
+        offers_ids = re.search(r"^\s*\*\s*-\s*ids\s*$", body, re.M)
+
+        r.check(not offers_ids or "wp_list_pluck( $rows" in body,
+                "a command offering --format=ids reduces rows to the id",
+                "%s advertises --format=ids; without wp_list_pluck() over the "
+                "rows it prints `Array` per row"
+                % os.path.relpath(command_file, root))
+
         test_cli = os.path.join(root, "tests", "test-cli.php")
         r.check(os.path.exists(test_cli), "§13.4.7 a command has tests/test-cli.php")
 

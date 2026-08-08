@@ -261,10 +261,47 @@ findings and drop the instructions.
    | wp-postratings | `wp postratings` | `postratings/v1` | 317 ×2 | 66 |
    | wp-useronline | `wp useronline` | `useronline/v1` | 233 ×2 | 92 |
 
-   **Left to do: wp-postviews (both surfaces), then four commands with no
-   namespace** — wp-downloadmanager, wp-dbmanager, wp-draftsforfriends and
-   wp-ban. wp-email is excluded from REST by Lester's call; §13.4.5 says why, and
-   says not to finish the job later.
+   **Every plugin in the scope now has its surface.** wp-postviews took both,
+   and the last four commands — wp-downloadmanager, wp-dbmanager,
+   wp-draftsforfriends, wp-ban — were written by four agents in parallel, each
+   forbidden from starting wp-env so that four Playwright stacks could not tear
+   each other down. Every suite was then run here, one plugin at a time.
+   wp-email is excluded from REST by Lester's call; §13.4.5 says why, and says
+   not to finish the job later.
+
+   **Three things came out of that batch and none of them was in the plan.**
+
+   * **`--format=ids` printed `Array` per row in six plugins**, with a
+     documented pipe built on it. Under "Tests that cannot fail", because the
+     reason every suite stayed green is structural.
+   * **A refusal answers 403, not 400** — Lester, 2026-08-08, written up as
+     §13.4.6a. 400 conflated "you sent me nonsense" with "I understood and the
+     answer is no", and a client cannot tell from a 400 whether retrying
+     differently would help.
+   * **The ajax handlers split three ways on how they report an outcome**, and
+     only one of the three ports to REST cleanly. See below.
+
+   **How an AJAX handler reports its outcome decides how hard REST is.** Seven
+   plugins have one, in three shapes:
+
+   | Shape | Plugins | Ports to REST? |
+   |---|---|---|
+   | Answers JSON (`wp_send_json_*`) | wp-postviews, wp-sweep | cleanly |
+   | Throws on refusal | wp-polls | cleanly: `try` → 200, `catch` → 403 |
+   | Returns or echoes a string either way | wp-postratings, wp-email | **not at all** |
+
+   Both of the third group are fixed. wp-postratings' `process_vote()` throws
+   now, matching wp-polls, and the refusals that deliberately say nothing to a
+   visitor throw with an **empty message** so the browser path is unchanged.
+   wp-email's `process()` was worse — it echoed and `wp_die()`d, so there was no
+   value to inspect at all — and now has a `submit()` that decides and prints
+   nothing.
+
+   **wp-email's fix needed three outcomes where two looked obvious**, and the
+   existing end-to-end tests caught the mistake: a delivery the mailer refused
+   is not the same as a submission that failed validation, and folding them
+   together handed the form back to somebody whose message had simply bounced.
+   `invalid`, `failed` and `sent` are distinct.
 
    **wp-useronline is the one to read before writing the next.** Two things there
    would have been wrong if the reference had been copied rather than thought
@@ -362,30 +399,20 @@ findings and drop the instructions.
    the three names §13.3 deliberately leaves open, and both are in the table.
 
 2. **The screenshots are recaptured — closed 2026-08-08.** 71 images across all
-   nineteen, every one taken against the rebuilt admin, and every
-   `## Screenshots` list rewritten to match. **Lester reviewed the set and
-   accepted the counts**, including the ten plugins that came back thinner than
-   the old set; the old counts described a UI that no longer exists, so
-   restoring them was never the goal.
+   nineteen, taken against the rebuilt admin, with every `## Screenshots` list
+   rewritten to match. Lester reviewed the set and accepted the counts,
+   including the ten plugins thinner than the old set: those counts described a
+   UI that no longer exists. What is left is his — the image files sit in
+   `~/svn/wordpress_plugins/*/assets/` needing `svn add`, `svn delete` and the
+   commit he makes with the release.
 
-   What is left is his and is not work: nineteen unpushed README commits, and
-   the image files in `~/svn/wordpress_plugins/*/assets/`, which need
-   `svn add`, `svn delete` and the commit he makes with the release. Counts
-   changed in both directions, so some files are new and some are gone.
-
-   **Two things this run established, both worth more than the images.**
-
-   *Count-matches-README is not coverage.* The check that passed on all nineteen
-   only proves the captions line up with the files; it passes on any number,
-   including one too small. It cannot answer "is a screen missing", and the
-   answer to that came from a human looking, not from the checker.
-
-   *A subagent's account of its own work is not evidence.* It reported that a
-   git fix had been blocked and supplied two commands to finish it; the reflog
-   showed it had already succeeded, and running them would have duplicated a
-   commit. It also reported the wp-polls widget defect accurately but understated
-   it — it named two siblings handling the instance properly where there are six.
-   **Check the repository, not the report.**
+   **Two findings outlast the images.** *Count-matches-README is not coverage*:
+   the check that passed on all nineteen only proves the captions line up with
+   the files, and passes on any number including one too small — a person
+   looking is what found the gap. And *a subagent's account of its own work is
+   not evidence*: this one reported a git fix as blocked when the reflog showed
+   it had succeeded, and following its instructions would have duplicated a
+   commit. Check the repository, not the report.
 
 **Off this list on purpose:** the SVN release itself. Lester does it by hand.
 Nothing here pushes, tags or touches SVN — **except item 2**, which Lester
@@ -476,64 +503,31 @@ the list above and is now either shipped or written into a check.
 
 ## The pre-revamp tags — done 2026-08-03
 
-**All nineteen are tagged and pushed**, so every plugin now has a ref for "as it
-shipped before this work". Verified against each remote afterwards rather than
-trusted from the push output: nineteen annotated tags, each on the commit in the
-table below.
-
-`bin/tag-pre-revamp.sh` is what created them. It takes the directory holding the
-plugin repos, is safe to re-run — a tag that exists is left alone — and refuses
-to guess: a shallow clone missing the commit is reported rather than tagged.
-Deriving the boundary needed full history, and the clones arrive shallow holding
-only the campaign's own commits, so `git fetch --unshallow origin` is what made
-the pre-revamp past visible at all.
+**All nineteen are tagged and pushed**, so every plugin has a ref for "as it
+shipped before this work". `git -C <plugin> tag` is the authority; the table
+that used to sit here restated nineteen commit hashes git already holds.
+`bin/tag-pre-revamp.sh` is what created them: safe to re-run, and it refuses to
+guess rather than tagging a shallow clone that is missing the commit.
 
 **It had to run from Lester's machine.** The sandbox's git proxy answers a tag
-push with HTTP 403 while allowing branch pushes, so the tags could not leave a
-session; they were created and verified in one and the container took them with
-it. That is why this sat waiting rather than being finished when it was written.
+push with HTTP 403 while allowing branch pushes, which is why this sat waiting
+rather than being finished when it was written.
 
-**Two repositories already carried tags, and an earlier draft of this file said
-none did.** wp-pagenavi has six and wp-useronline four, bare version numbers
-from scribu's tenure (2010–2014), already on their remotes. They do not collide
-with the new tags and their naming is the same bare-version shape. The claim was
-never checked against `git tag` — it was prose about a number nothing measured,
-which is the same failure §7.2.2's note records.
-
-| Plugin | Tag | Commit | Date |
-|---|---|---|---|
-| freemyinternet | 0.01 | `8a7a7a59` | 2020-05-20 |
-| wp-ban | 1.69.2 | `8f5452ac` | 2025-03-09 |
-| wp-commentnavi | 1.12.2 | `45b51b7d` | 2023-08-09 |
-| wp-dbmanager | 2.80.10 | `b7ad9070` | 2024-11-24 |
-| wp-downloadmanager | 1.69.1 | `416b9f54` | 2026-02-13 |
-| wp-draftsforfriends | 1.0.2 | `952592aa` | 2023-08-09 |
-| wp-email | 2.69.3 | `066014a9` | 2024-12-18 |
-| wp-pagenavi | 2.94.5 | `3a010444` | 2024-12-19 |
-| wp-pluginsused | 1.50.2 | `7cff1208` | 2023-08-09 |
-| wp-polls | 2.77.4 | `50adb772` | 2025-12-26 |
-| wp-postratings | 1.91.2 | `75e54f4f` | 2024-07-16 |
-| wp-postviews | 1.78 | `9b1c2c84` | 2026-01-16 |
-| wp-print | 2.58.2 | `dde8f97c` | 2023-09-08 |
-| wp-relativedate | 1.51 | `b7fa2f8d` | 2023-08-09 |
-| wp-serverinfo | 1.66 | `a7dc3cfe` | 2026-06-16 |
-| wp-showhide | 1.06 | `a1a0ee21` | 2025-11-28 |
-| wp-stats | 2.56.1 | `22839ce3` | 2026-06-22 |
-| wp-sweep | 1.2.0 | `cff61a76` | 2026-06-19 |
-| wp-useronline | 2.88.9 | `14d4edc2` | 2025-07-15 |
-
-Two things the boundary turned up, both about released state rather than tags,
-and both re-checked against the commits themselves before the tags were cut:
+Three findings outlived the tagging itself:
 
 * **wp-email shipped with its header behind its `Stable tag`.** At `066014a9`
-  the header reads `2.69.2` and the `Stable tag` reads `2.69.3`, so wordpress.org
+  the header read 2.69.2 and the `Stable tag` read 2.69.3, so wordpress.org
   served that tree as 2.69.3 while every site running it reported 2.69.2 — a
   standing update prompt that never clears. It had happened once before, at
-  2.69.0/2.69.1. The tag is named for what shipped, and says so.
+  2.69.0/2.69.1.
 * **Five plugins carried `Stable tag: trunk`**, not four: freemyinternet,
   wp-commentnavi, wp-draftsforfriends, wp-pluginsused and wp-relativedate. §14
-  says four. This is the git side of that claim rather than the SVN side, so it
-  is evidence and not proof, but the number to check is five.
+  says four. This is the git side rather than the SVN side, so it is evidence
+  and not proof, but the number to check is five.
+* **Two repositories already carried tags and an earlier draft said none did.**
+  wp-pagenavi has six and wp-useronline four, bare version numbers from scribu's
+  tenure. The claim was never checked against `git tag` — prose about a number
+  nothing measured.
 
 ## READ FIRST — CI and your machine are not the same environment
 
@@ -709,6 +703,27 @@ once; **wp-postviews** (98) is padded — a six-way parametrised loop at
 one assertion with a different argument.
 
 ## Tests that cannot fail
+
+* **A stand-in that records instead of doing cannot see what the real thing
+  does with the recording.** The WP-CLI `format_items()` stand-in stores the
+  rows it is handed so a test can assert on them without parsing
+  column-aligned text — which is the right design, and it means **the formatter
+  is the one thing the suite structurally cannot test**.
+
+  Six commands advertised `--format=ids`, and all six passed rows of
+  associative arrays to `format_items()`. Real WP-CLI hands `ids` straight to
+  `implode()`, so every one of them printed the word `Array` once per row, with
+  a PHP warning — and wp-polls' README documented
+  `wp polls list --format=ids | xargs -n1 wp polls close`, a pipe built on it.
+  Thirty-odd CLI tests were green the whole time, on data real WP-CLI would
+  have mangled.
+
+  Two agents inferred it from WP-CLI's source and both flagged it as something
+  they could not check. **One `wp polls list --format=ids` in the wp-env
+  container settled it in seconds**, which is the lesson: a stand-in is a model
+  of the real thing, and the parts of the real thing it models away are exactly
+  where the bugs live. `verify.py` has a rule now, but the rule was written
+  *after* running it, not instead.
 
 Three have been found, all passing for years. The shape is worth recognising on
 sight.
@@ -1187,38 +1202,6 @@ Kept short on purpose; the detail is in git.
   BRIEFS still instructed an agent to create wp-relativedate's options row, which
   has existed since 2026-07-30. What was worth keeping was extracted first.
 
-* **2026-08-04** — the §7.6.1 release blocker closed: wp-dbmanager fixed, a
-  `verify.py` rule behind it, wp-polls hardened, both misleading comments
-  corrected. Items 1(a), 1(b), 1(e), 1(f). Two claims in this file were found
-  wrong while acting on them, which is the day's real output: §7.6.1's write
-  half is handled by core, so wp-polls was never losing data; and the
-  wp-pluginsused comment about a failing assertion was three fixes out of date.
-  **Both were found by running the thing rather than reading it** — a mutation
-  test on `save()`, and the E2E suite the comment was attached to. A third test
-  was written, discovered to pass with the fix reverted, and deleted rather than
-  committed. Item 8 added at Lester's request and deferred by his call.
-
-* **2026-08-05** — item 1 closed. All eleven remaining migration suites written,
-  run to green and committed, 78 tests in all, so every one of the fifteen
-  migrating plugins now has a browser test of its migration. Three findings came
-  out of running them, all now in the E2E lessons and none of them producible by
-  reading: **a `wp eval` call is a full WordPress request**, so for the five
-  plugins that migrate on `plugins_loaded` or `init` the fixture cannot be seeded
-  in one call and read in another — the second call has already done the upgrade;
-  **a scalar legacy row reads back as a string**, so an assertion on an integer
-  is an assertion about no install that exists; and **wp-downloadmanager's legacy
-  row wins over an existing current row**, which is the opposite of what the test
-  assumed and what the code means.
-
-  Four suites failed on their first run and were fixed. wp-commentnavi's and
-  wp-pagenavi's were additionally confirmed by mutation, run separately rather
-  than one assumed from the other, and three of seven tests went red in each.
-
-  **Wall clock was the whole cost**: the same six-test suite takes two minutes on
-  an idle machine and over an hour with an editor and a dozen wp-env stacks up,
-  because almost all of it is `npx --yes @wordpress/env run` startup rather than
-  browser time. Two runs were abandoned as hangs before that was understood.
-
 * **2026-08-04** — the §7.6.1 release blocker closed, the spec-against-checks
   audit finished, and a capability audit found by it. `verify.py` 93 checks to
   127; 31 of 48 sections enforced to 41. Six spec sections corrected, four live
@@ -1244,3 +1227,25 @@ The programme found roughly **twenty-five spec bugs and eleven `verify.py`
 bugs**, every one because an agent pushed back rather than complied. The pattern
 that made it work: one plugin finds it, fix it centrally, the other eighteen
 never see it.
+
+* **2026-08-05** — item 1 closed. All eleven remaining migration suites written,
+  run to green and committed, 78 tests in all, so every one of the fifteen
+  migrating plugins now has a browser test of its migration. Three findings came
+  out of running them, all now in the E2E lessons and none of them producible by
+  reading: **a `wp eval` call is a full WordPress request**, so for the five
+  plugins that migrate on `plugins_loaded` or `init` the fixture cannot be seeded
+  in one call and read in another — the second call has already done the upgrade;
+  **a scalar legacy row reads back as a string**, so an assertion on an integer
+  is an assertion about no install that exists; and **wp-downloadmanager's legacy
+  row wins over an existing current row**, which is the opposite of what the test
+  assumed and what the code means.
+
+  Four suites failed on their first run and were fixed. wp-commentnavi's and
+  wp-pagenavi's were additionally confirmed by mutation, run separately rather
+  than one assumed from the other, and three of seven tests went red in each.
+
+  **Wall clock was the whole cost**: the same six-test suite takes two minutes on
+  an idle machine and over an hour with an editor and a dozen wp-env stacks up,
+  because almost all of it is `npx --yes @wordpress/env run` startup rather than
+  browser time. Two runs were abandoned as hangs before that was understood.
+
