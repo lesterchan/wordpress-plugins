@@ -406,6 +406,41 @@ findings and drop the instructions.
    `~/svn/wordpress_plugins/*/assets/` needing `svn add`, `svn delete` and the
    commit he makes with the release.
 
+   **Every caption was later checked against its image, and seven were wrong.**
+   The count check passed on all nineteen throughout — it verifies that captions
+   line up with files, and is blind to whether a sentence describes its picture.
+   Reading all 71 found four distinct failure modes:
+
+   * **A miscount** — wp-showhide said three blocks with two closed; the image
+     shows four, three closed.
+   * **The wrong tab** — wp-print promised a disclaimer that is on Settings, and
+     wp-postviews credited Settings with formatting that is on Templates.
+   * **The right number of the wrong thing** — wp-email's "all eight of the
+     messages the plugin sends" is eight templates, but five of them are page
+     headings and on-screen replies, not things sent.
+   * **A control that does not exist** — wp-draftsforfriends' "shareable
+     statuses" and wp-pluginsused' "where it links" are settings no screen
+     offers. wp-dbmanager credited the Database screen with a schedule only
+     Settings shows.
+
+   **Three of the seven describe controls that exist nowhere**, which is the
+   class that costs a user real time: they read the plugin page, expect a
+   setting, install, and cannot find it.
+
+   **The method that worked**: read the sentence, then check any claim it makes
+   against the code. `grep -c add_settings_field` settled three of them in
+   seconds — wp-draftsforfriends registers one field, wp-pluginsused two, and
+   neither matched what the caption promised. A claim with a number in it is
+   worth checking; a claim naming a screen is worth checking harder.
+
+   **The seeded post bodies also named plugins**, so wp-pagenavi's screenshot
+   advertised WP-CommentNavi and wp-relativedate's advertised WP-PageNavi.
+   `seed.php` is neutral now and both were retaken; wp-relativedate's is better
+   than what it replaced, showing two relative formats rather than three
+   identical ones. Retaking wp-pagenavi's also caught that the reseed moved the
+   front page from 43 pages to 42, so its caption stated a number the picture
+   contradicted.
+
    **Two findings outlast the images.** *Count-matches-README is not coverage*:
    the check that passed on all nineteen only proves the captions line up with
    the files, and passes on any number including one too small — a person
