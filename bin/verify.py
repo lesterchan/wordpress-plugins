@@ -544,6 +544,16 @@ def verify(slug, name, prefix, port, root):
             r.check(entry.startswith("class-"), "includes file naming", entry)
 
             body = read(os.path.join(includes, entry)) or ""
+
+            # Every include refuses a direct HTTP request. This went unchecked
+            # for the whole campaign because every file already had one, and
+            # then the first file written after that -- wp-polls' blocks class,
+            # the reference the blocks phase is copied from -- did not. An agent
+            # copying it noticed; nothing mechanical did. One missing guard in
+            # eighteen is exactly the drift this file exists to catch.
+            r.check("defined( 'ABSPATH' )" in body,
+                    "§2.4 every include guards against direct access",
+                    "%s has no defined( 'ABSPATH' ) || exit;" % entry)
             for cls in re.findall(r"^\s*(?:final\s+|abstract\s+)?class\s+(\w+)",
                                   body, re.M):
                 r.check(cls.startswith(prefix), "class prefix",
