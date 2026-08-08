@@ -165,6 +165,16 @@ def first_difference(got, want):
 
 # Files in includes/ whose names a theme copies verbatim to override them. The
 # filename is public API, so it cannot be bent to the class-*.php convention.
+# Admin labels WordPress itself renders, so a README naming them is telling the
+# truth about a screen this plugin does not own.
+README_CORE_UI = {
+    "settings", "plugins", "tools", "appearance", "widgets", "pages", "posts",
+    "add new", "users", "media", "comments", "dashboard", "editor",
+    "permalinks", "save changes", "general", "writing", "reading",
+    "discussion", "site health", "info", "server", "legacy widget",
+    "screen options", "bulk actions", "add post", "add page", "profile",
+}
+
 THEME_TEMPLATES = {
     "wp-print": ("print-posts.php", "print-comments.php"),
 }
@@ -1797,6 +1807,73 @@ def verify(slug, name, prefix, port, root):
                 "§13.4.7 a blocks class implies src/",
                 "%s exists but there is no src/ to build"
                 % os.path.relpath(blocks_file, root))
+
+    # --- §3.3 a README may not name a screen the plugin does not render ------
+    # This file has always checked README *structure* -- sections, their order,
+    # changelog prefixes -- and never its *claims*, so a README could name any
+    # screen, section or field and nothing noticed. Two survived a whole revamp:
+    # wp-polls sent readers to "Poll Options" for "Polls Archive URL" when the
+    # screen is Poll Settings, the section Archive and the field Poll Archive
+    # URL; and wp-postratings answered a FAQ with "under Ratings Colour", which
+    # has never existed anywhere. Both read as authoritative and send somebody
+    # hunting for a heading that is not on the page.
+    #
+    # The oracle is every translatable string the plugin renders, PHP *and* JS
+    # -- a block's inspector labels live in src/ and appear nowhere in the PHP,
+    # so a PHP-only scan reports wp-downloadmanager's real "File IDs" as a lie.
+    ui = set()
+    for path in (glob.glob(os.path.join(root, "includes", "*.php"))
+                 + glob.glob(os.path.join(root, "*.php"))
+                 + glob.glob(os.path.join(root, "src", "*", "*.js"))
+                 + glob.glob(os.path.join(root, "js", "*.js"))):
+        body = read(path) or ""
+        for pat in (r"__\(\s*'([^']{3,80})'", r"_e\(\s*'([^']{3,80})'",
+                    r"esc_html__\(\s*'([^']{3,80})'",
+                    r"esc_html_e\(\s*'([^']{3,80})'",
+                    r"esc_attr__\(\s*'([^']{3,80})'",
+                    # _x() and its escaping variants: the substring catches
+                    # esc_html_x() and esc_attr_x() too. wp-sweep's own menu
+                    # title is declared this way, and a scan without it reports
+                    # the plugin's name as a fiction.
+                    r"_x\(\s*'([^']{3,80})'"):
+            ui |= {s.strip().rstrip(":").lower() for s in re.findall(pat, body)}
+
+    if readme and ui:
+        # A path a reader is told to walk, however it is marked up.
+        for blob in (re.findall(r"`([^`\n]{4,90})`", readme)
+                     + re.findall(r"\*\*([^*\n]{4,90})\*\*", readme)):
+            if "->" not in blob:
+                continue
+            # Code shown to a developer -- $wpdb->tables, Foo::$bar->baz() --
+            # rather than a path shown to a user.
+            if any(t in blob for t in ("$", "::", "()", "_", "/")):
+                continue
+            for seg in (s.strip().strip("`").strip().rstrip(":.")
+                        for s in blob.split("->")):
+                low = seg.lower()
+                if not seg or low in README_CORE_UI:
+                    continue
+                if low.startswith("wp-admin") or low.startswith("wp admin"):
+                    continue
+                # A UI label is Title Case throughout; a sentence that happens
+                # to contain an arrow is not. "Individual Rating Text and Value"
+                # passes, "The settings screen is at Ratings" does not, and
+                # without this every bolded sentence wrapping a path is a false
+                # report.
+                connectors = {"and", "or", "the", "a", "an", "of", "to", "in",
+                              "for", "on", "with", "by"}
+                words = seg.split()
+                if len(words) > 6 or not words:
+                    continue
+                if not all(w[0].isupper() or w.lower() in connectors
+                           for w in words):
+                    continue
+                if low in ui or any(low in known for known in ui):
+                    continue
+                r.check(False,
+                        "§3.3 the README names a screen the plugin renders",
+                        '"%s" in "%s" is not a string this plugin renders'
+                        % (seg, blob))
 
     return r
 
