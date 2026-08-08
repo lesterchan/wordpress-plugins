@@ -1529,6 +1529,137 @@ def verify(slug, name, prefix, port, root):
             r.check(fn.startswith(under + "_"), "§2.5 global function prefix",
                     "%s() at %s:%d, want %s_*" % (fn, rel, line, under))
 
+    # --- a widget fills its instance out against defaults -------------------
+    #
+    # WP_Widget::widget() is handed whatever array the caller passed. the_widget()
+    # passes only what its caller wrote, and a sidebar can still hold an instance
+    # stored before a setting existed -- so a key read straight out of it prints
+    # "Undefined array key" into the middle of the rendered page.
+    #
+    # Seven plugins ship a widget. Six were already right, five by parsing
+    # against a defaults() method and one by guarding every read; wp-polls was
+    # the one that did neither, and it was found by *looking at a screenshot of
+    # the widget*, not by any suite. Nothing mechanical asked until this rule.
+    #
+    # Either shape passes: wp_parse_args() over the instance, or a guard on
+    # every read. The check is deliberately loose about which, because
+    # wp-useronline's guards are correct and rewriting them to satisfy a checker
+    # would be the tail wagging the dog.
+    for path in shipped:
+        body = read(path) or ""
+
+        if "extends WP_Widget" not in body:
+            continue
+
+        rel = os.path.relpath(path, root)
+        m = re.search(r"function\s+widget\s*\(\s*\$\w+\s*,\s*\$(\w+)\s*\)", body)
+
+        if not m:
+            continue
+
+        instance = m.group(1)
+        # Bounded to widget()'s own body, and that bound is the whole rule.
+        #
+        # Scanning to the end of the file instead looks harmless -- it can only
+        # be more lenient -- but form() parses the same $instance a few methods
+        # later in every one of these classes, so the leniency is total: the
+        # rule passed on the plugin it was written for. Caught by reverting
+        # wp-polls' fix and watching the check stay green.
+        tail = body[m.end():]
+        nxt = re.search(r"\n\t(?:public |protected |private )?function\s", tail)
+        if nxt:
+            tail = tail[:nxt.start()]
+        parsed = re.search(r"wp_parse_args\s*\(\s*\(array\)\s*\$" + instance, tail)
+        reads = re.findall(r"\$" + instance + r"\[\s*'(\w+)'\s*\]", tail)
+        guarded = re.findall(
+            r"(?:!\s*empty|isset)\s*\(\s*\$" + instance + r"\[\s*'(\w+)'\s*\]",
+            tail,
+        )
+
+        unguarded = [k for k in reads if k not in guarded]
+
+        r.check(bool(parsed) or not unguarded,
+                "a widget() fills its instance out against defaults",
+                "%s reads %s from $%s without wp_parse_args() or a guard -- an "
+                "instance missing a key prints a PHP warning into the page"
+                % (rel, ", ".join(sorted(set(unguarded))[:4]), instance))
+
+    # --- §13.4.7 what the WP-CLI and REST files are called ------------------
+    #
+    # The shipped class is named for the thing it is and the test for the
+    # surface it exercises, which is why WP_Sweep_Command is tested by
+    # test-cli.php. Both halves are copied per plugin, and anything copied into
+    # nineteen repositories diverges unless something compares it.
+    command_file = os.path.join(root, "includes", "class-%s-command.php" % slug)
+
+    if os.path.exists(command_file):
+        body = read(command_file) or ""
+        want_class = prefix + "_Command"
+
+        r.check("class %s extends WP_CLI_Command" % want_class in body,
+                "§13.4.7 command class name",
+                "%s should declare `class %s extends WP_CLI_Command`"
+                % (os.path.relpath(command_file, root), want_class))
+
+        # The registered name is the slug without the wp- prefix (§13.3): a
+        # directory convention is not a command-naming one, and `wp wp-polls`
+        # spells wp twice.
+        bare = slug[3:] if slug.startswith("wp-") else slug
+        registered = re.search(r"WP_CLI::add_command\(\s*'([^']+)'", "\n".join(
+            read(p) or "" for p in shipped))
+
+        r.check(registered is not None and registered.group(1) == bare,
+                "§13.3 command registers under the bare noun",
+                "want '%s', found %s" % (
+                    bare,
+                    "'%s'" % registered.group(1) if registered else "no add_command() call"))
+
+        test_cli = os.path.join(root, "tests", "test-cli.php")
+        r.check(os.path.exists(test_cli), "§13.4.7 a command has tests/test-cli.php")
+
+        if os.path.exists(test_cli):
+            r.check("class %s_CLI_Test" % prefix in (read(test_cli) or ""),
+                    "§13.4.7 CLI test class name",
+                    "tests/test-cli.php should declare class %s_CLI_Test" % prefix)
+
+        # §13.4.7 again: a command nobody is told about is a command nobody
+        # runs, and README.md ships to wordpress.org as readme.txt. Caught by
+        # Lester on the first three plugins rather than by any check.
+        r.check(readme is not None and "### WP-CLI" in readme,
+                "§13.4.7 a command is documented in the README",
+                "README.md needs a `### WP-CLI` block under `## Usage`")
+
+    api_file = os.path.join(root, "includes", "class-%s-api.php" % slug)
+
+    if os.path.exists(api_file):
+        body = read(api_file) or ""
+        want_class = prefix + "_API"
+        bare = slug[3:] if slug.startswith("wp-") else slug
+
+        r.check("class %s" % want_class in body, "§13.4.7 API class name",
+                "%s should declare `class %s`"
+                % (os.path.relpath(api_file, root), want_class))
+
+        r.check("const REST_NAMESPACE = '%s/v1'" % bare in body,
+                "§13.3 REST namespace is the bare noun",
+                "%s should carry const REST_NAMESPACE = '%s/v1'"
+                % (os.path.relpath(api_file, root), bare))
+
+        test_rest = os.path.join(root, "tests", "test-rest-api.php")
+        r.check(os.path.exists(test_rest), "§13.4.7 a namespace has tests/test-rest-api.php")
+
+        if os.path.exists(test_rest):
+            r.check("class %s_REST_API_Test" % prefix in (read(test_rest) or ""),
+                    "§13.4.7 REST test class name",
+                    "tests/test-rest-api.php should declare class %s_REST_API_Test" % prefix)
+
+        r.check(os.path.exists(os.path.join(root, "tests", "e2e", "rest.spec.js")),
+                "§13.4.7 a namespace has tests/e2e/rest.spec.js")
+
+        r.check(readme is not None and "### REST API" in readme,
+                "§13.4.7 a namespace is documented in the README",
+                "README.md needs a `### REST API` block under `## Usage`")
+
     return r
 
 
