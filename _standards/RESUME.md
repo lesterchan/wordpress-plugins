@@ -191,10 +191,16 @@ seven copies of it. That rule is worth writing; it is not written.
 
 ## Remaining work, in order
 
-**Two items are open**, and neither is a grind. Item 1 is waiting on a scope
-decision from Lester; item 2 is Lester's to schedule. Everything else that was
-on this list is done — see the two "Closed on" sections below, which keep the
-findings and drop the instructions.
+**What is actually left, 2026-08-08.** Item 1's scope question is closed and its
+CLI and REST halves are built, verified and pushed across the whole collection.
+**One thing remains in it: the Gutenberg blocks, which are deferred and not
+started** — §13.4.6 records the deferral, and §13.4.9's `--exclude='src'` must
+go into `plugin_deploy.sh` *before* the first `src/` directory exists or the
+next release ships the block sources to wordpress.org. Item 2 is Lester's to
+schedule. Everything else on this list is done — see the two "Closed on"
+sections below, which keep the findings and drop the instructions.
+
+Read the rest of item 1 for the findings; the instructions in it are spent.
 
 1. **WP-CLI, REST API and Gutenberg blocks across the collection.** The only
    substantial item left, and a phase of its own rather than a cleanup.
@@ -321,8 +327,8 @@ findings and drop the instructions.
    **A rating, a vote and a heartbeat are not the same shape**, and §13.4.7's
    naming table is the only part of this that copies cleanly.
 
-   **wp-polls is started, on a branch, and is not on master.** `wp-polls`
-   branch `wp-cli-rest-blocks`, one commit:
+   **wp-polls is merged to master and pushed.** What the branch
+   `wp-cli-rest-blocks` carried, and why each piece exists:
 
    * `WP_Polls_Poll` — the poll operations with no presentation attached. It
      exists because the admin handler interleaved `$wpdb` calls with the notice
@@ -349,27 +355,33 @@ findings and drop the instructions.
    three failures, each in the test written for it, and the code was restored
    and re-run green.
 
-   It stays on a branch only because merging is Lester's call, not because
-   anything is outstanding.
+   **`polls/v1` landed too**, three routes, and the caution that was written
+   here while it was still unstarted turned out to be the right one: the vote it
+   carries is the most safety-critical path in the plugin — repeat-vote checks,
+   cookies, the trusted-proxy header — so it was written only once the
+   vote-guard suite could be run against it, rather than written blind and
+   reviewed twice.
 
-   **What is not started: `polls/v1` and the two blocks.** The namespace is
-   meant to carry the vote that `wp_ajax_polls` carries today, and that is the
-   most safety-critical path in the plugin — repeat-vote checks, cookies, the
-   trusted-proxy header. **Writing a REST twin of it without being able to run
-   the vote-guard suite is the wrong order of work**, so it waits for the
-   harness rather than being written blind and reviewed twice.
+   **The `admin-ajax.php` action stayed registered**, per §13.4.2:
+   `wp_ajax_polls` and `wp_ajax_nopriv_polls` are both still on
+   `WP_Polls_Vote::vote_poll()`. A theme or a cached script calling it is in the
+   same position as a post containing a shortcode, so the route was added beside
+   it rather than in place of it.
 
-   One decision that follows from §13.4.2 and should be made the same way when
-   it lands: **the `admin-ajax.php` action stays registered.** A theme or a
-   cached script calling it is in the same position as a post containing a
-   shortcode, so the route is added beside it rather than in place of it.
+   **Only the two blocks are unstarted**, and they are the whole of what is left
+   of item 1 — see "What is actually left" at the top of this section.
 
-   **What the collection actually offers today**, counted 2026-08-07 by grepping
-   for `WP_CLI::add_command`, `register_rest_route`, `add_shortcode` and
-   `extends WP_Widget` in shipped code. This is the raw material for the scope
-   call, not a proposal — a shortcode is a block candidate and a widget is
-   evidence the output is already a self-contained chunk, but neither earns one
-   on its own:
+   **What the collection offered *before* this phase — a 2026-08-07 snapshot,
+   kept because it is what the scope call was decided against, and deliberately
+   not updated.** Its CLI and REST columns are therefore wrong about today: every
+   ✓ this phase added is missing from them, and the table above headed "Every
+   plugin in the scope now has its surface" is the current one. Counted by
+   grepping for `WP_CLI::add_command`, `register_rest_route`, `add_shortcode` and
+   `extends WP_Widget` in shipped code. Raw material, not a proposal — a
+   shortcode is a block candidate and a widget is evidence the output is already
+   a self-contained chunk, but neither earns one on its own. The Widget and
+   shortcode columns are still accurate, and they are the ones the blocks phase
+   needs:
 
    | Plugin | CLI | REST | Widget | Public shortcodes |
    |---|---|---|---|---|
