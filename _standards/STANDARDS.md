@@ -2076,7 +2076,9 @@ to suppress it is neither:
 
 * **Chunk output, so a block is right**: `poll`, `page_polls`, `ratings`,
   `views`, `page_useronline`, `page_stats`, `download`, `page_download`,
-  `page_downloads`, `showhide`, and wp-pluginsused' three list shortcodes.
+  `showhide`, and wp-pluginsused' three list shortcodes. `page_downloads` is not
+  listed separately: it is an alias of `page_download` on the same callback, and
+  listing it here read as a second thing to build.
 * **Inline, so a block is wrong**: `relativedate`, `relativetime`, `print_link`,
   `print_link_tag`, `email_link`. These belong in a sentence and a block would
   put each on its own line.
@@ -2095,7 +2097,7 @@ is the work.
 | wp-postratings | `wp postratings` | `postratings/v1` | `ratings` |
 | wp-postviews | `wp postviews` | `postviews/v1` | `views` |
 | wp-useronline | `wp useronline` | `useronline/v1` | `page_useronline` |
-| wp-downloadmanager | `wp downloadmanager` | — | `download`, `page_downloads` |
+| wp-downloadmanager | `wp downloadmanager` | — | `download`, `page_download` |
 | wp-dbmanager | `wp dbmanager` | — | — |
 | wp-ban | `wp ban` | — | — |
 | wp-draftsforfriends | `wp draftsforfriends` | — | — |
@@ -2112,6 +2114,24 @@ rather than an omission: freemyinternet, wp-commentnavi, wp-pagenavi and
 wp-serverinfo have no scriptable admin action and no self-contained front-end
 chunk. **Adding a command to a plugin that has no action to script is how a
 collection acquires nineteen commands nobody runs.**
+
+**wp-downloadmanager registers three shortcodes and earns two blocks, because
+two of the three are the same shortcode.** `page_download` and `page_downloads`
+are both registered to `WP_DownloadManager_Display::page_shortcode()`, which
+takes `$atts` and never the tag, so it cannot tell which one invoked it —
+identical output, identical single `category` attribute. Both have been there
+since the first commit, so the plural is long-standing typo tolerance rather
+than anything this campaign introduced.
+
+**The singular is the canonical one** — corrected 2026-08-08, Lester, after this
+table had picked the plural. Everything else in the plugin already agreed:
+README documents `[page_download]` and never mentions the plural, the e2e
+helper defaults to it, and the PHPUnit pair is named
+`test_the_page_download_shortcode_renders_the_listing` against
+`test_the_page_downloads_shortcode_is_an_alias`. For a shortcode the choice
+would be cosmetic, since both stay registered either way — but **a block name is
+written into `post_content` and outlives the post's edit history**, so the block
+wraps the documented spelling and the alias gets no block of its own.
 
 ### 13.4.5 None of the three names has to be claimed — but read *why*
 
