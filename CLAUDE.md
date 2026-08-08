@@ -52,6 +52,23 @@ are the plugin's.
 The judgement half — voice, comment density, whether a name earns its place —
 is not automatable and is not attempted, so a green run is not compliance.
 
+**Eight plugins now compile, and a plugin directory is no longer just what is in
+git.** The ones with blocks carry `src/` (committed, never shipped) and generate
+`build/` (gitignored, shipped — it is what the block registration loads).
+`bin/build` makes one from the other, and `bin/test.sh`, `bin/test-e2e.sh` and
+`plugin_deploy.sh` all run it before they do anything, so a suite cannot test a
+stale build and a release cannot ship one. Two consequences worth knowing before
+they bite:
+
+* **`git status` is silent about `build/`, and `build/` ships.** The deploy
+  rsyncs the working tree rather than a clean export, so anything untracked but
+  present on disk goes to wordpress.org. That is how Playwright's artifacts once
+  shipped with a logged-in session cookie in them.
+* **You cannot mutation-test a built artefact through the runners**, because they
+  rebuild first and your edit is gone before the suite starts. The suite passes
+  for a reason unrelated to the code, which looks exactly like a test that cannot
+  fail. Mutate the source and rebuild, or call phpunit directly.
+
 Commit these repositories with `--no-gpg-sign`; the global `commit.gpgsign`
 setting does not apply to them.
 

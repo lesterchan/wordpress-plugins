@@ -110,17 +110,25 @@ Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 
 **The whole collection was run, not sampled.** `bin/test-all.sh` and
 `bin/test-all.sh --multisite` both report **all 19 plugin suites passed**, and
-`verify.py` is 0. That sweep mattered more than it looks: **the nineteen README
-rewrites from the screenshot work are unpushed, so CI has never seen them**, and
-the shared metadata fixture is exactly what checks README structure, section
-order and changelog prefixes. Until this run, nothing had validated them.
+`verify.py` is 0. That sweep mattered more than it looks: the nineteen README
+rewrites from the screenshot work had never been seen by CI at the time, and the
+shared metadata fixture is exactly what checks README structure, section order
+and changelog prefixes. Until that run, nothing had validated them. They are
+pushed now.
 
-Browser suites, run one plugin at a time: wp-polls **45**, wp-postratings
-**66**, wp-useronline **92**. wp-useronline's was run twice — the first finished
-before its README landed, so it was not against the tree that was committed, and
-re-running was cheaper than arguing that a readme cannot affect a browser.
+**The blocks phase is finished and pushed** — twelve blocks in eight plugins, so
+item 1 is closed entirely. All eight were run locally with `bin/test.sh` one at
+a time, wp-postratings and wp-showhide on multisite too, plus wp-ban and wp-print
+as non-block controls. wp-polls' browser suite is **51** with its six block
+tests; wp-postratings **66** and wp-useronline **92** predate their block specs
+and will be higher.
 
-phpcs, eslint and the assertion-message ratio are clean across all three.
+**Do not read the numbers above as current.** Every one of them moves with the
+next commit, and this file has been wrong about exactly that before — see the
+`git fetch` entry below. CI is the authority; `gh run list` per repo is how you
+check, and it takes a minute.
+
+phpcs, eslint and the assertion-message ratio are clean.
 
 * `verify.py` is 0 across all 19, and all twenty repositories are level with
   their remotes.
