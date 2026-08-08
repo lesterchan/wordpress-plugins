@@ -2133,6 +2133,13 @@ would be cosmetic, since both stay registered either way — but **a block name 
 written into `post_content` and outlives the post's edit history**, so the block
 wraps the documented spelling and the alias gets no block of its own.
 
+**The alias stays registered** — Lester, 2026-08-08, asked directly. Dropping it
+from this document is a documentation change and nothing more. Anyone who typed
+`[page_downloads]` has that string in `post_content`, so deregistering it would
+render literal text on a live page, which is the failure §13.4.2 exists to
+prevent, and it would move the plugin's major version to remove a line that
+costs nothing to keep. `test_the_page_downloads_shortcode_is_an_alias` pins it.
+
 ### 13.4.5 None of the three names has to be claimed — but read *why*
 
 §13.3 deliberately left `email`, `print` and `stats` unsettled, being bare nouns
