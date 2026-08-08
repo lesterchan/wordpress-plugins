@@ -2304,18 +2304,35 @@ adds two directories and they want opposite treatment:
 
 * **`build/` must ship.** It is what `register_block_type_from_metadata()`
   loads, and it is correctly not excluded today.
-* **`src/` must not.** Unbuilt JSX is of no use to a site and is not excluded
-  today, so **the first plugin to grow a `src/` directory ships its sources to
-  wordpress.org unless `--exclude='src'` is added first.**
+* **`src/` must not.** Unbuilt JSX is of no use to a site, and this rsyncs the
+  working tree rather than a clean export, so sources on disk would ship.
+
+**`--exclude='src'` is in the script as of 2026-08-08, added while no plugin had
+a `src/` directory yet** — the only moment the change costs nothing and cannot
+be tested against a real deploy. The comment beside it warns the next reader not
+to add `build/` alongside it for symmetry: excluding `build/` ships a plugin
+whose blocks cannot render.
 
 The build itself needs no new mechanism: the script already runs `$SRC_DIR/bin/build`
-before the rsync if that file exists, and `bin` is excluded from what ships.
+before the rsync if that file exists, and `bin` is excluded from what ships. That
+ordering is also what makes the `src/` exclusion safe — the build has already
+turned `src/` into `build/` before anything is copied.
+
+**Verified by dry run rather than by reading**, per the rule below, using a
+scratch plugin containing both directories and the exclusion list parsed out of
+the real script rather than retyped. `build/poll/index.js` and
+`build/poll/block.json` shipped; `src/` did not. Then the mutation: with
+`--exclude='src'` dropped from the parsed list and nothing else changed, both
+`src/` files shipped. So the line is what stops them, and not some other
+exclusion catching them by accident.
 
 This is the fifth entry in a list whose lesson is that **a deny list acquires a
 new member every time the toolchain grows** — the same trap §7.2.1 records for
 metadata tests scanning the plugin root. The four before it were found by
-dry-running the rsync into a scratch directory and reading what came out; do
-that again once the first `src/` exists, rather than trusting this paragraph.
+dry-running the rsync into a scratch directory and reading what came out. Do
+that again when the first real `src/` exists, rather than trusting this
+paragraph: a scratch fixture proves the pattern matches, not that the toolchain
+puts everything where this assumed it would.
 
 ---
 

@@ -194,10 +194,12 @@ seven copies of it. That rule is worth writing; it is not written.
 **What is actually left, 2026-08-08.** Item 1's scope question is closed and its
 CLI and REST halves are built, verified and pushed across the whole collection.
 **One thing remains in it: the Gutenberg blocks, which are deferred and not
-started** — §13.4.6 records the deferral, and §13.4.9's `--exclude='src'` must
-go into `plugin_deploy.sh` *before* the first `src/` directory exists or the
-next release ships the block sources to wordpress.org. Item 2 is Lester's to
-schedule. Everything else on this list is done — see the two "Closed on"
+started** — §13.4.6 records the deferral. Its one prerequisite is now **done**:
+`--exclude='src'` went into `plugin_deploy.sh` on 2026-08-08, while no plugin
+had a `src/` directory yet, so the blocks phase can start without the first
+release shipping its sources to wordpress.org. It was dry-run and mutation-
+tested rather than eyeballed; §13.4.9 has the detail and the one thing not to do
+to it afterwards. Item 2 is Lester's to schedule. Everything else on this list is done — see the two "Closed on"
 sections below, which keep the findings and drop the instructions.
 
 Read the rest of item 1 for the findings; the instructions in it are spent.
