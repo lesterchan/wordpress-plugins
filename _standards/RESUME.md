@@ -1028,6 +1028,33 @@ and nothing short of running the suite will tell you.
 
 ## Traps
 
+* **`svn log` on a working copy cannot see commits newer than that copy, so it is
+  not evidence about wordpress.org.** It defaults to `BASE:0`. After an accidental
+  deploy on 2026-08-08 a local `svn log -l 2 trunk` reported the newest revision as
+  2022 and the conclusion drawn was "nothing was published". The URL told the truth
+  immediately:
+
+      svn log -l 2 http://plugins.svn.wordpress.org/<slug>/trunk
+      svn ls        http://plugins.svn.wordpress.org/<slug>/trunk
+
+  r3638607 had emptied wp-ban's trunk seven minutes earlier. **Ask the repository,
+  not the checkout** — the same shape as the `git fetch` entry in Current state: a
+  local view is a claim about your disk and nothing else.
+
+* **There is no deploy script any more, and the reason is the incident that
+  removed it.** `plugin_deploy.sh` did everything in one pass ending in `svn ci` —
+  no dry run, no diff to read, no place to stop. It was invoked on 2026-08-08 to
+  test an unrelated guard, piped through `head -4` in the belief that would stop
+  it. It did not: SIGPIPE only kills the writer on its next write and the script
+  had already finished. It emptied wp-ban's trunk on wordpress.org.
+
+  Nothing was lost — `tags/1.69.2` was untouched, so downloads and updates kept
+  working, and `svn merge -c -<rev>` restored trunk. What it cost was trust in a
+  release path that could not be rehearsed. The work now lives in the
+  `release-wp-plugin` skill as Step 4a–4f, six inspectable commands with a hard
+  stop at `svn stat` before the commit. **Do not reintroduce the script.**
+
+
 * **`plugin_deploy.sh` rsyncs the working tree, not a clean export**, so
   anything present on disk ships whether or not git tracks it. Three things were
   going to wordpress.org that should not have been, all fixed in that script on
