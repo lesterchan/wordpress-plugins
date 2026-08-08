@@ -1007,6 +1007,23 @@ test asserting the plugin registers no `rtl` style data and ships no `*-rtl.css`
 * Every plugin with a `js/` directory has `tests/js/*.test.js` covering it, run
   by vitest + jsdom.
 
+**A block's editor script is the one exception to the empty dependency array,
+and it is a narrow one.** Everything above is about scripts the plugin
+hand-registers: those name no dependency, because a dependency there is either
+jQuery or something the plugin does not need. A block's editor script is not
+one of those. Its handle is minted by core from `block.json`, its dependency
+array is written by the build from what the source actually imports, and
+`wp-blocks`, `wp-block-editor`, `wp-components`, `wp-i18n`,
+`wp-server-side-render` and `react-jsx-runtime` are not extras a block could do
+without — they are what a block *is*. The rule for these, and only these, is
+therefore: **every dependency must be a handle WordPress itself registers, and
+none of them may be jQuery.** Core ships `jquery`, so "core provides it" on its
+own would let jQuery back in through the one door §6 exists to close.
+
+Nothing else moves. `js/*.js` is still hand-written, still bundler-free, still
+grepped for `jQuery` and `$(`; `build/` is generated and is never edited, never
+linted as source, and never counted as a `js/` directory for the vitest rule.
+
 ---
 
 ## 7. Testing
@@ -1177,6 +1194,34 @@ three; do not rediscover them:
   action name `wp_enqueue_scripts`, which a plugin legitimately hooks to enqueue
   a *stylesheet* — wp-stats failed on precisely that, and four siblings were
   carrying the same assertion, passing only because they had no sheet yet.
+
+  **Do not read a block's dependencies out of `wp_scripts()`.** A block's script
+  handles are registered once, at the `init` that the bootstrap fires, and the
+  registry they land in is a process-wide global that several plugins rebuild in
+  `set_up()` for the reasons at the top of this section — wp-showhide assigns a
+  fresh `WP_Scripts` before every test, wp-polls and wp-useronline null it before
+  some. In those plugins the handle has simply gone by the time the metadata test
+  loops over the registry, so the assertion runs against nothing and passes
+  without ever seeing the block. That is how wp-polls shipped a block through a
+  green CI run while wp-postratings, which rebuilds nothing, failed on the
+  identical dependency array. **The block half is read off disk instead**, from
+  the `build/*/*.asset.php` manifest the build wrote and the release ships: same
+  answer, same in every plugin, same in every run order.
+
+**Firing `init` a second time re-registers the blocks.** `init` has already
+fired once before the first test runs — the bootstrap loads the plugin, then
+finishes booting WordPress. A test that fires it again to watch what a plain
+front-end request does (§7.6's migration tests do exactly this, and so do the
+two shared opt-out branches for a plugin that stores nothing) re-runs everything
+hooked there, and `register_block_type_from_metadata()` on an already-registered
+name is a `_doing_it_wrong()` notice, which this suite turns into a failure. The
+fix is **not** a guard inside the plugin's `register()`: `init` fires once per
+request, a second registration in production would be a real bug, and a guard
+would swallow it. It is the test's simulation that is imperfect — one process
+standing in for two requests — so the shared fixture's `fire_init()` empties the
+block registry of the plugin's own blocks first, which is the state a real
+second request would start from, and then fires `init`. Anything that re-fires
+`init` goes through it.
 
 ### 7.2.2 Capabilities do not mean the same thing on a network
 

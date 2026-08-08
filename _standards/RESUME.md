@@ -150,6 +150,57 @@ phpcs, eslint and the assertion-message ratio are clean across all three.
   2026-08-07 and fixed on 2026-08-08; the write-up is kept below because how it
   was found is the useful part.
 
+## Closed 2026-08-08 — the blocks phase broke the metadata fixture two ways
+
+Eight plugins gained blocks; five of the eight went red on PHPUnit while
+wp-polls, wp-useronline and wp-showhide's jQuery test stayed green. **The green
+ones were the finding, not the red ones.**
+
+**Cause (a) — §6's dependency rule predates blocks.**
+`test_no_jquery_is_enqueued()` demanded an empty `deps` array from every
+registered handle whose name starts with the slug. A block's editor script
+handle is minted by core from `block.json` and its dependencies are written by
+the build: `react-jsx-runtime`, `wp-block-editor`, `wp-blocks`, `wp-components`,
+`wp-i18n`, `wp-server-side-render`. That is not a §6 violation, it is what a
+block is — the same shape §7.2.1 already names, *a metadata rule written before
+X will fire on X's scaffolding*, and the answer is the same: widen the rule, do
+not move the file. The rule now says, for block scripts only, **every dependency
+must be a handle WordPress itself registers and none may be jQuery** — core
+ships `jquery`, so "core provides it" alone would reopen the one door §6 exists
+to close.
+
+**Why three plugins passed anyway, which is the worse half.** The fixture read
+`wp_scripts()->registered`. A block's handles are registered once, at the `init`
+the bootstrap fires, into a process-wide global — and wp-showhide assigns a
+fresh `WP_Scripts` in `set_up()` for *every* test, wp-polls and wp-useronline
+null it before some. In those three the handle had gone by the time the metadata
+test looped, so the loop ran against nothing and passed. **wp-polls shipped a
+block through six green PHPUnit rows on the identical dependency array that
+failed wp-postratings.** The fixtures had not drifted — all nineteen copies were
+byte-identical to the template throughout — the plugins' own `set_up()` methods
+had. The block half is now read off disk, from the `build/*/*.asset.php`
+manifest the build wrote and the release ships: same answer in every plugin and
+every run order. Verified by breaking it deliberately in wp-showhide, the plugin
+where the old assertion saw nothing at all.
+
+**Cause (b) — firing `init` twice re-registers the blocks.** `init` has already
+fired before the first test runs. wp-postratings' two migration tests and the
+fixture's own two "this plugin stores nothing" branches fire it again to watch a
+front-end request, which re-runs block registration, which is a
+`_doing_it_wrong()` notice, which this suite turns into a failure. **The guard
+was deliberately not put in the plugin**: `init` fires once per request, a
+second registration in production would be a real bug, and a guard would swallow
+it. The test's simulation is what is imperfect — one process standing in for two
+requests — so `fire_init()` empties the block registry of the plugin's own
+blocks first, the state a real second request starts from, and then fires
+`init`. Anything that re-fires `init` goes through it.
+
+Both fixes are in the shared fixture and copied to all nineteen; §6 and §7.2.1
+carry the reasoning. Run locally: wp-postratings (single **and** multisite),
+wp-showhide (both), wp-pluginsused, wp-downloadmanager, plus wp-ban and wp-print
+as non-block controls. wp-postviews, wp-useronline, wp-stats and wp-polls are
+left to CI — they are the same fixture and the same two causes.
+
 ## Closed 2026-08-08 — wp-polls' widget warned on the front end
 
 `WP_Polls_Widget::widget()` reads `$instance['title']`, `$instance['poll_id']`
