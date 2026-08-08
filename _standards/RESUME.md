@@ -941,6 +941,43 @@ and nothing short of running the suite will tell you.
   that run in 1.8 minutes against 5.9 to 7.2 for a full pass, so whatever it was
   hit early and hit the harness rather than any one test.
 
+* **A browser suite that fails from some point onward and never recovers was
+  stomped, not broken — and the tell is in the tests environment afterwards.**
+  wp-postviews on 2026-08-08: **57 passed, then 56 consecutive failures**, every
+  one of them the same `Class "WP_PostViews_Options" not found` out of
+  `wp eval` on `tests-cli`. Not a single pass after the cliff.
+
+  The plugin's own classes being absent means the plugin was not active, and the
+  post-mortem check settled which way: in the tests environment afterwards
+  **wp-postviews was inactive and `twentytwentyone` was inactive too**. Those are
+  precisely the two things `bin/test-e2e.sh` activates before it runs, and its
+  own comment names the hazard — *"Running PHPUnit reinstalls this same
+  database, which takes the plugin, the theme and the logged-in session with
+  it."* A plugin alone could be a deactivation; **plugin and theme together is
+  the database being reinstalled underneath a running suite.**
+
+  What was *not* established is what ran PHPUnit — nothing of this session's was
+  in flight. So this is a confirmed mechanism with an unproven trigger, and it
+  is written down for the signature rather than the culprit. Note it is the same
+  shape as the unexplained red run above, which sits three dead hypotheses deep;
+  one of those was "PHPUnit reinstalls the database", tested as *before* the
+  failing run and correctly rejected. **During** was never tested.
+
+  Read the cliff before reading the failures. 56 failures is one event; a
+  contiguous block with no pass after it is an environment that changed, and the
+  useful evidence is in the container, not the log. Two checks settle it in
+  seconds: `wp plugin list` and `wp theme list` against `tests-cli`.
+
+* **The browser suites belong in CI, and this is why.** Every `ci.yml` already
+  runs Playwright, PHPUnit across the WP/PHP matrix single and multisite, ESLint
+  and the JS tests. CI gives each plugin its own runner and its own containers,
+  so nothing can reinstall a database underneath anything else — which is the
+  one failure mode local runs keep producing, twice now with a full diagnosis
+  costing more than the run. Locally the suites must be run one plugin at a time
+  and are still not safe; in CI nineteen run at once and are. Push and read the
+  runs. Lester's call, 2026-08-08, and it retired a queue of four suites that
+  were being run serially for no gain.
+
 * **A cancelled CI run is not a failed one.** Every `ci.yml` sets
   `concurrency: cancel-in-progress: true`, so pushing a second commit while the
   first run is going kills the first. Five plugins showed a grey cancelled run
