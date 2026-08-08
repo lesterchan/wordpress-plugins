@@ -1791,6 +1791,22 @@ def verify(slug, name, prefix, port, root):
                 "§13.4.10 bin/build is executable",
                 "the deploy and both runners invoke it directly")
 
+        # §13.4.2: a block wraps a shortcode and never replaces it, so the
+        # shortcode it wraps must still be registered. The block name is the
+        # shortcode's, hyphenated -- a block name cannot contain an underscore
+        # -- which holds for all twelve blocks in the collection and is the
+        # only declared link between the two.
+        #
+        # This is the promise the whole blocks phase rests on: these shortcodes
+        # sit in an unknowable number of published posts, and a block that
+        # replaced one renders literal text on every page holding it. Each
+        # plugin's own suite asserts it; nothing checked it across the set.
+        shortcodes = set()
+        for path in (glob.glob(os.path.join(root, "includes", "*.php"))
+                     + glob.glob(os.path.join(root, "*.php"))):
+            shortcodes |= set(re.findall(r"add_shortcode\(\s*'([a-z_0-9]+)'",
+                                         read(path) or ""))
+
         # §13.4.8: a block name is written into post_content and outlives the
         # post, so it keeps the wp- prefix the command and namespace drop. The
         # name lives in block.json, which is the only place it is declared.
@@ -1807,6 +1823,12 @@ def verify(slug, name, prefix, port, root):
                     "§13.4.8 a block name keeps the wp- prefix",
                     "src/%s/block.json declares '%s', expected '%s/...'"
                     % (entry, name, slug))
+
+            wrapped = name.split("/", 1)[-1].replace("-", "_")
+            r.check(wrapped in shortcodes,
+                    "§13.4.2 a block's shortcode is still registered",
+                    "%s wraps [%s], which nothing calls add_shortcode() for"
+                    % (name, wrapped))
     else:
         # The converse, so a stray blocks class cannot sit in a plugin with
         # nothing to build: its blocks would never register.
