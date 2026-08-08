@@ -968,15 +968,43 @@ stays that way for a reason:
 | §13.4 and its nine subsections | scope and process, with three exceptions that should get rules as the surfaces land. **§13.4.2**: "a plugin registering a block still registers the shortcode it wraps". **§13.4.7**: the file and class names in its table, which is the shape `verify.py` already checks for `phpcs.xml` and `ci.yml`. **§13.4.9**: that `src` is on the deploy's exclusion list once any plugin has a `src/`. All three are mechanical and drift-prone, which is the definition of what belongs in `verify.py` |
 | §15 Order of work | process, not state |
 
-**The arithmetic here has never closed, and saying so is better than rounding
-it.** Before 2026-08-07 this section claimed 41 enforced out of 48 and then
-listed six unenforced — which accounts for 47. So either the enforced count is
-42 or a seventh section is unchecked and unlisted, and **nothing has counted
-which**. Both numbers came from the 2026-08-04 audit and neither was re-derived
-afterwards. The way to settle it is the audit that produced every finding of
-that week — walk the spec section by section asking "what enforces this?" — not
-another guess in this paragraph. Until somebody does, **treat 41 as a lower
-bound rather than a measurement**.
+**The arithmetic, measured on 2026-08-08 — and the measurement's limits matter
+as much as its answer.**
+
+Mechanically: the spec has **58** numbered sections; **40** are cited by a `§`
+label in `bin/verify.py` or in the shared metadata fixture, and **18** are not.
+That closes — 40 + 18 = 58 — where the old "41 of 48 with six unenforced"
+accounted for 47 and never did. Re-derive it with:
+
+```sh
+grep -oE '^#{2,4} [0-9]+(\.[0-9]+)*' _standards/STANDARDS.md | awk '{print $2}' | sort -u > /tmp/s
+grep -ohE '§[0-9]+(\.[0-9]+)*' bin/verify.py _standards/templates/helper-metadata-testcase.php \
+  | tr -d '§' | sort -u > /tmp/c
+comm -12 /tmp/s /tmp/c | wc -l    # cited
+comm -23 /tmp/s /tmp/c | wc -l    # not cited
+```
+
+**Both files must be sorted the same way or `comm` returns nonsense** — the
+first attempt sorted one numerically and one lexically and produced a list of
+sections that "did not exist".
+
+**But 40 is an upper bound on enforcement, not a count of it, and the difference
+is the point.** A `§` citation is evidence that somebody had the section in mind,
+not proof that a check tests it. §7.2.1's only two citations are *comments about
+a different rule* — "test-\*.php would be the §7.2.1 mistake" — and this file has
+always, correctly, listed §7.2.1 as unenforced because it needs the suite
+running. So at least one of the 40 is a false positive, and there may be more.
+
+Four of the 18 are also not real gaps: **§2, §3, §4 and §5 are parent headings**
+whose subsections are enforced. The genuine unchecked leaves are §4.4, §7.2.3,
+§7.3, §7.6, §15 and most of §13.4 — and §13.4's subsections are scope and
+process prose, which is unenforceable by nature rather than by neglect.
+
+**The honest summary: roughly three quarters of the spec has something
+mechanical behind it, the remainder is judgement or process, and no more precise
+number should be written here without walking the sections one at a time.**
+Counting citations is a five-minute proxy; the audit that produced every finding
+of 2026-08-04 was the slow version, and it is the slow version that finds bugs.
 
 Two more were attempted and deliberately abandoned, which is worth as much as
 the rules that landed. **§4.2.2's "do not repeat a word the context supplies"** —
