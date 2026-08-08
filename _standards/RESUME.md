@@ -242,27 +242,39 @@ seven copies of it. That rule is worth writing; it is not written.
 
 ## Remaining work, in order
 
-**What is actually left, 2026-08-08.** Item 1's scope question is closed and its
-CLI and REST halves are built, verified and pushed across the whole collection.
-**One thing remains in it: the Gutenberg blocks, and they are now started.**
-`--exclude='src'` went into `plugin_deploy.sh` first, while no plugin had a
-`src/` yet — §13.4.9, dry-run and mutation-tested rather than eyeballed.
+**Item 1 is complete, 2026-08-08.** WP-CLI, REST and blocks are all built,
+verified and pushed across the collection. **Twelve blocks in eight plugins** —
+wp-polls (`poll`, `page-polls`), wp-downloadmanager (`download`,
+`page-download`), wp-pluginsused (three), and one each in wp-postratings,
+wp-postviews, wp-useronline, wp-stats and wp-showhide. §13.4.4's scope table is
+fully discharged.
 
-**wp-polls is built, verified and pushed, and is the reference**: two blocks,
-`wp-polls/poll` and `wp-polls/page-polls`, PHPUnit 324 single and multisite,
-Playwright 51, phpcs and ESLint clean. **§13.4.10 is what the next seven should
-read** — it is the toolchain rather than the blocks that cost the time, and all
-of it is inherited.
+**wp-polls was the reference and §13.4.10 is what the other seven inherited** —
+the toolchain cost the time, not the blocks. The seven were then one agent each,
+in parallel, which was the wrong call before a reference existed and the right
+one after.
 
-**Seven plugins to go, twelve blocks in total.** wp-postratings (`ratings`),
-wp-postviews (`views`), wp-useronline (`page_useronline`), wp-showhide
-(`showhide`), wp-stats (`page_stats`), wp-downloadmanager (`download`,
-`page_download`), wp-pluginsused (its three list shortcodes). **These are one
-agent each now**, which they were not before wp-polls existed: eight independent
-inventions of a build toolchain is the drift this repository exists to prevent,
-and the same sequencing worked for the CLI and REST halves — reference first,
-then fan out. wp-postratings is the natural second, being the same shape, which
-is what proves the reference transfers rather than fits.
+**Read §13.4.10's last paragraph before the next phase of anything.** Every one
+of the seven deviated from the reference somewhere, and every deviation was
+right: wp-showhide needed `InnerBlocks` because `[showhide]` encloses; four
+plugins correctly did *not* copy `block_editor_styles()` because they ship no
+CSS; wp-useronline correctly refused wp-polls' "block and shortcode on one page"
+test, which would have **passed** while asserting a duplicate DOM id. Uniformity
+would have bought a green test standing guard over a bug.
+
+**Two pre-existing bugs surfaced only because a second entry point existed.**
+wp-downloadmanager's `download_shortcode()` compared `0 !== $id` strictly against
+an integer while `shortcode_atts()` returns what was typed, so
+`[download id="0" category="3"]` rendered nothing where the block rendered
+category 3. wp-stats gated its stylesheet on `has_shortcode()` alone, so a
+block-only page loaded no CSS. Both are the identical-markup assertion earning
+its place.
+
+**Three checks were missing and are now in `bin/verify.py`**, each found by an
+agent rather than by the checker: every include must guard against direct access
+(wp-polls' own blocks class was the only one of eighteen without it); §13.4.7's
+blocks row was unenforced while the CLI and REST rows were checked; and a block
+plugin's runners must invoke `bin/build`. All mutation-tested both directions.
 
 Item 2 is Lester's to schedule. Everything else on this list is done — see the two "Closed on"
 sections below, which keep the findings and drop the instructions.
@@ -817,6 +829,26 @@ once; **wp-postviews** (98) is padded — a six-way parametrised loop at
 one assertion with a different argument.
 
 ## Tests that cannot fail
+
+* **You cannot mutation-test anything under `build/`, because the runner
+  rebuilds it first.** `bin/test.sh` and `bin/test-e2e.sh` both run `bin/build`
+  before they run anything — added so a suite cannot silently test a stale
+  build. The cost is the mirror image: edit `build/showhide/index.asset.php` to
+  prove an assertion bites, run `bin/test.sh --filter Metadata`, and the build
+  regenerates the file before PHPUnit starts. **The suite passes, and it passes
+  for a reason that has nothing to do with the code.**
+
+  Seen on 2026-08-08 verifying that the new block dependency rule catches
+  `jquery`. The first attempt came back green and the claim under test was
+  nearly recorded as unproven. Injecting the same value and calling phpunit
+  directly —
+
+      npx @wordpress/env run tests-cli --env-cwd=wp-content/plugins/<slug> \
+        vendor/bin/phpunit -c phpunit.xml.dist --filter Metadata
+
+  — failed exactly as it should. **Mutate the source and rebuild, or bypass the
+  runner; never mutate a build artefact and use the runner.** The same applies
+  to anything else generated during a run.
 
 * **A stand-in that records instead of doing cannot see what the real thing
   does with the recording.** The WP-CLI `format_items()` stand-in stores the
