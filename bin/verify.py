@@ -89,6 +89,12 @@ README_FIELDS = [
 
 CANONICAL_SECTIONS = [
     "## Description",
+    # Installation sits between them because wordpress.org renders it as its own
+    # tab and a reader looks there before Usage: install, then use. Every plugin
+    # carries one even where the honest content is "activate it and you are
+    # done" -- Lester's call, on the grounds that a tab present on some plugins
+    # and missing on others reads as an omission rather than as a decision.
+    "## Installation",
     "## Usage",
     "## Frequently Asked Questions",
     "## Screenshots",
@@ -368,7 +374,8 @@ def verify(slug, name, prefix, port, root):
 
         # §3.3: the h2 set is closed and ordered. h3s are free.
         found_h2 = [ln.rstrip() for ln in lines if ln.startswith("## ")]
-        for section in ("## Description", "## Changelog", "## Upgrade Notice"):
+        for section in ("## Description", "## Installation", "## Changelog",
+                        "## Upgrade Notice"):
             r.check(section in found_h2, "README section present", section)
 
         unexpected = [h for h in found_h2 if h not in CANONICAL_SECTIONS]

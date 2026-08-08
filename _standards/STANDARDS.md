@@ -562,12 +562,38 @@ headings are free — `## Changelog` necessarily contains `### 2.0.0`, and
 ```
 ## Description
 ### Features            (optional, only if the plugin has a bullet list)
+## Installation         (every plugin, even the ones with nothing to do)
 ## Usage                (h2, never "General Usage")
 ## Frequently Asked Questions
 ## Screenshots
 ## Changelog
 ## Upgrade Notice
 ```
+
+**`## Installation` is required of all nineteen** — Lester's call, 2026-08-08,
+overruling a proposal to give it only to the four plugins with a real first-run
+step. The reasoning is that wordpress.org renders it as its own tab, so a tab
+present on some of these plugins and missing on others reads to a user as an
+omission rather than as a decision. It sits between Description and Usage
+because that is the order a reader works in: install, then use.
+
+**It is not boilerplate, and must not become boilerplate.** "Upload to
+`wp-content/plugins/`" is advice from before WordPress had a plugin installer
+and is not to be reintroduced. Step one is *install and activate*; everything
+after it is specific to the plugin. Where a plugin genuinely needs nothing, say
+so plainly and say what happens instead — wp-relativedate's whole section is
+one step and a sentence explaining that dates are rewritten the moment it is
+active.
+
+**Four plugins do nothing useful until something is done, and that step belongs
+here rather than in Usage**: wp-print and wp-email register rewrite endpoints
+and wp-downloadmanager registers rewrite rules, so all three need permalinks
+re-saved — wp-print's printable page 404s until then. wp-dbmanager needs its
+backup folder created, writable and **secured**, which is the one step in the
+collection with a security consequence, and it was previously the fourth bullet
+of a Usage list where somebody skimming for how to use the plugin scrolled
+past it. wp-print's steps were in `## Description`, which is the section meant
+to tell a stranger what the plugin is.
 
 * `### Development` and `### Credits` are removed. Development instructions live
   in the repo, not the wordpress.org readme.
