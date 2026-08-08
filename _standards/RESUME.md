@@ -193,13 +193,27 @@ seven copies of it. That rule is worth writing; it is not written.
 
 **What is actually left, 2026-08-08.** Item 1's scope question is closed and its
 CLI and REST halves are built, verified and pushed across the whole collection.
-**One thing remains in it: the Gutenberg blocks, which are deferred and not
-started** — §13.4.6 records the deferral. Its one prerequisite is now **done**:
-`--exclude='src'` went into `plugin_deploy.sh` on 2026-08-08, while no plugin
-had a `src/` directory yet, so the blocks phase can start without the first
-release shipping its sources to wordpress.org. It was dry-run and mutation-
-tested rather than eyeballed; §13.4.9 has the detail and the one thing not to do
-to it afterwards. Item 2 is Lester's to schedule. Everything else on this list is done — see the two "Closed on"
+**One thing remains in it: the Gutenberg blocks, and they are now started.**
+`--exclude='src'` went into `plugin_deploy.sh` first, while no plugin had a
+`src/` yet — §13.4.9, dry-run and mutation-tested rather than eyeballed.
+
+**wp-polls is built, verified and pushed, and is the reference**: two blocks,
+`wp-polls/poll` and `wp-polls/page-polls`, PHPUnit 324 single and multisite,
+Playwright 51, phpcs and ESLint clean. **§13.4.10 is what the next seven should
+read** — it is the toolchain rather than the blocks that cost the time, and all
+of it is inherited.
+
+**Seven plugins to go, twelve blocks in total.** wp-postratings (`ratings`),
+wp-postviews (`views`), wp-useronline (`page_useronline`), wp-showhide
+(`showhide`), wp-stats (`page_stats`), wp-downloadmanager (`download`,
+`page_download`), wp-pluginsused (its three list shortcodes). **These are one
+agent each now**, which they were not before wp-polls existed: eight independent
+inventions of a build toolchain is the drift this repository exists to prevent,
+and the same sequencing worked for the CLI and REST halves — reference first,
+then fan out. wp-postratings is the natural second, being the same shape, which
+is what proves the reference transfers rather than fits.
+
+Item 2 is Lester's to schedule. Everything else on this list is done — see the two "Closed on"
 sections below, which keep the findings and drop the instructions.
 
 Read the rest of item 1 for the findings; the instructions in it are spent.

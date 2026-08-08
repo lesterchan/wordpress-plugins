@@ -2361,6 +2361,71 @@ that again when the first real `src/` exists, rather than trusting this
 paragraph: a scratch fixture proves the pattern matches, not that the toolchain
 puts everything where this assumed it would.
 
+**Done, against wp-polls' real `src/`, 2026-08-08** — and it found nothing new,
+which is the outcome worth recording because the instruction above assumed it
+might. `src/` absent, `build/` shipped complete with the nine files webpack and
+`bin/build` put there, and no leak of `tests`, `bin`, `CLAUDE.md`, `AGENTS.md`,
+`package.json`, `artifacts` or `node_modules`. Re-run it anyway for the first
+plugin whose build emits something wp-polls' does not — a stylesheet, a
+`viewScript`, a `render.php`.
+
+### 13.4.10 What the first block plugin cost, and what the next seven inherit
+
+wp-polls is built and is the reference. Five things came out of it that were not
+in the plan, and all five are the toolchain rather than the blocks:
+
+* **`build/` is generated, gitignored, and shipped.** That combination is
+  unusual here and every rule below follows from it. `src/` is the opposite:
+  committed and not shipped.
+* **Three scripts had to learn to build.** `plugin_deploy.sh` already ran
+  `bin/build`; `bin/test.sh` and `bin/test-e2e.sh` did not, and without them a
+  checkout that has never been built fails the block tests for a reason
+  unrelated to the code — or worse, on a checkout where `src/` changed since the
+  last build, **silently tests the previous build and passes**.
+* **CI's PHPUnit job builds too**, because it invokes phpunit directly rather
+  than through `bin/test.sh` — the matrix picks the config file — so the build
+  step is repeated there rather than inherited. Six matrix rows, so it is an
+  `npm ci` six times; that is the price and it is why the step is conditional.
+* **The shared metadata suite requires an `index.php` in every directory, and
+  webpack does not know that.** `build/` and each block's directory under it
+  need one, so `bin/build` writes them after the compile — *walked*, not listed,
+  or a block added later ships without one. This is §7.2.1's trap arriving from
+  a new direction: the suite scans what is on disk, and a generated directory is
+  on disk.
+* **phpcs must exclude `build/`.** webpack writes each block an
+  `index.asset.php` on one line, and its formatting is webpack's to decide
+  rather than ours to sniff. ESLint covers `src/` instead.
+
+**The three shared files became conditional rather than uniform.** `ci.yml`,
+`package.json` and `phpcs.xml` all now carry block support that `bin/verify.py`
+drops for a plugin with no `src/`, the way the eslint job is already dropped for
+a plugin with no JavaScript. Eleven of the nineteen will never have blocks. A
+`build` script in a plugin with nothing to build is not merely redundant — it is
+a command that fails the first time anybody runs it — so the two `wp-scripts`
+entries are an **error** when `src/` is absent, not merely tolerated.
+
+**Two things in the block sources that lint will demand.** `edit` must be a
+capitalised named component rather than an `edit()` shorthand, because
+`useBlockProps` is a hook and the hook rules identify a component by that
+capital; and `__experimentalNumberControl` is forbidden, so a numeric field is
+`TextControl` with `type="number"`. Both are ESLint errors, not opinions.
+
+**The poll is chosen by id typed into a field, not from a dropdown.** A dropdown
+needs a route listing every poll, and §13.4.1 is why there isn't one: the
+namespace carries what the AJAX endpoint already carried and no more. If a
+picker is ever wanted, that is a decision to make on its own evidence, not a
+control to add and a route to invent for it.
+
+**What to assert, in the order the value falls.** The PHPUnit suite should pin
+that the block and the shortcode render **identical** markup — two entry points
+that merely both work can drift; byte-identical output is evidence they are
+going through one renderer — and that **neither is implemented in terms of the
+other**, by unregistering each and watching the other carry on. The browser
+suite should not repeat any of that. Its whole justification is that `build/` is
+generated, so every assertion in it is also an assertion that the build ran and
+produced something a browser can load: the editor script registering both
+blocks, and a poll rendered from a block actually being votable.
+
 ---
 
 ## 14. Versions and the release baseline
