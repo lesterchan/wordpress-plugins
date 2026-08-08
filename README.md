@@ -30,27 +30,27 @@ see it yet.
 Each links to its own repository. All are on
 [wordpress.org/plugins](https://wordpress.org/plugins/search/lesterchan/).
 
-| Plugin | Slug | What it does |
-|---|---|---|
-| [FreeMyInternet](https://github.com/lesterchan/freemyinternet) | `freemyinternet` | A site-wide protest banner or full-screen blackout, with optional start and end dates. |
-| [WP-Ban](https://github.com/lesterchan/wp-ban) | `wp-ban` | Ban visitors by IP, IP range, host name, user agent or referrer. |
-| [WP-CommentNavi](https://github.com/lesterchan/wp-commentnavi) | `wp-commentnavi` | Paged navigation for comments. |
-| [WP-DBManager](https://github.com/lesterchan/wp-dbmanager) | `wp-dbmanager` | Optimise, repair, back up and restore the database, on a schedule. |
-| [WP-DownloadManager](https://github.com/lesterchan/wp-downloadmanager) | `wp-downloadmanager` | A simple download manager with hit counting. |
-| [WP-DraftsForFriends](https://github.com/lesterchan/wp-draftsforfriends) | `wp-draftsforfriends` | Share a draft with somebody without giving them an account. |
-| [WP-EMail](https://github.com/lesterchan/wp-email) | `wp-email` | Let readers send a post or page to a friend. |
-| [WP-PageNavi](https://github.com/lesterchan/wp-pagenavi) | `wp-pagenavi` | Paged navigation for posts. |
-| [WP-PluginsUsed](https://github.com/lesterchan/wp-pluginsused) | `wp-pluginsused` | List the plugins a site has installed, in a post or page. |
-| [WP-Polls](https://github.com/lesterchan/wp-polls) | `wp-polls` | An AJAX poll system, heavily templatable. |
-| [WP-PostRatings](https://github.com/lesterchan/wp-postratings) | `wp-postratings` | An AJAX rating system for any content. |
-| [WP-PostViews](https://github.com/lesterchan/wp-postviews) | `wp-postviews` | Count and display how often a post has been viewed. |
-| [WP-Print](https://github.com/lesterchan/wp-print) | `wp-print` | A printable version of any post or page. |
-| [WP-RelativeDate](https://github.com/lesterchan/wp-relativedate) | `wp-relativedate` | Show "Today", "Yesterday", "2 days ago" beside real dates. |
-| [WP-ServerInfo](https://github.com/lesterchan/wp-serverinfo) | `wp-serverinfo` | Report the host's PHP, MySQL, memcached and Redis configuration. |
-| [WP-ShowHide](https://github.com/lesterchan/wp-showhide) | `wp-showhide` | Toggle the visibility of content with a shortcode. |
-| [WP-Stats](https://github.com/lesterchan/wp-stats) | `wp-stats` | Site statistics, and the one page the others contribute blocks to. |
-| [WP-Sweep](https://github.com/lesterchan/wp-sweep) | `wp-sweep` | Clean up unused, orphaned and duplicated data. |
-| [WP-UserOnline](https://github.com/lesterchan/wp-useronline) | `wp-useronline` | Show how many people are on the site right now. |
+| Plugin | Slug | CI | What it does |
+|---|---|---|---|
+| [FreeMyInternet](https://github.com/lesterchan/freemyinternet) | `freemyinternet` | [![CI](https://github.com/lesterchan/freemyinternet/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/freemyinternet/actions/workflows/ci.yml) | A site-wide protest banner or full-screen blackout, with optional start and end dates. |
+| [WP-Ban](https://github.com/lesterchan/wp-ban) | `wp-ban` | [![CI](https://github.com/lesterchan/wp-ban/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-ban/actions/workflows/ci.yml) | Ban visitors by IP, IP range, host name, user agent or referrer. |
+| [WP-CommentNavi](https://github.com/lesterchan/wp-commentnavi) | `wp-commentnavi` | [![CI](https://github.com/lesterchan/wp-commentnavi/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-commentnavi/actions/workflows/ci.yml) | Paged navigation for comments. |
+| [WP-DBManager](https://github.com/lesterchan/wp-dbmanager) | `wp-dbmanager` | [![CI](https://github.com/lesterchan/wp-dbmanager/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-dbmanager/actions/workflows/ci.yml) | Optimise, repair, back up and restore the database, on a schedule. |
+| [WP-DownloadManager](https://github.com/lesterchan/wp-downloadmanager) | `wp-downloadmanager` | [![CI](https://github.com/lesterchan/wp-downloadmanager/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-downloadmanager/actions/workflows/ci.yml) | A simple download manager with hit counting. |
+| [WP-DraftsForFriends](https://github.com/lesterchan/wp-draftsforfriends) | `wp-draftsforfriends` | [![CI](https://github.com/lesterchan/wp-draftsforfriends/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-draftsforfriends/actions/workflows/ci.yml) | Share a draft with somebody without giving them an account. |
+| [WP-EMail](https://github.com/lesterchan/wp-email) | `wp-email` | [![CI](https://github.com/lesterchan/wp-email/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-email/actions/workflows/ci.yml) | Let readers send a post or page to a friend. |
+| [WP-PageNavi](https://github.com/lesterchan/wp-pagenavi) | `wp-pagenavi` | [![CI](https://github.com/lesterchan/wp-pagenavi/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-pagenavi/actions/workflows/ci.yml) | Paged navigation for posts. |
+| [WP-PluginsUsed](https://github.com/lesterchan/wp-pluginsused) | `wp-pluginsused` | [![CI](https://github.com/lesterchan/wp-pluginsused/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-pluginsused/actions/workflows/ci.yml) | List the plugins a site has installed, in a post or page. |
+| [WP-Polls](https://github.com/lesterchan/wp-polls) | `wp-polls` | [![CI](https://github.com/lesterchan/wp-polls/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-polls/actions/workflows/ci.yml) | An AJAX poll system, heavily templatable. |
+| [WP-PostRatings](https://github.com/lesterchan/wp-postratings) | `wp-postratings` | [![CI](https://github.com/lesterchan/wp-postratings/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-postratings/actions/workflows/ci.yml) | An AJAX rating system for any content. |
+| [WP-PostViews](https://github.com/lesterchan/wp-postviews) | `wp-postviews` | [![CI](https://github.com/lesterchan/wp-postviews/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-postviews/actions/workflows/ci.yml) | Count and display how often a post has been viewed. |
+| [WP-Print](https://github.com/lesterchan/wp-print) | `wp-print` | [![CI](https://github.com/lesterchan/wp-print/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-print/actions/workflows/ci.yml) | A printable version of any post or page. |
+| [WP-RelativeDate](https://github.com/lesterchan/wp-relativedate) | `wp-relativedate` | [![CI](https://github.com/lesterchan/wp-relativedate/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-relativedate/actions/workflows/ci.yml) | Show "Today", "Yesterday", "2 days ago" beside real dates. |
+| [WP-ServerInfo](https://github.com/lesterchan/wp-serverinfo) | `wp-serverinfo` | [![CI](https://github.com/lesterchan/wp-serverinfo/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-serverinfo/actions/workflows/ci.yml) | Report the host's PHP, MySQL, memcached and Redis configuration. |
+| [WP-ShowHide](https://github.com/lesterchan/wp-showhide) | `wp-showhide` | [![CI](https://github.com/lesterchan/wp-showhide/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-showhide/actions/workflows/ci.yml) | Toggle the visibility of content with a shortcode. |
+| [WP-Stats](https://github.com/lesterchan/wp-stats) | `wp-stats` | [![CI](https://github.com/lesterchan/wp-stats/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-stats/actions/workflows/ci.yml) | Site statistics, and the one page the others contribute blocks to. |
+| [WP-Sweep](https://github.com/lesterchan/wp-sweep) | `wp-sweep` | [![CI](https://github.com/lesterchan/wp-sweep/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-sweep/actions/workflows/ci.yml) | Clean up unused, orphaned and duplicated data. |
+| [WP-UserOnline](https://github.com/lesterchan/wp-useronline) | `wp-useronline` | [![CI](https://github.com/lesterchan/wp-useronline/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-useronline/actions/workflows/ci.yml) | Show how many people are on the site right now. |
 
 **The majors currently in these repositories are unreleased.** Each is a rewrite
 against the standard and carries breaking changes, documented per plugin under
@@ -62,8 +62,9 @@ tagged in its own repository.
 
 | Path | What it is |
 |---|---|
-| [`_standards/STANDARDS.md`](_standards/STANDARDS.md) | The contract. 15 numbered sections, 48 including subsections. |
+| [`_standards/STANDARDS.md`](_standards/STANDARDS.md) | The contract. 15 numbered sections, 44 including subsections. |
 | [`_standards/RESUME.md`](_standards/RESUME.md) | Current state: what is finished, what is open, what is known broken. Written for somebody picking the work up cold. |
+| [`_standards/RELEASE.md`](_standards/RELEASE.md) | The release sequence, for the human doing it. The exhaustive pre-flight is the `release-wp-plugin` skill's; this covers what that skill does not — CI, the block build, and `assets/`. |
 | `_standards/templates/` | The files every plugin copies verbatim, with `{{SLUG}}`-style placeholders. |
 | `_standards/demo/` | Fixtures for the shared demo harness. |
 | `bin/` | The tooling below. |
@@ -77,8 +78,8 @@ python3 bin/verify.py wp-polls        # or just one
 python3 bin/verify.py --quiet         # exit status is the failure count
 ```
 
-`bin/verify.py` is the mechanical half of the standard — about 90 checks,
-not all of which apply to every plugin, covering layout, naming, headers, admin
+`bin/verify.py` is the mechanical half of the standard — 153 checks, not all
+of which apply to every plugin, covering layout, naming, headers, admin
 screens, styles, testing, CI, linting and versioning.
 
 ```sh
