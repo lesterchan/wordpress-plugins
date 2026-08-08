@@ -175,7 +175,7 @@ for ( $i = 1; $i <= $demo_posts; $i++ ) {
 		array(
 			'post_title'   => sprintf( 'Demo post %0' . $width . 'd', $i ),
 			'post_content' => sprintf(
-				'One of %d posts, so the front page paginates. Scroll down for the WP-PageNavi links.',
+				'One of %d posts, so the front page runs to more pages than one.',
 				$demo_posts
 			),
 			'post_date'    => demo_ago( $age ),
@@ -205,7 +205,7 @@ WP_CLI::log(
 $talked_about = demo_post(
 	array(
 		'post_title'   => 'A much discussed post',
-		'post_content' => 'The WP-CommentNavi links are under the list.',
+		'post_content' => 'A post with enough comments that they do not fit on one page.',
 		'post_date'    => demo_ago( 2 * DAY_IN_SECONDS ),
 	)
 );
