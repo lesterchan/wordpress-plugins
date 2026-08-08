@@ -1721,6 +1721,65 @@ def verify(slug, name, prefix, port, root):
                 "§13.4.7 a namespace is documented in the README",
                 "README.md needs a `### REST API` block under `## Usage`")
 
+    # --- §13.4.7 what the block files are called ----------------------------
+    # The blocks row of §13.4.7's table went unenforced while the other two were
+    # checked, which an agent building the fourth block plugin noticed. A block
+    # plugin is one with src/: that is what bin/build compiles and what the CI
+    # step and the package.json scripts are already keyed on.
+    blocks_file = os.path.join(root, "includes", "class-%s-blocks.php" % slug)
+
+    if os.path.isdir(os.path.join(root, "src")):
+        want_class = prefix + "_Blocks"
+
+        r.check(os.path.exists(blocks_file),
+                "§13.4.7 blocks live in class-<slug>-blocks.php",
+                "src/ exists but %s does not"
+                % os.path.relpath(blocks_file, root))
+
+        if os.path.exists(blocks_file):
+            r.check("class %s" % want_class in (read(blocks_file) or ""),
+                    "§13.4.7 blocks class name",
+                    "%s should declare `class %s`"
+                    % (os.path.relpath(blocks_file, root), want_class))
+
+        test_blocks = os.path.join(root, "tests", "test-blocks.php")
+        r.check(os.path.exists(test_blocks),
+                "§13.4.7 blocks have tests/test-blocks.php")
+
+        if os.path.exists(test_blocks):
+            r.check("class %s_Blocks_Test" % prefix in (read(test_blocks) or ""),
+                    "§13.4.7 blocks test class name",
+                    "tests/test-blocks.php should declare class %s_Blocks_Test"
+                    % prefix)
+
+        r.check(os.path.exists(os.path.join(root, "tests", "e2e",
+                                            "blocks.spec.js")),
+                "§13.4.7 blocks have tests/e2e/blocks.spec.js")
+
+        # §13.4.8: a block name is written into post_content and outlives the
+        # post, so it keeps the wp- prefix the command and namespace drop. The
+        # name lives in block.json, which is the only place it is declared.
+        for entry in sorted(os.listdir(os.path.join(root, "src"))):
+            meta = os.path.join(root, "src", entry, "block.json")
+            if not os.path.exists(meta):
+                continue
+            try:
+                name = json.loads(read(meta) or "{}").get("name", "")
+            except ValueError:
+                r.check(False, "§13.4.7 block.json parses", "src/%s" % entry)
+                continue
+            r.check(name.startswith(slug + "/"),
+                    "§13.4.8 a block name keeps the wp- prefix",
+                    "src/%s/block.json declares '%s', expected '%s/...'"
+                    % (entry, name, slug))
+    else:
+        # The converse, so a stray blocks class cannot sit in a plugin with
+        # nothing to build: its blocks would never register.
+        r.check(not os.path.exists(blocks_file),
+                "§13.4.7 a blocks class implies src/",
+                "%s exists but there is no src/ to build"
+                % os.path.relpath(blocks_file, root))
+
     return r
 
 
