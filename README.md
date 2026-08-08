@@ -64,7 +64,6 @@ tagged in its own repository.
 |---|---|
 | [`_standards/STANDARDS.md`](_standards/STANDARDS.md) | The contract. 15 numbered sections, 44 including subsections. |
 | [`_standards/RESUME.md`](_standards/RESUME.md) | Current state: what is finished, what is open, what is known broken. Written for somebody picking the work up cold. |
-| [`_standards/RELEASE.md`](_standards/RELEASE.md) | The release sequence, for the human doing it. The exhaustive pre-flight is the `release-wp-plugin` skill's; this covers what that skill does not — CI, the block build, and `assets/`. |
 | `_standards/templates/` | The files every plugin copies verbatim, with `{{SLUG}}`-style placeholders. |
 | `_standards/demo/` | Fixtures for the shared demo harness. |
 | `bin/` | The tooling below. |

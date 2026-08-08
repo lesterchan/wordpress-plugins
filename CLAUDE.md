@@ -16,10 +16,6 @@ untracked, which is why `git status` here shows none of their changes. See
 2. **[`_standards/RESUME.md`](_standards/RESUME.md)** — the current state: what
    is finished, what is in flight, what is known broken, and which findings are
    still open. Written for somebody picking the work up cold.
-   [`_standards/RELEASE.md`](_standards/RELEASE.md) is the release sequence, for
-   the human doing it — the exhaustive pre-flight is the `release-wp-plugin`
-   skill's, and RELEASE.md covers what that skill deliberately does not: CI, the
-   block build, and `assets/`.
 3. The plugin's own **`CLAUDE.md`**, for what that plugin's code cannot tell
    you. Where a plugin's file and the standard disagree, the standard wins.
 
