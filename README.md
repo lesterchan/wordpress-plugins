@@ -97,6 +97,22 @@ bin/seed-demo.sh                      # fill the demo harness with fixtures
 Each plugin additionally carries `bin/test.sh`, `bin/test-multisite.sh` and
 `bin/test-e2e.sh` of its own.
 
+```sh
+bin/generate-banner                   # every wordpress.org banner, into build/banners/
+bin/generate-banner wp-polls          # or just one
+bin/generate-banner --proof           # draw wp-admin's overlay on top
+bin/generate-banner --install         # also copy into the SVN assets/ working copies
+```
+
+Each banner is composed from that plugin's own `assets/icon.svg`, so the set
+cannot drift away from the icons wordpress.org already serves; the names,
+taglines and accent colours are one table at the top of the script. The run
+fails if any copy reaches into the band where wp-admin paints the plugin name
+over the banner — a collision invisible on the wordpress.org page itself, which
+overlays nothing. `--install` copies but never commits: publishing a banner is
+an `svn commit` you make yourself, and it takes effect independently of any
+plugin version or release.
+
 **A green run is not compliance.** `verify.py` checks what can be checked
 mechanically. The other half — voice, comment density, whether a name earns its
 place — is not automatable and is not attempted. `_standards/RESUME.md` tracks

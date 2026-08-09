@@ -45,6 +45,11 @@ __pycache__/
 *.pyc
 .phpunit.result.cache
 
+# Generated banners. bin/generate-banner rebuilds them from the table inside it
+# and the plugins' own icons, so the table is the source and these are not.
+# What is actually published lives in the SVN assets/ working copies.
+/build/
+
 # Run logs from the all-plugins sweeps. Hundreds of kilobytes of container
 # chatter describing one afternoon, and stale the moment the next run happens.
 # Excluded here rather than left to a personal global gitignore, so the decision

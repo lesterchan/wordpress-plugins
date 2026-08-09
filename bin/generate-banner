@@ -1,0 +1,232 @@
+#!/usr/bin/env node
+//
+// Generate the wordpress.org plugin banners, all nineteen from one table.
+//
+//   bin/generate-banner                    # every plugin, into build/banners/
+//   bin/generate-banner wp-polls wp-ban    # just these
+//   bin/generate-banner --proof            # draw wp-admin's overlay on top
+//   bin/generate-banner --install          # also copy into the SVN assets/ dirs
+//
+// Each banner is composed from that plugin's own assets/icon.svg, so the set
+// cannot drift away from the icons wordpress.org already serves: change the
+// icon and the banner follows. The icon is applied as a CSS mask rather than
+// drawn, because these were exported from Illustrator across a decade and are
+// wildly inconsistent about the fills they hardcode -- masking takes the shape
+// and ignores the colour. freemyinternet's icon is a PNG wordmark rather than
+// an SVG glyph, which is why PNG sources mask by luminance and SVG by alpha.
+//
+// Two constraints drive the layout, and both are invisible until the banner is
+// somewhere you were not looking:
+//
+//   1. wp-admin's plugin-information modal paints the plugin name over the
+//      banner as a dark pill at x>=26, y 174..224 (see #plugin-information-
+//      title.with-banner h2 in wp-admin/css/common.css), plus an inset vignette
+//      that eats the outer ~20px. The wordpress.org plugin page overlays
+//      nothing, so a collision here is invisible on the page you would think to
+//      check. --proof draws that overlay; the run also fails outright if any
+//      copy reaches into the band, which is what keeps a reworded tagline from
+//      quietly wrapping to a second line and sliding underneath it.
+//   2. Output is PNG, not JPEG. The artwork is flat colour, so PNG came out
+//      both smaller and lossless where JPEG q85 rang visibly around the text.
+//      Where several files match one resolution wordpress.org sorts svg > png >
+//      jpg > gif (Template::find_best_asset), so a PNG added beside an old JPG
+//      wins without the JPG being deleted.
+//
+// Nothing here commits. --install only copies into the working copies; putting
+// a banner live is an svn commit you make yourself, and it takes effect
+// independently of any plugin version or release.
+
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.join(__dirname, '..');
+const SVN = path.join(process.env.HOME, 'svn/wordpress_plugins');
+const OUT = path.join(ROOT, 'build/banners');
+
+// The dark pill wp-admin paints over the banner's lower left.
+const DEAD_ZONE = { x: 26, y: 174, h: 50 };
+
+// Taglines are written to fit one line at 15px in the space left of the glyph;
+// the readme short descriptions they came from are mostly too long to fit.
+const PLUGINS = [
+	{ slug: 'freemyinternet',      name: 'FreeMyInternet',      tag: 'Site-wide protest banners and blackout overlays.',   accent: '#ff5b47' },
+	{ slug: 'wp-ban',              name: 'WP-Ban',              tag: 'Block visitors by IP, host, user agent or referrer.', accent: '#f2565c' },
+	{ slug: 'wp-commentnavi',      name: 'WP-CommentNavi',      tag: 'Advanced paged navigation for your comments.',       accent: '#4ea8f0' },
+	{ slug: 'wp-dbmanager',        name: 'WP-DBManager',        tag: 'Backup, optimise and repair your database.',         accent: '#3fbf88' },
+	{ slug: 'wp-downloadmanager',  name: 'WP-DownloadManager',  tag: 'A simple download manager with hit tracking.',       accent: '#5b96ff' },
+	{ slug: 'wp-draftsforfriends', name: 'WP-DraftsForFriends', tag: 'Share drafts privately, without creating accounts.', accent: '#bb85f0' },
+	{ slug: 'wp-email',            name: 'WP-EMail',            tag: 'Let readers email your posts to a friend.',          accent: '#45b3f0' },
+	{ slug: 'wp-pagenavi',         name: 'WP-PageNavi',         tag: 'A better paged navigation interface.',               accent: '#6699ff' },
+	{ slug: 'wp-pluginsused',      name: 'WP-PluginsUsed',      tag: 'Show the plugins you run on any post or page.',      accent: '#8a97f0' },
+	{ slug: 'wp-polls',            name: 'WP-Polls',            tag: 'A fully templatable AJAX poll system.',              accent: '#ffab42' },
+	{ slug: 'wp-postratings',      name: 'WP-PostRatings',      tag: 'AJAX star ratings for any content type.',            accent: '#ffcb3d' },
+	{ slug: 'wp-postviews',        name: 'WP-PostViews',        tag: 'Count and display how often a post is read.',        accent: '#3ec6b4' },
+	{ slug: 'wp-print',            name: 'WP-Print',            tag: 'A clean printable version of any post or page.',     accent: '#93a0b8' },
+	{ slug: 'wp-relativedate',     name: 'WP-RelativeDate',     tag: 'Show “2 hours ago” beside your real dates.',         accent: '#7ab4e8' },
+	{ slug: 'wp-serverinfo',       name: 'WP-ServerInfo',       tag: 'PHP, MySQL, Memcached and Redis on your dashboard.', accent: '#5cd0aa' },
+	{ slug: 'wp-showhide',         name: 'WP-ShowHide',         tag: 'Toggle content visibility with a shortcode.',        accent: '#a888f0' },
+	{ slug: 'wp-stats',            name: 'WP-Stats',            tag: 'General, plugin and top-ten blog statistics.',       accent: '#54bdf0' },
+	{ slug: 'wp-sweep',            name: 'WP-Sweep',            tag: 'Clean orphaned data and optimise your tables.',      accent: '#5ecb82' },
+	{ slug: 'wp-useronline',       name: 'WP-UserOnline',       tag: 'See who is browsing your site, right now.',          accent: '#5ad3e0' },
+];
+
+// Playwright is a plugin-level dev dependency, not one of this repository's --
+// there is no package.json here. Any plugin's copy will do, so take the first
+// that has one rather than naming a plugin and breaking when it is not set up.
+function requirePlaywright() {
+	for (const { slug } of PLUGINS) {
+		const p = path.join(ROOT, slug, 'node_modules/playwright');
+		if (fs.existsSync(p)) return require(p);
+	}
+	console.error('No plugin has playwright installed. Run npm install in any one of them.');
+	process.exit(1);
+}
+
+// SVG masks by alpha (black shapes on nothing), PNG by luminance (light shapes
+// on dark). Getting this backwards yields a solid rectangle, not an error.
+function glyph(slug) {
+	const dir = path.join(SVN, slug, 'assets');
+	const svg = path.join(dir, 'icon.svg');
+	if (fs.existsSync(svg)) {
+		return { uri: `data:image/svg+xml;base64,${fs.readFileSync(svg).toString('base64')}`, mode: 'alpha' };
+	}
+	const png = fs.readdirSync(dir).filter((f) => /^icon.*\.png$/i.test(f)).sort().pop();
+	if (!png) throw new Error(`${slug}: no icon.svg or icon-*.png in ${dir}`);
+	return {
+		uri: `data:image/png;base64,${fs.readFileSync(path.join(dir, png)).toString('base64')}`,
+		mode: 'luminance',
+	};
+}
+
+const FONTS = '-apple-system, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif';
+
+const CSS = `
+	* { margin:0; padding:0; box-sizing:border-box; }
+	html, body { width:772px; height:250px; overflow:hidden; }
+	body { font-family:${FONTS}; -webkit-font-smoothing:antialiased; }
+	.banner { position:relative; width:772px; height:250px; overflow:hidden;
+		background:#0e1116; color:#fff; }
+	.grid { position:absolute; inset:0;
+		background-image:linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+			linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+		background-size:28px 28px; }
+	/* Contained rather than bled off the right edge. These viewBoxes run from
+	   14x10 to 920x920, and anything that crops turns a wide glyph into an
+	   unreadable fragment and clipped freemyinternet's wordmark mid-word. */
+	.watermark { position:absolute; right:46px; top:50%; width:196px; height:196px;
+		transform:translateY(-50%); background:var(--accent); opacity:.2;
+		-webkit-mask-size:contain; mask-size:contain;
+		-webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+		-webkit-mask-position:center; mask-position:center; }
+	.rule { position:absolute; left:52px; top:38px; width:46px; height:3px;
+		background:var(--accent); border-radius:2px; }
+	.copy { position:absolute; left:52px; top:46px; }
+	.eyebrow { margin-top:8px; font-size:11px; font-weight:600; letter-spacing:.14em;
+		text-transform:uppercase; color:var(--accent); }
+	.name { font-weight:700; letter-spacing:-.022em; line-height:1.05; margin:10px 0 9px; }
+	.tag { font-size:15px; line-height:1.4; color:rgba(255,255,255,.62); max-width:430px; }
+`;
+
+// Redrawn from wp-admin/css/common.css so the collision is something you can
+// look at rather than something you have to remember.
+const PROOF_CSS = `
+	.proof-pill { position:absolute; left:${DEAD_ZONE.x}px; top:${DEAD_ZONE.y}px;
+		height:${DEAD_ZONE.h}px; padding:0 15px; display:flex; align-items:center;
+		font:600 30px/1.68 "Helvetica Neue", sans-serif; color:#fff;
+		background:rgba(29,35,39,.9); border-radius:8px;
+		text-shadow:0 1px 3px rgba(0,0,0,.4); }
+	.proof-vignette { position:absolute; inset:0;
+		box-shadow:inset 0 0 50px 4px rgba(0,0,0,.2), inset 0 -1px 0 rgba(0,0,0,.1); }
+`;
+
+const escape = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+
+// Long names crowd the glyph at full size.
+const nameSize = (n) => (n.length > 19 ? 33 : n.length > 15 ? 37 : 42);
+
+function html(p, { proof = false } = {}) {
+	const g = glyph(p.slug);
+	const mask = `-webkit-mask-image:url('${g.uri}');mask-image:url('${g.uri}');`
+		+ `-webkit-mask-mode:${g.mode};mask-mode:${g.mode}`;
+	return `<style>${CSS}${proof ? PROOF_CSS : ''}</style>
+		<div class="banner" style="--accent:${p.accent}">
+			<div class="grid"></div>
+			<div class="watermark" style="${mask}"></div>
+			<div class="rule"></div>
+			<div class="copy">
+				<div class="eyebrow">WordPress Plugin</div>
+				<div class="name" style="font-size:${nameSize(p.name)}px">${escape(p.name)}</div>
+				<div class="tag">${escape(p.tag)}</div>
+			</div>
+			${proof ? `<div class="proof-vignette"></div><div class="proof-pill">${escape(p.name)}</div>` : ''}
+		</div>`;
+}
+
+async function main() {
+	const args = process.argv.slice(2);
+	const proof = args.includes('--proof');
+	const install = args.includes('--install');
+	const wanted = args.filter((a) => !a.startsWith('--'));
+
+	const unknown = wanted.filter((w) => !PLUGINS.some((p) => p.slug === w));
+	if (unknown.length) {
+		console.error(`Unknown plugin(s): ${unknown.join(', ')}`);
+		process.exit(1);
+	}
+	const list = wanted.length ? PLUGINS.filter((p) => wanted.includes(p.slug)) : PLUGINS;
+
+	const { chromium } = requirePlaywright();
+	const browser = await chromium.launch();
+	const dir = proof ? path.join(OUT, 'proof') : OUT;
+	fs.mkdirSync(dir, { recursive: true });
+
+	const overruns = [];
+
+	for (const p of list) {
+		const markup = html(p, { proof });
+
+		for (const [scale, size] of [[1, '772x250'], [2, '1544x500']]) {
+			const page = await browser.newPage({
+				viewport: { width: 772, height: 250 },
+				deviceScaleFactor: scale,
+			});
+			await page.setContent(markup);
+			await page.evaluate(() => document.fonts.ready);
+
+			// Check once, at 1x -- the layout is identical at 2x.
+			if (scale === 1) {
+				const bottom = await page.evaluate(() =>
+					Math.round(document.querySelector('.copy').getBoundingClientRect().bottom));
+				if (bottom > DEAD_ZONE.y) overruns.push({ slug: p.slug, bottom });
+			}
+
+			const file = path.join(dir, `${p.slug}-banner-${size}.png`);
+			await page.screenshot({ path: file });
+			await page.close();
+
+			if (install && !proof) {
+				fs.copyFileSync(file, path.join(SVN, p.slug, 'assets', `banner-${size}.png`));
+			}
+		}
+		console.log(`${p.slug}${install && !proof ? ' -> svn assets/' : ''}`);
+	}
+
+	await browser.close();
+
+	if (overruns.length) {
+		console.error(`\nCopy runs into wp-admin's overlay band (y >= ${DEAD_ZONE.y}):`);
+		for (const o of overruns) console.error(`  ${o.slug}: copy ends at y=${o.bottom}`);
+		console.error('Shorten the tagline so it stays on one line.');
+		process.exit(1);
+	}
+
+	console.log(`\n${list.length} banner(s) into ${path.relative(ROOT, dir)}/`);
+	if (install && !proof) console.log('Copied into the SVN working copies. Not committed.');
+}
+
+main().catch((e) => {
+	console.error(e.message);
+	process.exit(1);
+});
