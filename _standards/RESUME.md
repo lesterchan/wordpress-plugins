@@ -1,18 +1,21 @@
 # Resume here
 
-State of the consistency programme as of **2026-08-08**. Read this, then
+State of the consistency programme as of **2026-08-09**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
-**In one line:** all nineteen plugins are green, the pre-revamp tags are cut and
-pushed, every migrating plugin has a browser test of its migration, **the
-screenshots are recaptured** and item 1's scope is settled — so **one item is
-open**, the WP-CLI/REST/blocks build, with wp-polls' command finished and
-verified and its REST namespace and blocks still to write.
+**In one line:** all nineteen plugins are green and level with their remotes,
+item 1 is closed, and two audits landed on 2026-08-09 — **a security review of
+the whole collection and an i18n sweep of it** — so **no item is open**, and
+what remains is a release, which is Lester's by hand.
 
-**Two things need Lester and neither is a grind.** Nineteen README commits and
-71 new screenshots are sitting unpushed and uncommitted, waiting on the release
-he does by hand; and **there is one open bug**, wp-polls' widget, described
-under "The open bug" below.
+**Nothing from either audit is released.** Every fix is on `master` and green in
+CI; no tag is cut and nothing has gone near `~/svn/wordpress_plugins/`. That is
+the state to hand back, not an oversight.
+
+**One thing needs Lester and it is not a grind.** The releases: nineteen
+plugins carry changelog entries for work that has never shipped, several of
+them `NOTE:` lines telling translators their strings changed. Until a release
+goes out those notes describe a version nobody can install.
 
 **The bug backlog is empty and every rule the spec states now has something
 behind it.** 2026-08-04 closed the §7.6.1 release blocker, the spec-against-checks
@@ -106,7 +109,19 @@ differences between two plugins are name, features and capability.
 Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 `bin/test-e2e.sh`.
 
-## Current state — verified 2026-08-08
+## Current state — verified 2026-08-09
+
+**All nineteen are green on CI at their current `HEAD`, level with their
+remotes, and their working trees are clean** — checked per repository with
+`gh run list` against `git rev-parse HEAD` rather than inferred from the last
+push, and re-checked after the last commit of the day. The twentieth repository,
+this one, is level too.
+
+**Everything below this paragraph was verified on 2026-08-08 and has not been
+re-derived since.** The counts in it moved with the security and i18n work: the
+suites are larger, and wp-polls, wp-downloadmanager, wp-email, wp-print,
+wp-stats, wp-pluginsused, wp-sweep, wp-useronline, wp-serverinfo, wp-dbmanager
+and wp-postviews all gained tests. Re-run rather than quote.
 
 **The whole collection was run, not sampled.** `bin/test-all.sh` and
 `bin/test-all.sh --multisite` both report **all 19 plugin suites passed**, and
@@ -157,6 +172,123 @@ phpcs, eslint and the assertion-message ratio are clean.
 * **No known plugin bug is outstanding.** wp-polls' widget was found on
   2026-08-07 and fixed on 2026-08-08; the write-up is kept below because how it
   was found is the useful part.
+
+## Closed 2026-08-09 — the security review
+
+One reviewer per plugin plus a pass across the whole tree, for injection, XSS
+and account takeover, widened on the ask to command injection, path traversal,
+arbitrary file access, SSRF, CSRF, object injection and information disclosure.
+**Twenty-seven findings, all fixed, all with tests.** The write-up with each
+finding and the commit that closed it is the artifact at
+`a private write-up kept outside this repository`.
+
+**The three things asked about specifically were in good shape.** No SQL
+injection: all 160 `$wpdb` call sites resolve to bound parameters, table-name
+properties, integer casts or real allow-lists. No account takeover: nothing
+calls `wp_set_auth_cookie`, `wp_signon` or `wp_update_user` anywhere. Output
+escaping was consistently right.
+
+**What the sweep actually found was trust boundaries drawn one level too
+generously** — a plugin-specific capability reaching a file-read primitive, a captcha that
+does not survive contact with a script, a diagnostic dump printed without redaction, an editor-preview route publishing an inventory core keeps behind
+`activate_plugins`.
+
+Six were fix-first, eleven more were real with a precondition, ten were hardening, and eight further items turned up while closing the hardening tier -- three of them term sweeps that were deleting data that was in use, which is a data-loss bug rather than a security one. Which plugin each finding belonged to is deliberately not recorded here.
+
+**Every new guard was mutation-tested** — the guard reverted, the suite re-run.
+That caught four tests of mine that could not fail: a traversal fixture pointing
+at a path that 404s either way, two flood tests whose `REPLACE` collapsed every
+row into one, a cache probe reading a fixture an earlier run had left on disk,
+and an e2e fixture that went through the sanitiser it claimed to bypass. **Write
+the mutation step into any security fix from the start**; it is the only thing
+that distinguishes a passing test from a test.
+
+**The cross-cutting finding is worth remembering.** All nineteen carried a
+Playwright storage state holding a `wordpress_logged_in_*` cookie, and twenty
+workflows uploaded `artifacts/` wholesale on failure. The release rsync excluded
+it, but that exclusion lives outside the repositories. The files are gone,
+`bin/test-e2e.sh` cleans up on exit, and the workflows upload
+`artifacts/test-results/` only.
+
+## Closed 2026-08-09 — the i18n sweep
+
+**Every user-facing string in the collection is translatable, and
+`wp i18n make-pot` extracts 2,104 of them across the nineteen with zero
+warnings.** That extractor run is the check worth repeating; it is ground truth
+for malformed placeholders, wrong domains and conflicting translator comments in
+a way no grep is.
+
+What was wrong, in the order it matters:
+
+* **Two strings were never translated at all** — wp-sweep's two
+  `WP_CLI::success()` literals.
+* **Seven were padded into uselessness.** A translator sees a msgid in a list,
+  where a leading or trailing space is invisible. wp-email's Mail It button was
+  widened with five spaces either side of its label; two of its validation
+  messages ended in a colon and a space so a value could be glued on — while the
+  server-side copies of those same two already used `sprintf`. wp-downloadmanager
+  glued the site name to a feed title beginning with a space. wp-polls ended an
+  alert in a space the script then doubled.
+* **Four sentences were assembled from fragments** a translator cannot reorder:
+  wp-pluginsused' summary joined by a bare "and" with the full stop in PHP,
+  wp-stats' "Posted By … On …", and two in wp-print including a heading that
+  wrapped the title in ASCII double quotes — which is not the quotation mark
+  every language uses.
+* **Thirty-seven translator comments said nothing**, all in wp-polls: they read
+  `translators: %s: value.`, which satisfies the sniff — it only checks a
+  comment exists — while telling a translator exactly what it does not need to
+  know.
+* **Nine bare words had no context.** `To`, `From`, `and`, `to`, `on`, `url`,
+  `referral` across four plugins, now `_x()` with a context.
+* **One number was locale-blind.** wp-serverinfo read the load average four ways
+  and formatted it in only one of them, so the displayed shape depended on which
+  branch the host took. All four now yield a float and it is formatted once,
+  through `number_format_i18n()`.
+
+**`test_no_translatable_string_carries_edge_whitespace()` is in the shared
+metadata fixture**, so the padding class cannot come back. The other classes
+were found by reading and a new one would need the same.
+
+**Two things are left alone on purpose.** `wp-downloadmanager-quicktag.js` has
+`l10n.label || 'Download'` — PHP localises that label translated and the literal
+only shows if the whole localised object is missing, a state in which nothing
+else on the screen works either. And `Domain Path: /languages` points at a
+directory `test_no_abandoned_build_or_translation_artefacts_ship()` requires not
+to exist: nothing calls `load_plugin_textdomain()`, translations come from
+translate.wordpress.org into `WP_LANG_DIR/plugins/`, so the header is inert. It
+stays because §3.2 mandates it and `test_text_domain_is_the_plugin_slug()`
+asserts it, and because `Text Domain` is redundant by the same argument.
+
+**Where translatable text can live is a closed set** — PHP, JavaScript, block
+metadata and CSS `content:`. All four were swept. Block titles, descriptions
+**and keywords** all reach the POT with their own contexts, because every
+`block.json` carries `textdomain`; core wires `wp_set_script_translations()`
+itself for the six blocks whose editor scripts import `@wordpress/i18n`, since
+`wp-i18n` is in their asset dependencies. Nothing needs to call it by hand.
+
+## Known and unresolved, 2026-08-09
+
+**One wp-stats browser test failed once and the reason is not known.**
+`page.spec.js` — *the General Stats block counts every kind of thing on the
+site* — failed in a full local run and passed on re-run and in CI. It was not
+reproduced: **both attempts to reproduce it were contaminated by running two
+Playwright suites against one wp-env instance at the same time**, which is the
+next entry.
+
+What was fixed is the reason it could not be diagnosed. Every line in that block
+is pluralised with `_n_noop()` and the two arms share no substring — "1 tag was
+created." against "2 tags were created.", and the nickname line gains the word
+"different" only in the plural. Four of the six locators were written against
+one arm, so a count that was not the expected one matched **nothing**, and
+Playwright reported a timeout waiting for an element. The patterns span both
+arms now, so the next occurrence prints the number.
+
+**Two E2E suites against one wp-env instance will destroy each other, and the
+wreckage looks exactly like a data bug.** Thirteen tests failing across five
+unrelated spec files, `2 pages were created.` where the fixture makes one.
+`bin/test-e2e.sh` does not guard against it and `wp-env` does not either: the
+ports are per plugin, so two runs *of the same plugin* share one database. Cost
+about an hour and one wrong conclusion. Run one at a time, or reach for CI.
 
 ## Closed 2026-08-08 — the README audit, read as somebody installing the plugin
 
