@@ -979,6 +979,45 @@ exists to emit. The rule bans *invented* classes and inline styles, not core's
 own vocabulary. One `<h1>` per screen. No inline
 `style`, `width`, `valign` or `align` attributes anywhere.
 
+### 4.4.1 A field's hint goes under the field
+
+A hint describing one control sits **in the field cell, directly after the
+control**, wrapped in `<p class="description">` — which is where WordPress puts
+one, and the only placement a screen reader reaches in the right order.
+
+Five plugins list the `%TOKEN%` variables a template accepts, and before this
+rule existed they did it four different ways: wp-postviews in the *heading* cell
+as a bulleted column with a capitalised "Allowed Variables:", wp-useronline
+*above* the textarea, wp-postratings and wp-email below it, and wp-ban a whole
+section-intro away from the field it applied to. Each was defensible alone. Read
+together they were one setting with four appearances.
+
+So, for a token list specifically:
+
+```php
+echo '<p class="description">' . esc_html__( 'Allowed variables:', 'my-plugin' ) . ' ';
+
+foreach ( $tokens as $token ) {
+	echo '<code>' . esc_html( $token ) . '</code> ';
+}
+
+echo '</p>';
+```
+
+Sentence case — "Allowed variables:", never "Allowed Variables:". Inline
+`<code>` separated by a space, not `<ul><li>`: the list is a handful of short
+tokens and a bulleted column pushes the field it belongs to off the screen.
+
+**Keep the tokens out of the translatable string.** `phpcbf` reads a `%` inside
+one as a printf placeholder and renumbers it, so `%SITE_NAME%` is rewritten to
+`%1$SITE_NAME%` and the mangled form is what the user sees. Only the
+"Allowed variables:" label is translated; the tokens are concatenated after it.
+
+The heading cell holds the label and nothing else, which means these fields can
+use `label_for` and let `do_settings_fields()` write the `<label>` — the reason
+wp-postviews hand-built one was that it had a `<ul>` in the title, and a list has
+no business inside a label.
+
 ---
 
 ## 5. Front-end styles

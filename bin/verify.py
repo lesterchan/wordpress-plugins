@@ -650,6 +650,36 @@ def verify(slug, name, prefix, port, root):
                     "add_settings_field() belongs on the Settings class",
                     "%s (§4.2)" % entry)
 
+    # --- §4.4.1 a token list is a field hint, worded and classed one way -----
+    # Five plugins list the %TOKEN% variables a template accepts and, before the
+    # section was written, did it four different ways -- heading cell vs field
+    # cell, above the control vs below it, <ul> vs inline <code>, and one of them
+    # capitalised. Only the mechanical half is checkable here: the wording, and
+    # that the paragraph carries core's `description` class. Whether it sits
+    # after the control is a question about a rendered page, and each plugin's
+    # own admin test asserts that instead.
+    if os.path.isdir(includes):
+        for entry in sorted(os.listdir(includes)):
+            if not entry.endswith("-settings.php"):
+                continue
+            body = read(os.path.join(includes, entry)) or ""
+            if "Allowed" not in body:
+                continue
+            r.check("Allowed Variables:" not in body,
+                    "token list reads 'Allowed variables:', sentence case",
+                    "%s (§4.4.1)" % entry)
+            # The label and the class travel together, so find the label and
+            # look back for the opening tag it was printed with.
+            for m in re.finditer(r"Allowed variables:", body):
+                before = body[max(0, m.start() - 200):m.start()]
+                # findall with one group yields strings, not tuples -- indexing
+                # [0] on the last one took a single character and every plugin
+                # failed, including the four that were already correct.
+                opened = re.findall(r"<p(?:\s[^>]*)?>", before)
+                r.check(bool(opened) and 'class="description"' in opened[-1],
+                        "token list sits in <p class=\"description\">",
+                        "%s (§4.4.1)" % entry)
+
     # --- §7 tests -----------------------------------------------------------
     tests = os.path.join(root, "tests")
     if not os.path.isdir(tests):
