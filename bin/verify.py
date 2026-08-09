@@ -650,6 +650,30 @@ def verify(slug, name, prefix, port, root):
                     "add_settings_field() belongs on the Settings class",
                     "%s (§4.2)" % entry)
 
+    # --- §4.2.2 default templates carry no doubled space before an attribute -
+    # `<a href="%POST_URL%"  title="%POST_TITLE%">` shipped in three defaults --
+    # wp-postviews' most viewed template and both of wp-postratings' -- and the
+    # tell that it was a slip rather than a choice is that `highestrated` sat one
+    # line above `mostrated` with a single space. Harmless in rendered HTML, which
+    # collapses it; visible in the settings field, and copied into every site that
+    # presses Restore Default Template.
+    #
+    # Anchored on an attribute name after the spaces, because wp-polls' vote
+    # button really does carry `value="   Vote   "` -- padding from before CSS
+    # could widen a button, kept outside the translatable string where it belongs.
+    # A check on two spaces alone would report that as a defect every run.
+    for sub in ("includes", "js"):
+        d = os.path.join(root, sub)
+        if not os.path.isdir(d):
+            continue
+        for entry in sorted(os.listdir(d)):
+            if not entry.endswith((".php", ".js")):
+                continue
+            for n, line in enumerate((read(os.path.join(d, entry)) or "").splitlines(), 1):
+                if re.search(r'"\s{2,}[a-z-]+=', line):
+                    r.check(False, "doubled space before an attribute in a template",
+                            "%s:%d (§4.2.2)" % (entry, n))
+
     # --- §4.4.1 a token list is a field hint, worded and classed one way -----
     # Five plugins list the %TOKEN% variables a template accepts and, before the
     # section was written, did it four different ways -- heading cell vs field
