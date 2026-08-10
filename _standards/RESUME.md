@@ -9,11 +9,15 @@ serving roughly 880,000 active installs between them, and **no item is open**.
 What the release itself found is under "Closed 2026-08-10", and it is the
 campaign's thesis proving itself one last time.
 
-**One release is staged and deliberately not shipped.** wp-downloadmanager is
+**Two releases are staged and deliberately not shipped.** wp-downloadmanager is
 2.0.1 in git — the category-zero renumbering fix, changelog and Upgrade Notice
-written — while wordpress.org serves 2.0.0. Lester is accumulating fixes
-rather than releasing again immediately; when he says ship, the
-`release-wp-plugin` skill is the path. Nothing else waits on it.
+written — while wordpress.org serves 2.0.0. wp-draftsforfriends is 2.0.1 in
+git — both requests from the one post-release support topic: the copy button
+became a clipboard dashicon beside the link, and the post editor gained a
+Drafts for Friends meta box (posts only; the `?p=<id>` link shape is why) —
+while wordpress.org serves 2.0.0. Lester is accumulating fixes rather than
+releasing again immediately; when he says ship, the `release-wp-plugin` skill
+is the path. Nothing else waits on either.
 
 **Before writing another migration test, read the §7.6.1 entry under "Rules
 earned the hard way"** — advice the release sharpened rather than dated: the
@@ -101,7 +105,8 @@ Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 **All nineteen are released, green on CI at their current `HEAD`, and level
 with their remotes.** The release state was checked on 2026-08-10 by comparing
 each repo's `Stable tag` against what `api.wordpress.org` serves — all nineteen
-match, with wp-downloadmanager's staged 2.0.1 the one intentional divergence.
+match, with the staged 2.0.1s (wp-downloadmanager then, wp-draftsforfriends
+since) the intentional divergences.
 The CI state was checked per repository with `gh run list` against
 `git rev-parse HEAD` rather than inferred from the last push. The twentieth
 repository, this one, is level too.
@@ -138,7 +143,8 @@ the authority; `gh run list` per repo takes a minute.
   result. The method was re-run late on 2026-08-10, after those pushes settled:
   all nineteen level with their remotes after a fetch, CI green at every HEAD,
   `verify.py` 0, and wordpress.org matching every `Stable tag` —
-  wp-downloadmanager's staged 2.0.1 still the one intentional divergence.
+  wp-downloadmanager's staged 2.0.1 then the one intentional divergence;
+  wp-draftsforfriends' staged 2.0.1 joined it later that day.
 * **No known plugin bug is outstanding that is not already fixed in git.**
   wp-downloadmanager's category-zero defect is fixed as the staged 2.0.1, which
   now carries a second fix — the N/A-versus-blank split between its two admin

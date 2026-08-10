@@ -454,6 +454,15 @@ own capability because those settings govern exactly the data it covers.
 What is **not** permitted is a third capability belonging to neither set: the
 settings screen takes `manage_options` or the plugin's own, and nothing else.
 
+### 2.8 Comments — concise, and as few as possible
+
+A comment earns its place by stating a constraint the code cannot show — why,
+never what. One or two sentences; not an essay. The history of a decision, what
+the code replaced and how it once went wrong belong in the commit message, the
+changelog or `_standards/`, not above the code. Docblocks are the one-line
+summary plus the tags WPCS requires. (Lester's call, 2026-08-10; earlier code
+predates it and is trimmed as it is touched, not in a sweep.)
+
 ---
 
 ## 3. Plugin header and README
@@ -625,6 +634,10 @@ to tell a stranger what the plugin is.
   written for a site owner not a developer. `## Changelog` keeps the full list
   including the `IMPORTANT:`/`BREAKING:` lines, but Upgrade Notice is where the
   "what will break for you and what to do" prose lives.
+* **A version with no `BREAKING:` changelog entry needs no Upgrade Notice
+  section** — a notice saying "nothing breaks" answers a question nobody asked
+  (Lester's call, 2026-08-10). A non-breaking release that still rewrites data
+  on upgrade, as wp-downloadmanager's 2.0.1 renumbering does, may keep one.
 * Changelog entry prefixes are exactly one of `BREAKING:`, `NEW:`, `CHANGED:`,
   `FIXED:`, `NOTE:` — in that order within a version. wp-ban's `IMPORTANT:` is
   renamed to `BREAKING:`.
@@ -980,6 +993,19 @@ listed here: `wrap`, `form-table`, `regular-text`, `large-text`, `small-text`,
 exists to emit. The rule bans *invented* classes and inline styles, not core's
 own vocabulary. One `<h1>` per screen. No inline
 `style`, `width`, `valign` or `align` attributes anywhere.
+
+**Case: buttons, row actions and column headers are title case; prose is
+sentence case.** That is core's own split — `Quick Edit`, `Delete Permanently`,
+`Move to Trash`, `Add New Post` beside "Allowed variables:" and every
+description under a field. So `Edit Draft` and `Copy Link`, not `Copy link`.
+The test is where the string sits, not how long it is: a label the user acts on
+is title case, a sentence explaining something is not (Lester's call,
+2026-08-10, on a row action reading `Copy link` beside core's `Quick Edit`).
+
+Labels already shipped are brought into line as they are touched, not swept —
+renaming one is a user-visible change and belongs in the changelog of a release
+that had a reason to touch it. wp-draftsforfriends' `Extend selected` and
+`Revoke selected` are the known holdouts.
 
 ### 4.4.1 A field's hint goes under the field
 
