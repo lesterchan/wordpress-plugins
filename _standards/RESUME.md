@@ -290,9 +290,11 @@ it. Releasing is Lester's call.
 One reviewer per plugin plus a pass across the whole tree, for injection, XSS
 and account takeover, widened on the ask to command injection, path traversal,
 arbitrary file access, SSRF, CSRF, object injection and information disclosure.
-**Twenty-seven findings, all fixed, all with tests.** The write-up with each
-finding and the commit that closed it is the artifact at
-`a private write-up kept outside this repository`.
+**Twenty-seven findings, all fixed, all with tests.** The write-up pairing each
+finding with the plugin it was in and the commit that closed it is deliberately
+**not in this repository** — ask Lester for it. This repository is public; that
+document is the collated version, and see the note below the tiers for why the
+two are kept apart.
 
 **The three things asked about specifically were in good shape.** No SQL
 injection: all 160 `$wpdb` call sites resolve to bound parameters, table-name
@@ -301,11 +303,23 @@ calls `wp_set_auth_cookie`, `wp_signon` or `wp_update_user` anywhere. Output
 escaping was consistently right.
 
 **What the sweep actually found was trust boundaries drawn one level too
-generously** — a plugin-specific capability reaching a file-read primitive, a captcha that
-does not survive contact with a script, a diagnostic dump printed without redaction, an editor-preview route publishing an inventory core keeps behind
-`activate_plugins`.
+generously** — a plugin-specific capability reaching a file-read primitive, a
+captcha that does not survive contact with a script, a diagnostic dump printed
+without redaction, an editor-preview route publishing an inventory core keeps
+behind `activate_plugins`.
 
-Six were fix-first, eleven more were real with a precondition, ten were hardening, and eight further items turned up while closing the hardening tier -- three of them term sweeps that were deleting data that was in use, which is a data-loss bug rather than a security one. Which plugin each finding belonged to is deliberately not recorded here.
+Six were fix-first, eleven more were real with a precondition, ten were
+hardening, and eight further items turned up while closing the hardening tier —
+including three term sweeps that were **deleting data that was in use**, which is
+a data-loss bug rather than a security one.
+
+**Which plugin each finding belonged to is deliberately not written down here.**
+Every one is fixed and released, and each plugin's own changelog describes its
+own fixes, so nothing is being hidden. What is withheld is the *collation*: an
+index pairing a plugin with the flaw its previous release carried does the
+sorting work for somebody targeting the installs that have not updated yet, and
+install counts mean that is most of them for weeks after a release. Keep it that
+way when adding to this section.
 
 **Every new guard was mutation-tested** — the guard reverted, the suite re-run.
 That caught four tests of mine that could not fail: a traversal fixture pointing
@@ -667,8 +681,9 @@ the list above and is now either shipped or written into a check.
 **All nineteen are tagged and pushed**, so every plugin has a ref for "as it
 shipped before this work". `git -C <plugin> tag` is the authority; the table
 that used to sit here restated nineteen commit hashes git already holds.
-`bin/tag-pre-revamp.sh` is what created them: safe to re-run, and it refuses to
-guess rather than tagging a shallow clone that is missing the commit.
+A one-off script created them, and it is gone now that they exist. The one
+thing worth carrying forward if it is ever rewritten: it refused to guess rather
+than tagging a shallow clone that was missing the commit.
 
 **It had to run from Lester's machine.** The sandbox's git proxy answers a tag
 push with HTTP 403 while allowing branch pushes, which is why this sat waiting
@@ -1014,7 +1029,7 @@ and nothing short of running the suite will tell you.
   local view is a claim about your disk and nothing else.
 
 * **The deploy script is retired, and the reason is the incident that retired
-  it.** `plugin_deploy.sh` did everything in one pass ending in `svn ci` — no
+  it.** It did everything in one pass ending in `svn ci` — no
   dry run, no diff to read, no place to stop. It was invoked on 2026-08-08 to
   test an unrelated guard, piped through `head -4` in the belief that would stop
   it. It did not: SIGPIPE only kills the writer on its next write and the script
@@ -1025,9 +1040,8 @@ and nothing short of running the suite will tell you.
   release path that could not be rehearsed. The work now lives in the
   `release-wp-plugin` skill as Step 4, inspectable commands with a hard stop at
   `svn stat` before the commit, and every one of the 2026-08-10 releases went
-  through it. **A copy of the script still sits in
-  `outside this repository` — never run it, and do not reintroduce
-  it to the release path.**
+  through it. **A copy of that script still exists outside this repository —
+  never run it, and do not reintroduce a one-pass deploy to the release path.**
 
 
 * **The deploy rsyncs the working tree, not a clean export** — true of the old
@@ -1242,7 +1256,7 @@ stays that way for a reason:
 | §7.2.1 Process-wide state | needs the suite running |
 | §7.2.3 A suite that dies is not one that passed | enforced by `bin/test-all.sh`; §7.2.3 says so, so the next audit does not write a second check |
 | §7.3 Coverage | a number, and gaming it is worse than missing it |
-| §13.4 and its subsections | scope and process. **Two of the three exceptions listed here are now closed**: §13.4.7's file and class names are checked, and §13.4.9's `--exclude='src'` is in `plugin_deploy.sh` and dry-run verified. **§13.4.2 is still open** — "a plugin registering a block still registers the shortcode it wraps" is mechanical and drift-prone, and every block plugin's own suite asserts it, but nothing checks it across the collection |
+| §13.4 and its subsections | scope and process. **Two of the three exceptions listed here are now closed**: §13.4.7's file and class names are checked, and §13.4.9's `--exclude='src'` is in the release skill's rsync and dry-run verified. **§13.4.2 is still open** — "a plugin registering a block still registers the shortcode it wraps" is mechanical and drift-prone, and every block plugin's own suite asserts it, but nothing checks it across the collection |
 | §15 Order of work | process, not state |
 
 **The arithmetic, measured on 2026-08-08 — and the measurement's limits matter

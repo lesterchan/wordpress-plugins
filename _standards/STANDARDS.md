@@ -631,7 +631,7 @@ to tell a stranger what the plugin is.
 * The consistency work shipped inside the 2026-08 major entries. Anything after
   those releases is a new version: bump per §14 (starting with `SHIPS_AS` in
   `bin/verify.py`) and give it its own changelog heading.
-* Code fences are ` ```php ` or ` ```javascript ` only — `plugin_deploy.sh`
+* Code fences are ` ```php ` or ` ```javascript ` only — the deploy
   rewrites exactly those two plus bare ` ``` ` into `~~~`, one per line.
 * **An admin path is written `` `WP-Admin -> Settings -> WP-Print` ``** — ASCII
   `->` for the separator, and the whole path in backticks or bold so it is not
@@ -2485,11 +2485,11 @@ plugin's directory on wordpress.org is a convenience rather than the reason.
 
 ### 13.4.9 Blocks change what the deploy ships — read this before the first one
 
-> Written against `plugin_deploy.sh`, which is retired; the deploy now lives in
+> Written against the deploy script, which is retired; the deploy now lives in
 > the `release-wp-plugin` skill, whose Steps 4b–4c carry the same build guard
 > and exclusion list. The history stays because it is why those guards exist.
 
-`plugin_deploy.sh` rsyncs the working tree against an **exclusion list**, so
+The deploy rsyncs the working tree against an **exclusion list**, so
 anything a build step leaves on disk ships unless it is named. Adding blocks
 adds two directories and they want opposite treatment:
 
@@ -2526,7 +2526,7 @@ paragraph: a scratch fixture proves the pattern matches, not that the toolchain
 puts everything where this assumed it would.
 
 **A failed build now stops the deploy, and did not before — added 2026-08-08.**
-`plugin_deploy.sh` ran `bin/build` without checking whether it worked, and the
+The old deploy ran `bin/build` without checking whether it worked, and the
 rsync copies the **working tree**, so a build that failed for any reason — no
 Node, a malformed `block.json`, a webpack error — left the previous `build/` on
 disk, or none at all, and the deploy published it. `build/` being gitignored is
@@ -2557,7 +2557,7 @@ in the plan, and all five are the toolchain rather than the blocks:
 * **`build/` is generated, gitignored, and shipped.** That combination is
   unusual here and every rule below follows from it. `src/` is the opposite:
   committed and not shipped.
-* **Three scripts had to learn to build.** `plugin_deploy.sh` already ran
+* **Three scripts had to learn to build.** The deploy already ran
   `bin/build`; `bin/test.sh` and `bin/test-e2e.sh` did not, and without them a
   checkout that has never been built fails the block tests for a reason
   unrelated to the code — or worse, on a checkout where `src/` changed since the
