@@ -1662,6 +1662,60 @@ rollback undoes the cleanup itself — and because the next test's own DDL makes
 the leftovers durable, they leak into whichever file runs after this one. That
 is not hypothetical; it cost a sibling file its expected value once already.
 
+#### 7.6.2 The migration creates the row, even when the migrated value is the defaults
+
+The fourth variant above is the one with a shape worth pinning, because the fix
+is three lines and the failure is total. `update_option()` declines to write a
+value equal to the one `get_option()` already answers with; where
+`register_setting()` was passed a `default`, an absent row answers with the
+shipped defaults. Core's `add_option()` fallback sits immediately below that
+comparison — `wp-includes/option.php` lines 921-928 — and is unreachable once the
+two compare equal. So a migration whose *result* happens to be the defaults
+writes no row at all, deletes the legacy rows it read, and stamps the markers
+complete. Nothing errors, nothing logs, and the upgrade can never run again.
+
+Every write a migration makes therefore goes through this shape:
+
+```php
+if ( false === get_option( self::OPTION, false ) ) {
+	add_option( self::OPTION, $options );
+
+	return;
+}
+
+update_option( self::OPTION, $options );
+```
+
+The explicit `false` is load-bearing and is the whole trick:
+`filter_default_option()` returns early when a default was passed, so an explicit
+default defeats the registered one, and that is the only way to tell an absent
+row from a defaulted one. `add_option()` runs the `sanitize_option_{$option}`
+filter exactly as `update_option()` does, so nothing else about the write
+changes. **`WP_Print_Options::write()` is the reference implementation.**
+
+**A plugin may keep a bare `update()` beside it, and two do.** wp-dbmanager and
+wp-stats each have a public `update()` the settings screen writes through and a
+private `write()` the migration uses; the bare one is correct there, because
+`options.php` has already created the row by the time a screen can save one. The
+guard is owed on the path *the migration* takes, not on every writer in the
+class. Where a plugin puts it is its own business — wp-postratings put it inside
+its single `update()`, wp-draftsforfriends inline in `migrate()` and only then
+calls the bare `update()` — provided no migration can reach a write that cannot
+tell the two cases apart.
+
+**A plugin that passes no `default` is not exposed**, and must not be made to
+guard against something that cannot happen to it: with no `default_option` filter
+`get_option()` answers `false`, and core's own `add_option()` fallback fires.
+freemyinternet, wp-commentnavi and wp-pagenavi are in that position.
+
+This was stated and enforced nowhere, which is exactly why six plugins carried
+the guard and six did not. `verify.py` checks it now: a migration that reaches a
+bare `update_option()` of the plugin's own settings row fails, and only where a
+`default` is registered. It finds migrations **by name** — anything with
+`migrate` or `upgrade` in it, which is what all nineteen call them — so a
+migration named something else is a migration nothing checks. Name it the way
+its siblings are named.
+
 ---
 
 ## 8. CI

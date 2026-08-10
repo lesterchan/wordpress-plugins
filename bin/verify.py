@@ -298,6 +298,52 @@ def class_constants(root, includes):
     return [(n, v, w) for n, v, w in found if v is not None or n in RETIRED_CONSTS]
 
 
+def strip_comments(source):
+    """PHP comments out, line numbering intact.
+
+    Several checks here strip comments before matching, because a docblock
+    explaining a trap otherwise reads as the trap itself -- §7.6.1 is described
+    at length in the very docblocks that sit above the code implementing it. The
+    others substitute an empty string and so cannot report a line number
+    afterwards; this keeps the newlines, so a finding can name a line the reader
+    can open.
+    """
+    return re.sub(r"/\*.*?\*/|//[^\n]*|^[ \t]*\*[^\n]*$",
+                  lambda m: "\n" * m.group(0).count("\n"), source,
+                  flags=re.S | re.M)
+
+
+def php_methods(source):
+    """Every class method in a shipped file, as (class, name, body, line).
+
+    Bodies are sliced from one `function` to the next rather than by matching
+    braces, which is enough for a collection phpcs holds to one tab per nesting
+    level: a slice may carry the next method's signature line, and nothing that
+    reads one cares. The owning class is whichever declaration precedes it --
+    §2.4 puts one class in one file, so in practice there is only ever one.
+
+    Column-anchored on a single tab, exactly as the §2.5 check is, so a global
+    function cannot be mistaken for a method.
+    """
+    classes = [(m.group(1), m.start()) for m in re.finditer(
+        r"^\s*(?:final\s+|abstract\s+)?class\s+(\w+)", source, re.M)]
+    starts = [(m.group(1), m.start()) for m in re.finditer(
+        r"^\t(?:(?:public|protected|private|static|final|abstract)\s+)*"
+        r"function\s+(\w+)\s*\(", source, re.M)]
+
+    found = []
+    for i, (fname, pos) in enumerate(starts):
+        end = starts[i + 1][1] if i + 1 < len(starts) else len(source)
+        owner = ""
+        for cls, at in classes:
+            if at < pos:
+                owner = cls
+        found.append((owner, fname, source[pos:end],
+                      source.count("\n", 0, pos) + 1))
+
+    return found
+
+
 def read(path):
     try:
         with open(path, "r", encoding="utf-8", errors="replace") as handle:
@@ -1077,6 +1123,139 @@ def verify(slug, name, prefix, port, root):
     r.check(not bare,
             "§7.6.1 the settings row is read with an explicit default",
             ", ".join(bare))
+
+    # --- §7.6.1 the migration creates the row when it is absent -------------
+    # The write side of the same defect, and the half that had been stated for
+    # weeks without anything checking it -- which is exactly why six plugins
+    # carried the guard and six did not.
+    #
+    # update_option() declines to write a value equal to the one get_option()
+    # answers with, and a registered `default` makes an absent row answer with
+    # the shipped defaults. Core's add_option() fallback sits immediately below
+    # that comparison (wp-includes/option.php:921-928) and is unreachable once
+    # the two compare equal. So a migration whose *result* happens to be the
+    # defaults writes no row at all, deletes the legacy rows it read, and stamps
+    # the markers complete -- on the commonest install there is, and on the one
+    # path every real update takes.
+    #
+    # Only where register_setting() is passed a `default`. Without one there is
+    # no default_option filter, get_option() answers false, and core's own
+    # add_option() fallback fires: freemyinternet, wp-commentnavi and wp-pagenavi
+    # are in that position and are not exposed. Flagging them would be asking
+    # three plugins to guard against something that cannot happen to them.
+    #
+    # Scoped to the migration, not to every writer, and that scoping is the
+    # whole difficulty. wp-dbmanager and wp-stats each have a public update()
+    # the settings screen writes through and a private write() the migration
+    # uses; the bare update() is correct there, because options.php has already
+    # created the row by the time a screen can save one. A check on "any
+    # update_option() with no guard" reports both of them every run, and a check
+    # relaxed until they pass reports nobody.
+    #
+    # So: find the migration, and follow the writes it can reach. A method whose
+    # body carries the guard itself is fine however it writes afterwards --
+    # wp-draftsforfriends adds the row inline and only then calls the bare
+    # update(), which is correct and must not be flagged.
+    #
+    # Migrations are found by name, anything with migrate or upgrade in it, which
+    # is what all nineteen call them. A migration named something else is a
+    # migration this cannot see; that is a miss rather than a false alarm, and
+    # §7.6.2 says so.
+    settings_row_classes = set()
+    for path in shipped:
+        body = strip_comments(read(path) or "")
+        m = re.search(r"const OPTION\s*=\s*'([^']+)'", body)
+        if not m or m.group(1) != under + "_options":
+            continue
+        settings_row_classes |= set(re.findall(
+            r"^\s*(?:final\s+|abstract\s+)?class\s+(\w+)", body, re.M))
+
+    def _touches_row(fn, body, cls):
+        """Whether body calls fn() on the plugin's own settings row."""
+        for m in re.finditer(r"\b%s\(\s*(self|[A-Za-z_]\w*)::OPTION\b" % fn,
+                             body):
+            owner = cls if "self" == m.group(1) else m.group(1)
+            if owner in settings_row_classes:
+                return True
+        return False
+
+    def _reads_raw(body, cls):
+        """A read that can tell an absent row from a defaulted one.
+
+        Any explicit second argument does it: filter_default_option() returns
+        early when a default was passed, so the registered one never fires. The
+        collection spells it `false` and `null` in about equal measure and both
+        are correct.
+        """
+        for m in re.finditer(
+                r"\bget_option\(\s*(self|[A-Za-z_]\w*)::OPTION\s*,", body):
+            owner = cls if "self" == m.group(1) else m.group(1)
+            if owner in settings_row_classes:
+                return True
+        return False
+
+    registers_default = False
+    for path in shipped:
+        body = strip_comments(read(path) or "")
+        for m in re.finditer(r"register_setting\(", body):
+            # The call's own arguments, by depth, rather than a fixed window: a
+            # `'default'` belonging to the next call along would otherwise clear
+            # this one.
+            depth, i = 0, m.end() - 1
+            while i < len(body):
+                if "(" == body[i]:
+                    depth += 1
+                elif ")" == body[i]:
+                    depth -= 1
+                    if 0 == depth:
+                        break
+                i += 1
+            if "'default'" in body[m.end():i]:
+                registers_default = True
+
+    writers, migrations = {}, []
+    for path in shipped:
+        body = strip_comments(read(path) or "")
+        rel = os.path.relpath(path, root)
+        for cls, fname, mbody, line in php_methods(body):
+            writes = _touches_row("update_option", mbody, cls)
+            adds = _touches_row("add_option", mbody, cls)
+            guarded = adds and _reads_raw(mbody, cls)
+
+            if writes or adds:
+                writers[(cls, fname)] = (rel, line, guarded)
+
+            if re.search(r"migrat|upgrad", fname):
+                migrations.append((cls, fname, rel, line, mbody, guarded))
+
+    if registers_default:
+        for cls, fname, rel, line, mbody, guarded in migrations:
+            if guarded:
+                continue
+
+            reached = []
+            if _touches_row("update_option", mbody, cls):
+                reached.append("its own update_option()")
+
+            for m in re.finditer(r"\b(self|[A-Za-z_]\w*)::(\w+)\s*\(", mbody):
+                owner = cls if "self" == m.group(1) else m.group(1)
+                write_path = writers.get((owner, m.group(2)))
+
+                if write_path is None or write_path[2]:
+                    continue
+
+                where = "%s::%s() at %s:%d" % (owner, m.group(2),
+                                               write_path[0], write_path[1])
+                if where not in reached:
+                    reached.append(where)
+
+            r.check(not reached,
+                    "a migration creates the settings row when it is absent",
+                    "%s:%d %s() writes through %s, which cannot tell an absent "
+                    "row from a defaulted one -- with a registered default a "
+                    "migrated value equal to the defaults writes nothing at "
+                    "all, so the row is never created (§7.6.1)"
+                    % (rel, line, fname, " and ".join(reached)))
 
     # --- §11 ships no raster image -----------------------------------------
     # Satisfied everywhere and enforced nowhere until 2026-08-03: §11 replaced
