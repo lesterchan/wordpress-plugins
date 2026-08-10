@@ -1,7 +1,14 @@
 # WordPress Plugins — the shared standard
 
+[![Verify](https://github.com/lesterchan/wordpress-plugins/actions/workflows/verify.yml/badge.svg)](https://github.com/lesterchan/wordpress-plugins/actions/workflows/verify.yml)
+
 Nineteen WordPress plugins, held to one written standard so they read as though
 one person wrote them on the same afternoon.
+
+The badge above is this repository's own CI: it clones all nineteen plugins and
+runs `bin/verify.py` across them on every push and once a night, and a second job
+breaks two things on purpose to prove the checker can still fail. Each plugin's
+own badge is in the table below.
 
 This repository is not a plugin. It is the tooling and the contract that sit
 *above* nineteen plugins, each of which is its own repository, released to
