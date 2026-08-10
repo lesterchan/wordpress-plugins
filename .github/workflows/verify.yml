@@ -1,0 +1,109 @@
+name: Verify
+
+# The plugins are nineteen separate repositories, so this workflow has to go and
+# get them: verify.py reads each one as a sibling directory of this repository
+# and compares it against the standard. That makes the trigger list unusual.
+#
+#   push / pull_request  — a change to verify.py, STANDARDS.md or a template can
+#                          break the collection without touching a plugin, and
+#                          nothing checked that before this file existed.
+#   schedule             — the reverse case, and the only way to catch it. A
+#                          plugin push cannot notify this repository, so drift
+#                          introduced over there is found by the next nightly
+#                          run rather than by the commit that caused it. That is
+#                          detection, not prevention; the plugin's own CI is the
+#                          gate on the plugin's own commit.
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: The collection against the standard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The slugs come out of verify.py's own PLUGINS table rather than being
+      # listed again here. A second copy of the list is the thing this whole
+      # repository exists to stop.
+      - name: Clone the nineteen plugins as siblings
+        run: |
+          python3 -c "import sys; sys.path.insert(0, 'bin'); import verify; print('\n'.join(p[0] for p in verify.PLUGINS))" > slugs.txt
+          wc -l < slugs.txt
+          xargs -P 6 -I{} git clone --quiet --depth 1 https://github.com/lesterchan/{}.git {} < slugs.txt
+          rm slugs.txt
+
+      # Exit status is the failure count, so a red job is a real count of
+      # violations rather than a crash.
+      - name: Run verify.py
+        run: python3 bin/verify.py
+
+  self-test:
+    name: verify.py can still fail
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Byte-compile the tooling
+        run: python3 -m py_compile bin/verify.py bin/measure_assertions.py bin/triage_assertions.py
+
+      - name: Clone the nineteen plugins as siblings
+        run: |
+          python3 -c "import sys; sys.path.insert(0, 'bin'); import verify; print('\n'.join(p[0] for p in verify.PLUGINS))" > slugs.txt
+          xargs -P 6 -I{} git clone --quiet --depth 1 https://github.com/lesterchan/{}.git {} < slugs.txt
+          rm slugs.txt
+
+      # A checker that passes everything looks exactly like a checker that
+      # cannot fail, and verify.py has shipped that bug: a re.findall() with one
+      # capture group returned strings rather than tuples, so a subscript read
+      # one character and every plugin passed a check that was measuring
+      # nothing. Both mutations below are real defects it has actually missed or
+      # been fixed to catch, and each asserts the *label*, not merely a non-zero
+      # exit -- failing for the wrong reason is the failure mode being guarded.
+      - name: A changed floor must be caught
+        run: |
+          python3 bin/verify.py --quiet
+          echo "clean run: 0 failing"
+
+          sed -i 's/^Requires at least: 6\.8/Requires at least: 6.7/' wp-print/README.md
+
+          set +e
+          out=$(python3 bin/verify.py wp-print); code=$?
+          set -e
+          echo "$out"
+
+          if [ "$code" -eq 0 ]; then
+            echo "::error::verify.py passed a plugin whose WordPress floor was changed"
+            exit 1
+          fi
+          echo "$out" | grep -q 'README Requires at least 6.8: 6.7' \
+            || { echo "::error::it failed, but not for the floor -- the check may be measuring something else"; exit 1; }
+
+      - name: A plugin claiming a row it does not keep must be caught
+        run: |
+          sed -i 's/Displayed only; the plugin stores no version row./The last-run value is kept in the wp_showhide_version row./' \
+            wp-showhide/wp-showhide.php
+
+          set +e
+          out=$(python3 bin/verify.py wp-showhide); code=$?
+          set -e
+          echo "$out"
+
+          if [ "$code" -eq 0 ]; then
+            echo "::error::verify.py passed a plugin that claims a version row it does not keep"
+            exit 1
+          fi
+          echo "$out" | grep -q 'claims a version row it does not keep' \
+            || { echo "::error::it failed, but not for the claim"; exit 1; }
