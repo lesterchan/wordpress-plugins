@@ -419,6 +419,15 @@ def verify(slug, name, prefix, port, root):
                 "%s (want %s)" % (stable.group(1) if stable else "?",
                                   SHIPS_AS[slug]))
 
+        # §14.1: never say what the reader is upgrading from -- the predecessor
+        # claims were wrong in nearly every plugin, and seventeen "up from"
+        # changelog lines shipped in the 2026-08 majors before anything checked.
+        for i, ln in enumerate(lines):
+            if ", up from " in ln:
+                r.check(False,
+                        "README never names the floors upgraded from (§14.1)",
+                        "line %d: %s" % (i + 1, ln.strip()[:60]))
+
         # §3.3: the h2 set is closed and ordered. h3s are free.
         found_h2 = [ln.rstrip() for ln in lines if ln.startswith("## ")]
         for section in ("## Description", "## Installation", "## Changelog",
