@@ -135,7 +135,10 @@ the authority; `gh run list` per repo takes a minute.
   two documentation commits), wp-relativedate, wp-serverinfo, wp-showhide and
   wp-sweep. Three of those were red before the fixes below, from one stale string
   each. Re-run `gh run list` per repo; the paragraph above is a method, not a
-  result.
+  result. The method was re-run late on 2026-08-10, after those pushes settled:
+  all nineteen level with their remotes after a fetch, CI green at every HEAD,
+  `verify.py` 0, and wordpress.org matching every `Stable tag` —
+  wp-downloadmanager's staged 2.0.1 still the one intentional divergence.
 * **No known plugin bug is outstanding that is not already fixed in git.**
   wp-downloadmanager's category-zero defect is fixed as the staged 2.0.1, which
   now carries a second fix — the N/A-versus-blank split between its two admin
