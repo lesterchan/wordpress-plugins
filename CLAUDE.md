@@ -21,11 +21,11 @@ untracked, which is why `git status` here shows none of their changes. See
 
 ## Plugin `CLAUDE.md` files are standalone, and must stay that way
 
-**They ship.** `plugin_deploy.sh` copies `$SRC_DIR/*`, which skips dotfiles —
-so `.claude/` and `.github/` never leave — but `CLAUDE.md` is not a dotfile and
-is not excluded, so it goes to wordpress.org with every release and lands in the
-zip every user downloads. Whoever reads it has one plugin directory and nothing
-else: no `_standards/`, no siblings, no idea what a section number refers to.
+**They are read standalone.** The release path excludes `CLAUDE.md` from what
+ships to wordpress.org (it once shipped, which is how this rule was learned),
+but every plugin is its own public GitHub repository, and whoever clones one
+has that plugin directory and nothing else: no `_standards/`, no siblings, no
+idea what a section number refers to.
 
 So the test for anything written in one is: **could someone who cloned only that
 repository act on this line?** Four things fail it and are not to be
@@ -56,9 +56,9 @@ is not automatable and is not attempted, so a green run is not compliance.
 git.** The ones with blocks carry `src/` (committed, never shipped) and generate
 `build/` (gitignored, shipped — it is what the block registration loads).
 `bin/build` makes one from the other, and `bin/test.sh`, `bin/test-e2e.sh` and
-`plugin_deploy.sh` all run it before they do anything, so a suite cannot test a
-stale build and a release cannot ship one. Two consequences worth knowing before
-they bite:
+the release skill's deploy all run it before they do anything, so a suite cannot
+test a stale build and a release cannot ship one. Two consequences worth knowing
+before they bite:
 
 * **`git status` is silent about `build/`, and `build/` ships.** The deploy
   rsyncs the working tree rather than a clean export, so anything untracked but
