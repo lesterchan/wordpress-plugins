@@ -1004,8 +1004,7 @@ is title case, a sentence explaining something is not (Lester's call,
 
 Labels already shipped are brought into line as they are touched, not swept —
 renaming one is a user-visible change and belongs in the changelog of a release
-that had a reason to touch it. wp-draftsforfriends' `Extend selected` and
-`Revoke selected` are the known holdouts.
+that had a reason to touch it.
 
 ### 4.4.1 A field's hint goes under the field
 
