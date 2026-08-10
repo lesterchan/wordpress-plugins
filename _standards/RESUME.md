@@ -180,6 +180,19 @@ write. Being wrong is also what altered the defaults and gave `update_option()`
 a difference to find — so the write guard alone would have written the blanked
 list. Fixed in `e91c1eb` and re-tagged.
 
+**Found the same day, after the release: seventeen changelog lines said "up
+from 6.0 and 7.4".** §14.1 forbids naming the floors a reader upgraded from —
+the numbers describe the pre-revamp *repositories*, not anything a real site
+declared — and the rule was applied to every Upgrade Notice but never to the
+`BREAKING:` changelog lines, and nothing checked it. Sixteen plugins shipped
+the line (wp-dbmanager and wp-serverinfo each asserting different, equally
+wrong predecessors). All stripped, and `verify.py` now fails any README
+containing ", up from ". The three store-nothing plugins' claims of a
+`{{UNDER}}_version` row they never write — README, one header docblock and one
+uninstall docblock — were corrected in the same pass, closing the "Known
+discrepancy" sections their CLAUDE.md files carried. The corrections are in
+git; wordpress.org serves them with each plugin's next release.
+
 **What is staged as 2.0.1 and not released.** A fresh install shipped its only
 category at index 0 — the slot that means "no category" — so the Add File
 dropdown offered it and the first settings save renumbered the list, orphaning
@@ -1120,7 +1133,7 @@ and nothing short of running the suite will tell you.
 Worth keeping because the answer is not "run `verify.py` again".
 
 **The mechanical half is continuously checked and green.** `bin/verify.py` is
-**157 checks** as of 2026-08-10 — re-derive with `grep -c '\.check(' bin/verify.py`
+**158 checks** as of 2026-08-10 — re-derive with `grep -c '\.check(' bin/verify.py`
 rather than quoting; this file has been wrong about its own arithmetic three
 times — and the shared metadata fixture covers §13 including the shared-row
 contract two plugins violated. Both run on every push. Re-auditing nineteen
