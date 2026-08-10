@@ -3,6 +3,11 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with
 code in this repository.
 
+It is public, and written for whoever is holding the whole collection — an agent
+or a person. It assumes the nineteen plugin repositories are cloned as sibling
+directories, which is the layout every script here reads. Nothing in it is
+specific to one machine.
+
 This repository is the shared tooling above nineteen WordPress plugins. Each
 plugin is its own git repository, cloned side by side here and released to
 wordpress.org on its own schedule; the plugin directories are deliberately
@@ -56,8 +61,10 @@ is not automatable and is not attempted, so a green run is not compliance.
 git.** The ones with blocks carry `src/` (committed, never shipped) and generate
 `build/` (gitignored, shipped — it is what the block registration loads).
 `bin/build` makes one from the other, and `bin/test.sh`, `bin/test-e2e.sh` and
-the release skill's deploy all run it before they do anything, so a suite cannot
-test a stale build and a release cannot ship one. Two consequences worth knowing
+the release procedure all run it before they do anything, so a suite cannot test
+a stale build and a release cannot ship one. That procedure is a Claude Code
+skill kept outside this repository, so nothing here describes the wordpress.org
+SVN steps; the guards it carries are the ones written up in `_standards/`. Two consequences worth knowing
 before they bite:
 
 * **`git status` is silent about `build/`, and `build/` ships.** The deploy
@@ -72,8 +79,9 @@ before they bite:
 Commit these repositories with `--no-gpg-sign`; the global `commit.gpgsign`
 setting does not apply to them.
 
-Nothing is pushed or tagged without being asked, and nothing goes near the SVN
-checkouts in `~/svn/wordpress_plugins/` unless the task says so explicitly.
+Nothing is pushed or tagged without being asked. Nothing goes near the local
+wordpress.org SVN checkouts unless the task says so explicitly: a commit there is
+public and permanent the moment it lands, with no staging step to undo it.
 
 ## A note on scale
 

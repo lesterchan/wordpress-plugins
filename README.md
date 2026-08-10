@@ -59,11 +59,12 @@ downloads, spread very unevenly; WP-PageNavi alone is over half of both.
 | [WP-Sweep](https://github.com/lesterchan/wp-sweep) | `wp-sweep` | 100,000+ | [![CI](https://github.com/lesterchan/wp-sweep/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-sweep/actions/workflows/ci.yml) | Clean up unused, orphaned and duplicated data. |
 | [WP-UserOnline](https://github.com/lesterchan/wp-useronline) | `wp-useronline` | 10,000+ | [![CI](https://github.com/lesterchan/wp-useronline/actions/workflows/ci.yml/badge.svg)](https://github.com/lesterchan/wp-useronline/actions/workflows/ci.yml) | Show how many people are on the site right now. |
 
-**The majors currently in these repositories are unreleased.** Each is a rewrite
-against the standard and carries breaking changes, documented per plugin under
-`## Upgrade Notice` in its README. What wordpress.org serves today is the
-previous release; the commit each plugin shipped from before this work is
-tagged in its own repository.
+**All nineteen majors are released.** Each is a rewrite against the standard and
+carries breaking changes, documented per plugin under `## Upgrade Notice` in its
+own README. wordpress.org serves them now; the commit each plugin shipped from
+*before* this work is tagged in its own repository, so the two are comparable.
+`Stable tag` in a plugin's README is the authority for what it ships — the table
+above is a snapshot like the install counts.
 
 ## What is in here
 
@@ -78,15 +79,22 @@ tagged in its own repository.
 
 ## Tooling
 
+The tooling reads the plugins as **sibling directories of this repository**, so
+clone the ones you want beside it first — `bin/verify.py` resolves each plugin as
+`<this repo>/<slug>` and reports a plugin it cannot find as missing rather than
+skipping it. Nothing here modifies a plugin; every script only reads.
+
 ```sh
 python3 bin/verify.py                 # check every plugin against the standard
 python3 bin/verify.py wp-polls        # or just one
 python3 bin/verify.py --quiet         # exit status is the failure count
 ```
 
-`bin/verify.py` is the mechanical half of the standard — 153 checks, not all
-of which apply to every plugin, covering layout, naming, headers, admin
-screens, styles, testing, CI, linting and versioning.
+`bin/verify.py` is the mechanical half of the standard — 160 checks at the time
+of writing, not all of which apply to every plugin, covering layout, naming,
+headers, admin screens, styles, testing, CI, linting and versioning. Re-derive
+the count with `grep -c '\.check(' bin/verify.py` rather than trusting that
+number; it goes up whenever a defect turns out to be checkable.
 
 ```sh
 bin/test-all.sh                       # every plugin's PHPUnit suite, one container
