@@ -686,6 +686,39 @@ def verify(slug, name, prefix, port, root):
             continue
         r.check(False, "unprefixed option row", opt)
 
+    # A plugin that stores nothing must not say it stores something. STORES_NOTHING
+    # already keeps DB_VERSION out of these four; this keeps the row's *name* out
+    # of them too, which is the half nothing checked. A readme sweep on 2026-08-10
+    # took the claim out of three READMEs and left it in three docblocks —
+    # wp-showhide's above its VERSION constant, wp-serverinfo's on the bootstrap
+    # class — each stating the opposite of what the plugin does, none of them
+    # reachable by any check here. uninstall.php is the one legitimate mention: it
+    # deletes the row a pre-release build wrote, and walk() already skips tests/,
+    # which seed that row by hand to prove uninstall removes it.
+    if slug in STORES_NOTHING:
+        for path in walk(root):
+            if not path.endswith(".php"):
+                continue
+            if os.path.basename(path) == "uninstall.php":
+                continue
+            if under + "_version" in (read(path) or ""):
+                r.check(False, "claims a version row it does not keep (§2.1)",
+                        os.path.relpath(path, root))
+
+    # A class the plugin names but no file declares. All three found on
+    # 2026-08-10 were comments pointing at an options class that went with the
+    # version markers — WP_ShowHide_Options, WP_ServerInfo_Options,
+    # WP_Sweep_Options — so a reader was sent after something that does not
+    # exist. Comments are the whole point: code naming a missing class fatals and
+    # a test catches it, prose sits there indefinitely. Only the plugin's own
+    # prefix is considered, so a core or sibling class is never a candidate, and
+    # the declaration scan takes interfaces and traits too.
+    declared = set(re.findall(
+        r"\b(?:class|interface|trait)\s+(%s_\w+)" % prefix, all_php))
+    for ref in sorted(set(re.findall(r"\b%s_\w+" % prefix, all_php))):
+        if ref not in declared:
+            r.check(False, "names a class no file declares", ref)
+
     # --- §4.2 the Settings class owns the fields ----------------------------
     # Admin owns the menu and the screens; Settings owns register_setting(), the
     # sections, the field_<name>() callbacks and the sanitiser. wp-print and

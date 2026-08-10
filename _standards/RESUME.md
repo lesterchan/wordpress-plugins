@@ -130,10 +130,92 @@ the authority; `gh run list` per repo takes a minute.
 * **A cancelled run is not a failed one.** Pushing twice in quick succession
   cancels the first run by design; see Traps.
 * The permalink audit of the E2E suites is complete — see below.
+* **A green CI sweep does not survive the next push.** Six repositories were
+  pushed to on 2026-08-10 after the release — wp-downloadmanager (`f2cdb7b` plus
+  two documentation commits), wp-relativedate, wp-serverinfo, wp-showhide and
+  wp-sweep. Three of those were red before the fixes below, from one stale string
+  each. Re-run `gh run list` per repo; the paragraph above is a method, not a
+  result.
 * **No known plugin bug is outstanding that is not already fixed in git.**
-  wp-downloadmanager's category-zero defect is fixed as the staged 2.0.1.
+  wp-downloadmanager's category-zero defect is fixed as the staged 2.0.1, which
+  now carries a second fix — the N/A-versus-blank split between its two admin
+  screens — and is still deliberately unreleased so fixes can accumulate.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
+
+## Closed 2026-08-10 — a readme sweep turned three suites red
+
+The sweep that dropped "upgraded from" floors and version-row claims out of the
+READMEs was right about the substance and left three repositories failing every
+PHPUnit leg — eighteen jobs — on one stale string each.
+
+`upgrade_notice_subjects()` in wp-relativedate, wp-serverinfo and wp-showhide
+still listed `wp_<slug>_version` as something the Upgrade Notice must mention,
+while the same class declared `has_version_row()` false. The two were asserting
+opposite things about one plugin. **Removing the entry removed no coverage**: the
+shared `test_version_row_holds_exactly_plugin_and_db()` fires `plugins_loaded`
+and `init` and requires `get_option()` to come back false for these four, so the
+absence of the row is pinned by behaviour, not by a string in a readme. Checked
+before deleting anything, because a list entry that looks obsolete is exactly
+what a real assertion looks like from the outside.
+
+The same sweep missed two places it existed to fix, and a third turned up next to
+them — all three claims about behaviour, all in comments, none reachable by any
+check that exists:
+
+* `wp-showhide.php` said the last-run value "is kept in the `wp_showhide_version`
+  row". The constant is displayed and never stored.
+* `class-wp-serverinfo.php` said the one row the plugin keeps is
+  `wp_serverinfo_version`, "see `WP_ServerInfo_Options`" — a row nothing writes
+  and **a class that does not exist in the repository**.
+* `wp-sweep/uninstall.php` said its two `delete_option()` calls clear what the
+  plugin wrote and what "the upgrade" deletes. There is no upgrade; both rows are
+  2.0.0 **beta** leftovers, which is what its own `CLAUDE.md` had said all along.
+  Its function comment justified spelling the names out by reference to
+  `WP_Sweep_Options`, which `test-options.php` requires not to exist.
+
+Established before rewording rather than assumed: **no released version of any of
+the four ever wrote its row.** `0d31075` ("Store nothing at all", 30 July) took
+the markers, the options classes and the schema counters out before all four
+shipped, so naming the row in an Upgrade Notice would send owners hunting through
+`wp_options` for something that was never there. Only a pre-release build wrote
+one, which is the single case `uninstall.php` still cleans up.
+
+`b8d50de`, `bbe00c3`, `813cbea`, `d73ffe1`. All four green single site and
+multisite, phpcs clean, `verify.py` 0.
+
+**The gap this leaves.** `verify.py` already knows which plugins these are —
+`STORES_NOTHING` names the four, and asserts they define no `DB_VERSION`. It has
+never checked that they do not *claim* a row, which is why three false statements
+survived a sweep aimed at them. Nothing was removed from `verify.py`; the check
+was never written. Two would close it, both mechanical rather than prose
+matching: for a slug in `STORES_NOTHING`, `wp_<under>_version` may appear only in
+`uninstall.php` and `tests/`; and a plugin may not name a `WP_<Prefix>_*` class
+no file declares. The second catches all three dead-class pointers above.
+
+## Closed 2026-08-10 — wp-downloadmanager's two admin screens disagreed
+
+Manage Downloads printed "N/A" for a file in no category; the Delete File
+confirmation for that same file printed nothing — one click apart, on the row the
+owner had just clicked. The list table was the only caller that had a label, so
+every other caller printed the empty string by accident rather than by choice.
+
+The label is now a parameter on `category_name()`, which puts the choice at each
+call site. The two admin screens pass "N/A"; three callers deliberately do not,
+and the docblock says why — the listing heading (category 0 there means *every*
+category, so it would read "Downloads: N/A"), the feed's `<category>` element,
+and WP-CLI's csv/json/yaml, where an empty value cannot be mistaken for a
+category somebody named N/A.
+
+The part that would have been got wrong: the lookup had to stop distinguishing
+*absent* from *blank*, because category 0 is present and blank by design.
+Returning the fallback only for a missing key would have printed nothing for
+exactly the file the fix is about. The blank test is `'' !== $name` rather than
+`empty()`, so a category named `0` keeps its name.
+
+`f2cdb7b`. Six mutations each applied alone, all killed; 472 tests green single
+site and multisite; 85 Playwright locally and green on CI. Staged in 2.0.1, which
+now carries two fixes and is still deliberately unreleased.
 
 ## Closed 2026-08-10 — the release of all nineteen
 
@@ -1133,7 +1215,7 @@ and nothing short of running the suite will tell you.
 Worth keeping because the answer is not "run `verify.py` again".
 
 **The mechanical half is continuously checked and green.** `bin/verify.py` is
-**158 checks** as of 2026-08-10 — re-derive with `grep -c '\.check(' bin/verify.py`
+**160 checks** as of 2026-08-10 — re-derive with `grep -c '\.check(' bin/verify.py`
 rather than quoting; this file has been wrong about its own arithmetic three
 times — and the shared metadata fixture covers §13 including the shared-row
 contract two plugins violated. Both run on every push. Re-auditing nineteen
