@@ -1,47 +1,42 @@
 # Resume here
 
-State of the consistency programme as of **2026-08-09**. Read this, then
+State of the consistency programme as of **2026-08-10**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
-**In one line:** all nineteen plugins are green and level with their remotes,
-item 1 is closed, and two audits landed on 2026-08-09 — **a security review of
-the whole collection and an i18n sweep of it** — so **no item is open**, and
-what remains is a release, which is Lester's by hand.
+**In one line: the campaign is finished.** All nineteen plugins were released
+to wordpress.org on 2026-08-09/10, every one tagged at its README's version,
+serving roughly 880,000 active installs between them, and **no item is open**.
+What the release itself found is under "Closed 2026-08-10", and it is the
+campaign's thesis proving itself one last time.
 
-**Nothing from either audit is released.** Every fix is on `master` and green in
-CI; no tag is cut and nothing has gone near `~/svn/wordpress_plugins/`. That is
-the state to hand back, not an oversight.
-
-**One thing needs Lester and it is not a grind.** The releases: nineteen
-plugins carry changelog entries for work that has never shipped, several of
-them `NOTE:` lines telling translators their strings changed. Until a release
-goes out those notes describe a version nobody can install.
-
-**The bug backlog is empty.** 2026-08-04 closed the §7.6.1 release blocker, the
-spec-against-checks audit and the capability audit that fell out of it; what is
-and is not mechanically enforced is under "Is the collection compliant?", and
-every count in that answer should be re-derived rather than quoted — this file
-has now been wrong about the arithmetic three times.
+**One release is staged and deliberately not shipped.** wp-downloadmanager is
+2.0.1 in git — the category-zero renumbering fix, changelog and Upgrade Notice
+written — while wordpress.org serves 2.0.0. Lester is accumulating fixes
+rather than releasing again immediately; when he says ship, the
+`release-wp-plugin` skill is the path. Nothing else waits on it.
 
 **Before writing another migration test, read the §7.6.1 entry under "Rules
-earned the hard way".** The read half is the real defect and the write half is
-mostly core's problem — this file said otherwise for a week, and the correction
-is the difference between a useful test and one that passes without proving
-anything. The eleven suites written on 2026-08-05 are all built on it.
+earned the hard way"** — advice the release sharpened rather than dated: the
+write half turned out to be missing its guard in six plugins after all, held
+off by hook order and an imperfect sanitiser rather than by anything anyone
+wrote. The read half is still the real defect, and the eleven suites written
+on 2026-08-05 are all built on it.
 
 **The campaign's core lesson: a rule nothing checks is a rule that is probably
-also wrong**, not merely unenforced. Nineteen green suites, `verify.py` at zero
-and CI green sat over a data-loss migration one hook-ordering accident from
-firing. The audit that found it read the *spec* and asked "what enforces
-this?" — never by re-reading the plugins — and found four live defects and six
-sections that were themselves wrong.
+also wrong**, not merely unenforced. It held to the last day: §7.6.2's write
+guard was stated with wp-print as the reference, nothing enforced it, and six
+of nineteen plugins did not carry it — found on release day by asking what
+enforces the rule, never by re-reading the plugins.
 
 **Trust the tools over this file.** At the start of a session run
 `python3 bin/verify.py --quiet`, then in each repo `git fetch` followed by
-`git status -sb` and `git log --oneline -3`. Between them they tell you the true
-state without believing a word written here. **The `git fetch` is not
+`git status -sb` and `git log --oneline -3`. Between them they tell you the
+true state without believing a word written here. **The `git fetch` is not
 optional** — a cloud session pushes to the remote, and until you fetch,
-`git status` reports a stale checkout as clean and level.
+`git status` reports a stale checkout as clean and level. And for anything
+about what is *released*, ask wordpress.org rather than any local checkout:
+`https://api.wordpress.org/plugins/info/1.2/` per slug, or the comparison loop
+at the end of the `release-wp-plugin` skill for the whole set in one pass.
 
 ## What this is
 
@@ -53,12 +48,12 @@ differences between two plugins are name, features and capability.
 
 | Question | Decision |
 |---|---|
-| Public identifier renames | Full canonicalisation **with** migration. The current major is unreleased in 17 of 19 cases, so renames retarget the migration that already exists rather than adding a second one. |
+| Public identifier renames | Full canonicalisation **with** migration — shipped in the 2026-08 majors. The migrations stay live for sites upgrading from pre-revamp versions. |
 | Class naming | Prefix everything: `WP_Email_Admin`, `WP_Print_Admin`. `freemyinternet` keeps `FreeMyInternet_*`. |
 | CI matrix | **6 PHPUnit rows — every supported stack in both modes:** WP 6.8/PHP 8.2, WP latest/PHP 8.2, WP latest/PHP 8.5, each single **and** multisite. Plus phpcs and JS jobs, so 8 checks on a JS plugin and 7 without. Multisite runs on the floor too: that is where it breaks. |
 | Admin UI | Full Settings API rewrite everywhere, one menu rule (§4.1), `WP_List_Table` for all tabular screens. |
 | Renamed hooks that were public in the last SVN release | **Dropped outright.** No `apply_filters_deprecated()` shims. Every one documented under `## Upgrade Notice`. |
-| Versioning | Fold this work into the existing unreleased major — **except** wp-dbmanager and wp-useronline, see §14. |
+| Versioning | The campaign was folded into one major per plugin, released 2026-08-09/10 — wp-dbmanager and wp-useronline skipped a number, see §14. Post-release work gets its own version, staged first in `verify.py`'s `SHIPS_AS`. |
 | TinyMCE (wp-downloadmanager, wp-polls) | Classic Editor buttons stay; rewrite `plugin.js` vanilla. |
 | Root of this folder | Tracked since 2026-08-01: `github.com/lesterchan/wordpress-plugins`, branch `main`, holding `_standards/`, `bin/`, `.wp-env.json` only. The 19 plugin directories are gitignored **by name** — a pattern would also swallow `_standards/` and `bin/`. Each is its own repo on `master`. |
 | Commit signing | **None.** Use `git commit --no-gpg-sign`, despite the global `commit.gpgsign = true`. Existing history is unsigned and stays that way. |
@@ -101,13 +96,15 @@ differences between two plugins are name, features and capability.
 Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 `bin/test-e2e.sh`.
 
-## Current state — verified 2026-08-09
+## Current state — verified 2026-08-10
 
-**All nineteen are green on CI at their current `HEAD`, level with their
-remotes, and their working trees are clean** — checked per repository with
-`gh run list` against `git rev-parse HEAD` rather than inferred from the last
-push, and re-checked after the last commit of the day. The twentieth repository,
-this one, is level too.
+**All nineteen are released, green on CI at their current `HEAD`, and level
+with their remotes.** The release state was checked on 2026-08-10 by comparing
+each repo's `Stable tag` against what `api.wordpress.org` serves — all nineteen
+match, with wp-downloadmanager's staged 2.0.1 the one intentional divergence.
+The CI state was checked per repository with `gh run list` against
+`git rev-parse HEAD` rather than inferred from the last push. The twentieth
+repository, this one, is level too.
 
 **Every number below moves with the next commit — re-run rather than quote.**
 This file has been wrong about exactly that before: wp-sweep was one commit
@@ -133,9 +130,65 @@ the authority; `gh run list` per repo takes a minute.
 * **A cancelled run is not a failed one.** Pushing twice in quick succession
   cancels the first run by design; see Traps.
 * The permalink audit of the E2E suites is complete — see below.
-* **No known plugin bug is outstanding.** wp-polls' widget was found on
-  2026-08-07 and fixed on 2026-08-08; the write-up is kept below because how it
-  was found is the useful part.
+* **No known plugin bug is outstanding that is not already fixed in git.**
+  wp-downloadmanager's category-zero defect is fixed as the staged 2.0.1.
+  wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
+  write-up is kept below because how it was found is the useful part.
+
+## Closed 2026-08-10 — the release of all nineteen
+
+Released through the `release-wp-plugin` skill: pre-flight, staged trunk read
+by hand, the staged tree exercised on lesterchan.net before anything was
+published, trunk committed, svn-copied to `tags/<version>`, screenshots
+committed from `assets/`. The five plugins that had sat on `Stable tag: trunk`
+for years now have real tags, and the local SVN checkouts are at HEAD for the
+first time since 2022 — which changes nothing about the rule: ask the
+repository URL, not the checkout.
+
+**The final pre-release audit found §7.6.2's write guard missing from six of
+nineteen plugins** — wp-postviews, wp-postratings, wp-downloadmanager,
+wp-draftsforfriends, wp-email and wp-useronline. The guard (`add_option()` when
+the row is absent, because `update_option()` writes nothing when the migrated
+value equals the registered default) was stated with wp-print as the reference;
+nothing enforced it, so it had drifted, exactly as the campaign's thesis
+predicts. All six are fixed: two shipped with the fix, four were re-tagged.
+`verify.py` enforces it now and STANDARDS gained §7.6.2 (`21d9d17`).
+
+**Why no data was ever lost, and why that is not comfort.** In wp-postviews
+and wp-postratings the migration runs on `init` and `register_setting()` on
+`admin_init`, so the defaults filter did not exist yet when the migration
+wrote; wp-useronline's runs on `plugins_loaded`, earlier still; in the rest,
+both sit on `admin_init` at the same priority, and the ordering of two
+`add_action()` calls was the entire protection. Worse, the migration tests that existed were
+green for a reason unrelated to the code: `update_option()` sanitises before
+it compares, so a sanitiser that happened to alter the shipped defaults — kses
+collapsing a doubled space in one template default — was what made the
+migrated value differ and the row get written. Lester flagged the doubled
+space as a cosmetic blemish; removing it turned two plugins' migration tests
+red. **A test that passes only because a sanitiser is imperfect cannot fail
+for the right reason.** Each of the six now also asserts the shipped defaults
+are a fixed point of its own sanitiser, so the day that stops being true is
+reported rather than silently absorbed; `fa15fb1` is the template-side check.
+
+**wp-downloadmanager had a second live defect hiding the first.**
+`sanitize_categories()` handled only the textarea's string form, but it is
+`register_setting()`'s callback, so core also runs it from `add_option()` /
+`update_option()` with the stored **array** — which a string sanitiser answers
+with `''`. Every whole-row write collapsed the category list to one blank
+entry and left every file reading "N/A", including the upgrade routine's own
+write. Being wrong is also what altered the defaults and gave `update_option()`
+a difference to find — so the write guard alone would have written the blanked
+list. Fixed in `e91c1eb` and re-tagged.
+
+**What is staged as 2.0.1 and not released.** A fresh install shipped its only
+category at index 0 — the slot that means "no category" — so the Add File
+dropdown offered it and the first settings save renumbered the list, orphaning
+every file filed before it. Changing the default alone is unsafe because
+`all()` merges the stored value over it, so the fix is the default change plus
+a migration that shifts the categories and renumbers `file_category`, run once
+off a marker bump. Committed (`1ef3089`), changelog and Upgrade Notice
+written, `Stable tag` already 2.0.1, and `verify.py`'s `SHIPS_AS` moved with
+it. Releasing is Lester's call.
 
 ## Closed 2026-08-09 — the security review
 
@@ -351,9 +404,10 @@ not written.
 ## Remaining work
 
 **The list is empty.** Item 1 — WP-CLI, REST and blocks — closed 2026-08-08;
-item 2 — the screenshots — closed the same day, leaving only its SVN half,
-which is Lester's. What follows is the findings the two items produced, kept
-because they bind the next phase; the instructions are spent and gone.
+item 2 — the screenshots — closed the same day, and its SVN half shipped with
+the 2026-08-10 releases. What follows is the findings the two items produced,
+kept because they bind anything built on these surfaces; the instructions are
+spent and gone.
 
 ### Item 1 findings — WP-CLI, REST and blocks, closed 2026-08-08
 
@@ -424,9 +478,9 @@ Findings that bind anything built on these surfaces:
 71 images across all nineteen, taken against the rebuilt admin, every
 `## Screenshots` list rewritten to match, reviewed and accepted by Lester —
 including the ten plugins thinner than the old set, whose old counts described
-a UI that no longer exists. What is left is his: the files sit in
-`~/svn/wordpress_plugins/*/assets/` needing `svn add`, `svn delete` and the
-commit he makes with the release.
+a UI that no longer exists. The files went out with the 2026-08-10 releases,
+committed from `assets/` through the skill's screenshots step, which also
+`svn rm`s every image the new readme no longer captions.
 
 **Every caption was later checked against its image, and seven were wrong** —
 miscounts, the wrong tab, the right number of the wrong thing, and worst,
@@ -534,8 +588,8 @@ Three findings outlived the tagging itself:
   2.69.0/2.69.1.
 * **Five plugins carried `Stable tag: trunk`**, not four: freemyinternet,
   wp-commentnavi, wp-draftsforfriends, wp-pluginsused and wp-relativedate. §14
-  says four. This is the git side rather than the SVN side, so it is evidence
-  and not proof, but the number to check is five.
+  said four until this was found. Settled by the 2026-08-10 releases: all five
+  now have a real version tag and a numeric stable tag.
 * **Two repositories already carried tags and an earlier draft said none did.**
   wp-pagenavi has six and wp-useronline four, bare version numbers from scribu's
   tenure. The claim was never checked against `git tag` — prose about a number
@@ -864,9 +918,9 @@ and nothing short of running the suite will tell you.
   not the checkout** — the same shape as the `git fetch` entry in Current state: a
   local view is a claim about your disk and nothing else.
 
-* **There is no deploy script any more, and the reason is the incident that
-  removed it.** `plugin_deploy.sh` did everything in one pass ending in `svn ci` —
-  no dry run, no diff to read, no place to stop. It was invoked on 2026-08-08 to
+* **The deploy script is retired, and the reason is the incident that retired
+  it.** `plugin_deploy.sh` did everything in one pass ending in `svn ci` — no
+  dry run, no diff to read, no place to stop. It was invoked on 2026-08-08 to
   test an unrelated guard, piped through `head -4` in the belief that would stop
   it. It did not: SIGPIPE only kills the writer on its next write and the script
   had already finished. It emptied wp-ban's trunk on wordpress.org.
@@ -874,14 +928,17 @@ and nothing short of running the suite will tell you.
   Nothing was lost — `tags/1.69.2` was untouched, so downloads and updates kept
   working, and `svn merge -c -<rev>` restored trunk. What it cost was trust in a
   release path that could not be rehearsed. The work now lives in the
-  `release-wp-plugin` skill as Step 4a–4f, six inspectable commands with a hard
-  stop at `svn stat` before the commit. **Do not reintroduce the script.**
+  `release-wp-plugin` skill as Step 4, inspectable commands with a hard stop at
+  `svn stat` before the commit, and every one of the 2026-08-10 releases went
+  through it. **A copy of the script still sits in
+  `outside this repository` — never run it, and do not reintroduce
+  it to the release path.**
 
 
-* **`plugin_deploy.sh` rsyncs the working tree, not a clean export**, so
-  anything present on disk ships whether or not git tracks it. Three things were
-  going to wordpress.org that should not have been, all fixed in that script on
-  2026-08-05:
+* **The deploy rsyncs the working tree, not a clean export** — true of the old
+  script and of the skill's Step 4c alike — so anything present on disk ships
+  whether or not git tracks it. Three things were going to wordpress.org that
+  should not have been, all fixed in the exclusion list on 2026-08-05:
 
   * `CLAUDE.md` and `AGENTS.md` — not dotfiles, so the `$SRC_DIR/*` glob did not
     skip them the way it skips `.claude/` and `.github/`;
@@ -1036,12 +1093,14 @@ and nothing short of running the suite will tell you.
   `failOnWarning` and `failOnRisky`. A test without an assertion is risky, and
   risky is fatal. That is deliberate.
 
-* The local `~/svn/wordpress_plugins` checkouts are **stale** (2022-era). Query
-  `plugins.svn.wordpress.org` directly for the released baseline — §14 has the
-  table.
+* The local `~/svn/wordpress_plugins` checkouts were brought to HEAD by the
+  2026-08-10 releases and go stale again from here. Query
+  `plugins.svn.wordpress.org` or the plugins API for the released baseline
+  rather than trusting them — §14 has the release-day table.
 
-* `plugin_deploy.sh` (in `outside this repository`) globs its
-  exclusions, so `phpunit*.xml*` and `vitest.config.*` are already excluded.
+* The deploy's exclusions are globbed (`phpcs*.xml*`, `vitest.config.*`, …) so
+  config variants are covered; the list lives in the `release-wp-plugin`
+  skill's Step 4c.
 
 * `wp-serverinfo` and `wp-sweep` have extra `claude.yml` /
   `claude-code-review.yml` workflows. Those are **not** part of this standard;
@@ -1061,9 +1120,11 @@ and nothing short of running the suite will tell you.
 Worth keeping because the answer is not "run `verify.py` again".
 
 **The mechanical half is continuously checked and green.** `bin/verify.py` is
-**152 checks** as of 2026-08-08, and the shared metadata fixture covers §13
-including the shared-row contract two plugins violated. Both run on every push.
-Re-auditing nineteen plugins against the spec by hand buys nothing.
+**157 checks** as of 2026-08-10 — re-derive with `grep -c '\.check(' bin/verify.py`
+rather than quoting; this file has been wrong about its own arithmetic three
+times — and the shared metadata fixture covers §13 including the shared-row
+contract two plugins violated. Both run on every push. Re-auditing nineteen
+plugins against the spec by hand buys nothing.
 
 **But a green `verify.py` is not evidence the suites pass, and this bit on
 2026-08-08.** The two enforce overlapping rules from *separate sources*, and
@@ -1273,7 +1334,7 @@ decisions that still bind anything built on top of them.
    `WP_PostViews_Display::should_be_displayed()` still answers a
    `wp_postviews_should_display` filter. The 2.0.0 Upgrade Notice names that
    method as the documented replacement for the old global, so removing it
-   outright would break a promise in the release about to ship.
+   would break a promise that release — now shipped — made in writing.
 4. **#20 Proxy header.** Five plugins have one, all now on wp-polls' canonical
    label "Header That Contains The IP:" and three-part description.
 
@@ -1323,6 +1384,15 @@ Kept short on purpose; the detail is in git.
   same six-test suite takes two minutes on an idle machine and over an hour
   with a dozen wp-env stacks up, because almost all of it is
   `npx --yes @wordpress/env run` startup rather than browser time.
+
+* **2026-08-09/10** — **all nineteen released to wordpress.org** through the
+  `release-wp-plugin` skill: pre-flight, staged trunk, live-site verification on
+  lesterchan.net, trunk commit and tag, screenshots committed from `assets/`.
+  The final audit found §7.6.2's guard missing from six plugins and a
+  category-sanitiser defect in wp-downloadmanager; see "Closed 2026-08-10". The
+  releases were preceded by the two incidents now recorded in the skill and
+  under Traps — the emptied wp-ban trunk (2026-08-08) and the live-site
+  `git reset --hard` that reverted seven migrated plugins (2026-08-09).
 
 The programme found roughly **twenty-five spec bugs and eleven `verify.py`
 bugs**, every one because an agent pushed back rather than complied. The pattern

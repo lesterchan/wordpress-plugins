@@ -45,9 +45,10 @@ PLUGINS = [
     ("wp-useronline", "WP-UserOnline", "WP_UserOnline", 8926),
 ]
 
-# Version each plugin ships as, per STANDARDS.md §14. wp-dbmanager and
-# wp-useronline differ from what the repo carried before this pass because
-# their previous number is already live on wordpress.org.
+# Version each plugin ships as, per STANDARDS.md §14. This pins every version
+# marker in a repo to the version that repo intends to ship, so it moves when a
+# new version is STAGED, not when it is released -- bumping a plugin's version
+# starts here, or the bump fails three checks below.
 # §2.1 plugins with no settings and no tables, which therefore store no option
 # row at all -- not even the version markers. freemyinternet is deliberately not
 # here: it has a settings screen, so it keeps both rows.
@@ -58,7 +59,7 @@ SHIPS_AS = {
     "wp-ban": "2.0.0",
     "wp-commentnavi": "2.0.0",
     "wp-dbmanager": "4.0.0",
-    "wp-downloadmanager": "2.0.0",
+    "wp-downloadmanager": "2.0.1",
     "wp-draftsforfriends": "2.0.0",
     "wp-email": "3.0.0",
     "wp-pagenavi": "3.0.0",

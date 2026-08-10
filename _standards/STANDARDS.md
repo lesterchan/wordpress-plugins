@@ -207,15 +207,16 @@ possible — and no `{{UNDER}}_options`, no `register_setting()`, no
 sanitiser nothing calls are not consistency, only ceremony. `uninstall.php` in
 those two removes the version row alone.
 
-Renames to apply. For most plugins the current name only exists in the
-**unreleased** major, so **retarget the migration already there** rather than
-adding a second one.
+The renames, all shipped in the 2026-08 majors. The table stays because the
+migrations implementing it are live code: every site upgrading from a
+pre-revamp version still crosses them, and the old names are what those
+migrations read.
 
-**But not all of them have one.** wp-commentnavi, wp-dbmanager and
-wp-pluginsused store under a name their *released* version ships, so the rename
-is user-facing and they gain their **first** migration. wp-pluginsused's last
-release stored nothing at all. Check which case you are in before assuming a
-migration exists to retarget:
+For most plugins the new name first existed in the 2026-08 major, so the rename
+retargeted a migration that already existed. wp-commentnavi, wp-dbmanager and
+wp-pluginsused stored under a name their pre-revamp release shipped, so for
+them the rename was user-facing and their migration was their first
+(wp-pluginsused's last release stored nothing at all):
 
 | Plugin | Old | New |
 |---|---|---|
@@ -627,8 +628,9 @@ to tell a stranger what the plugin is.
 * Changelog entry prefixes are exactly one of `BREAKING:`, `NEW:`, `CHANGED:`,
   `FIXED:`, `NOTE:` — in that order within a version. wp-ban's `IMPORTANT:` is
   renamed to `BREAKING:`.
-* The consistency work in this pass is **folded into the existing unreleased
-  major entry**. Do not bump the version, do not add a new heading.
+* The consistency work shipped inside the 2026-08 major entries. Anything after
+  those releases is a new version: bump per §14 (starting with `SHIPS_AS` in
+  `bin/verify.py`) and give it its own changelog heading.
 * Code fences are ` ```php ` or ` ```javascript ` only — `plugin_deploy.sh`
   rewrites exactly those two plus bare ` ``` ` into `~~~`, one per line.
 * **An admin path is written `` `WP-Admin -> Settings -> WP-Print` ``** — ASCII
@@ -1120,11 +1122,9 @@ linted as source, and never counted as a `js/` directory for the vitest rule.
 ### 7.2 Shared tests every plugin must have
 
 Every plugin carries `tests/test-metadata.php`. The idea and several of the
-assertions come from `wp-showhide/tests/test-metadata.php`, but **the names and
-structure below win over what that file currently contains** — it predates §7.1
-and declares `class Test_ShowHide_Metadata extends WP_UnitTestCase`, which the
-standard now forbids. wp-showhide's agent brings it into line like everyone
-else; nobody copies it as-is.
+assertions came from `wp-showhide/tests/test-metadata.php`; its pre-§7.1 naming
+(`Test_ShowHide_Metadata`) is long gone, and every plugin now follows the
+structure below through the shared `helper-metadata-testcase.php` template.
 
 * `test_every_readme_header_line_keeps_its_line_break()` — nine header fields,
   eight with two trailing spaces, the ninth with none.
@@ -1912,8 +1912,9 @@ the root of this folder.
 
 ## 11. Images
 
-Ship no raster images. Replace with inline SVG (an `<svg>` printed by PHP, or a
-CSS `mask-image` with a data URI) or a CSS-only construction.
+Ship no raster images — inline SVG (an `<svg>` printed by PHP, or a CSS
+`mask-image` with a data URI) or a CSS-only construction instead. The
+replacements the revamp made:
 
 | Plugin | File | Replacement |
 |---|---|---|
@@ -2142,10 +2143,9 @@ Rules that keep the seven implementations honest:
 
 ---
 
-## 13.3 WP-CLI and REST naming — the phase-2 reference
+## 13.3 WP-CLI and REST naming
 
-Not yet rolled out, but wp-sweep has set it and the rest of the collection
-copies it when that phase starts:
+wp-sweep set it, and the collection copied it — shipped in the 2026-08 majors:
 
 * **WP-CLI command name is the slug without the `wp-` prefix**: `wp sweep`,
   not `wp wp-sweep`.
@@ -2182,7 +2182,7 @@ read as blanket permission to claim `wp email`.
 
 ---
 
-## 13.4 What earns a command, a namespace and a block — the phase-2 scope
+## 13.4 What earns a command, a namespace and a block
 
 §13.3 pins what these things are *called*. This pins which plugins get one, and
 the two are separate questions because **the three surfaces do not select the
@@ -2251,12 +2251,12 @@ to suppress it is neither:
 
 ### 13.4.4 The scope
 
-Proposed 2026-08-07 from the counts above. wp-sweep's two are shipped; the rest
-is the work.
+Proposed 2026-08-07 from the counts above; built in full and shipped in the
+2026-08 majors.
 
 | Plugin | Command | Namespace | Block |
 |---|---|---|---|
-| wp-sweep | `wp sweep` **shipped** | `sweep/v1` **shipped** | — |
+| wp-sweep | `wp sweep` | `sweep/v1` | — |
 | wp-polls | `wp polls` | `polls/v1` | `poll`, `page_polls` |
 | wp-postratings | `wp postratings` | `postratings/v1` | `ratings` |
 | wp-postviews | `wp postviews` | `postviews/v1` | `views` |
@@ -2358,10 +2358,10 @@ re-running the grep rather than by re-reading the table.
 
 ### 13.4.6 Order of work
 
-**Blocks are deferred; WP-CLI and REST go out across the collection first** —
-Lester's call, 2026-08-08, reversing the plugin-by-plugin order set on
-2026-08-07. That earlier decision is kept below rather than deleted, because the
-reason it was right is also the reason the reversal is.
+**Complete.** WP-CLI and REST went out across the collection first, then the
+blocks as a phase of their own — Lester's call, 2026-08-08, reversing the
+plugin-by-plugin order set on 2026-08-07. Both decisions are kept because the
+reasoning binds the next surface anyone adds.
 
 **Why plugin by plugin was right at the time.** wp-polls earns all three, so
 taking one plugin end to end was the only way to get a complete worked example
@@ -2378,14 +2378,10 @@ seven commands that need none of it, spreads a one-time decision across
 seventeen repositories.** The two surfaces that *are* more of the same should
 finish first, from a reference that already works.
 
-So: **wp-postratings next**, being the other plugin that earns both a command
-and a namespace, then the remaining commands, then the blocks as a phase of
-their own.
-
-Two things not to lose when the blocks phase starts: §13.4.9's `--exclude='src'`
-has to land **before** the first `src/` directory exists, not after, and the
-first block should still be wp-polls' — the reference plugin's third surface,
-built where the other two already are.
+Both of the conditions that order imposed were met: §13.4.9's
+`--exclude='src'` landed **before** the first `src/` directory existed, and the
+first block was wp-polls' — the reference plugin's third surface, built where
+the other two already were.
 
 ### 13.4.6a What a route answers when it will not do the thing
 
@@ -2488,6 +2484,10 @@ So blocks take the collision-resistant name, and the fact that it matches the
 plugin's directory on wordpress.org is a convenience rather than the reason.
 
 ### 13.4.9 Blocks change what the deploy ships — read this before the first one
+
+> Written against `plugin_deploy.sh`, which is retired; the deploy now lives in
+> the `release-wp-plugin` skill, whose Steps 4b–4c carry the same build guard
+> and exclusion list. The history stays because it is why those guards exist.
 
 `plugin_deploy.sh` rsyncs the working tree against an **exclusion list**, so
 anything a build step leaves on disk ships unless it is named. Adding blocks
@@ -2610,55 +2610,62 @@ blocks, and a poll rendered from a block actually being votable.
 
 ## 14. Versions and the release baseline
 
-Queried from `plugins.svn.wordpress.org` — the local `~/svn/wordpress_plugins`
-checkouts are stale (2022-era) and must not be used as the baseline.
+**All nineteen were released to wordpress.org on 2026-08-09/10**, so the
+repositories and the directory agree for the first time: each README's
+`Stable tag:` is the version being served, and every plugin has a real SVN
+tag — including the five that had sat on `Stable tag: trunk` for years
+(freemyinternet, wp-commentnavi, wp-draftsforfriends, wp-pluginsused,
+wp-relativedate; an earlier version of this section counted four).
 
-| Plugin | Released on .org | Ships as | Note |
-|---|---|---|---|
-| freemyinternet | *trunk* (0.01) | 1.0.0 | |
-| wp-ban | 1.69.2 | 2.0.0 | |
-| wp-commentnavi | *trunk* (tag 1.10) | 2.0.0 | |
-| wp-dbmanager | **3.0.0** | **4.0.0** | 3.0.0 is already live — do not reuse it |
-| wp-downloadmanager | 1.69.2 | 2.0.0 | |
-| wp-draftsforfriends | *trunk* (1.0.2) | 2.0.0 | Upgrade Notice is written against 1.0.2 |
-| wp-email | 2.69.4 | 3.0.0 | |
-| wp-pagenavi | 2.94.6 | 3.0.0 | |
-| wp-pluginsused | *trunk* (tag 1.50) | 2.0.0 | |
-| wp-polls | 2.77.3 | 3.0.0 | |
-| wp-postratings | 1.91.3 | 2.0.0 | |
-| wp-postviews | 1.78.1 | 2.0.0 | |
-| wp-print | 2.58.3 | 3.0.0 | |
-| wp-relativedate | 1.51.1 | 2.0.0 | |
-| wp-serverinfo | 2.0.0 | 3.0.0 | |
-| wp-showhide | 2.0.0 | 3.0.0 | |
-| wp-stats | 2.56.1 | 3.0.0 | |
-| wp-sweep | 1.2.0 | 2.0.0 | |
-| wp-useronline | **3.0.0** | **4.0.0** | see below |
+**The machine-readable half of this table is `SHIPS_AS` in `bin/verify.py`**,
+which pins every version marker in a repo — header, `Stable tag`, constant — to
+the version that repo intends to ship. It moves when a new version is
+**staged**, so bumping a plugin's version starts there. For what is actually
+*live*, query the directory rather than any table or checkout:
+`https://api.wordpress.org/plugins/info/1.2/` per slug, or the comparison loop
+at the end of the `release-wp-plugin` skill for the whole set.
 
-Two plugins need their version changed from what is currently in the repo:
+The release-day baseline, with the pre-revamp release each migration still has
+to carry sites forward from:
 
-* **wp-dbmanager 3.0.0 → 4.0.0.** 3.0.0 is already on wordpress.org, so the
-  repo's unreleased entry collides with shipped history. Rename the changelog
-  heading, the plugin header `Version:`, the README `Stable tag:` and
-  `WP_DBMANAGER_VERSION` to 4.0.0.
-* **wp-useronline 3.0.1 → 4.0.0.** 3.0.0 shipped a changelog entry promising
-  *"Template tags, the `[page_useronline]` shortcode and all four filters are
-  unchanged."* This release renames all four filters and
-  `USERONLINE_TRUST_PROXY`, which a patch number cannot carry. Merge the 3.0.1
-  entry into a 4.0.0 entry, and make the Upgrade Notice state plainly that the
-  filters promised stable in 3.0.0 have been renamed, listing all five
-  old → new pairs.
+| Plugin | Released 2026-08-10 | Pre-revamp release |
+|---|---|---|
+| freemyinternet | 1.0.0 | *trunk* (0.01) |
+| wp-ban | 2.0.0 | 1.69.2 |
+| wp-commentnavi | 2.0.0 | *trunk* (tag 1.10) |
+| wp-dbmanager | 4.0.0 | 3.0.0 |
+| wp-downloadmanager | 2.0.0 — 2.0.1 staged in git | 1.69.2 |
+| wp-draftsforfriends | 2.0.0 | *trunk* (1.0.2) |
+| wp-email | 3.0.0 | 2.69.4 |
+| wp-pagenavi | 3.0.0 | 2.94.6 |
+| wp-pluginsused | 2.0.0 | *trunk* (tag 1.50) |
+| wp-polls | 3.0.0 | 2.77.3 |
+| wp-postratings | 2.0.0 | 1.91.3 |
+| wp-postviews | 2.0.0 | 1.78.1 |
+| wp-print | 3.0.0 | 2.58.3 |
+| wp-relativedate | 2.0.0 | 1.51.1 |
+| wp-serverinfo | 3.0.0 | 2.0.0 |
+| wp-showhide | 3.0.0 | 2.0.0 |
+| wp-stats | 3.0.0 | 2.56.1 |
+| wp-sweep | 2.0.0 | 1.2.0 |
+| wp-useronline | 4.0.0 | 3.0.0 |
 
-Four plugins currently have `Stable tag: trunk` on wordpress.org
-(freemyinternet, wp-commentnavi, wp-draftsforfriends, wp-pluginsused). Their
-README `Stable tag:` must be the real version per §3.2, and at release time the
-SVN tag must be created rather than left pointing at trunk.
+Two plugins shipped a different major from what the repo long carried, and the
+reasons are kept because they generalise:
+
+* **wp-dbmanager went to 4.0.0** because 3.0.0 was already live on
+  wordpress.org — an unreleased entry must never collide with shipped history.
+* **wp-useronline went to 4.0.0** because its 3.0.0 changelog promised the
+  template tags, shortcode and all four filters unchanged, and this release
+  renamed the filters and `USERONLINE_TRUST_PROXY` — a promise a patch number
+  cannot break. Its Upgrade Notice lists the five old → new pairs.
 
 ### 14.1 Upgrade Notice must cover the whole SVN → major gap
 
-`## Upgrade Notice` is written against the **released** version in the table
-above, not against the previous git commit. Everything a site owner updating
-from that released version would notice must appear there:
+`## Upgrade Notice` is written against the oldest version a site owner may
+still be running — for the 2026-08 majors that meant the pre-revamp release in
+the table above — never against the previous git commit. Everything a site
+owner updating from that version would notice must appear there:
 
 * renamed or removed hooks, with old → new pairs
 * renamed option rows (only where the *released* version's name changes)
@@ -2694,6 +2701,9 @@ Write it for a site owner, not a developer: what breaks, and what to do.
 ---
 
 ## 15. Order of work, per plugin
+
+All nineteen have been through this; it stays as the order for bringing any
+future plugin to the standard.
 
 1. Layout: move files, add `index.php`, delete `.idea`, `.wp-env.override.json`.
 2. Copy the shared config files from `_standards/templates/`.
