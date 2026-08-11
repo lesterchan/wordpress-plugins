@@ -84,12 +84,113 @@ above is a snapshot like the install counts.
 | `bin/` | The tooling below. |
 | `.wp-env.json` | All nineteen plugins in one WordPress, on ports 8888/8889. |
 
+## Getting started
+
+You need Docker (running, not merely installed), Node 24, Python 3 and git.
+Docker is what [`wp-env`](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-env/)
+runs WordPress in; nothing here installs a web server or a database on your own
+machine.
+
+### 1. Clone this repository, then the nineteen inside it
+
+Everything here resolves a plugin as `<this repository>/<slug>` — `verify.py`,
+`.wp-env.json`, `bin/test-all.sh`. So the nineteen are cloned *into* this
+folder, beside `bin/` and `_standards/`, not somewhere alongside it:
+
+```
+wordpress-plugins/          ← this repository
+├── _standards/
+├── bin/
+├── .wp-env.json
+├── freemyinternet/         ← each of these is its own repository,
+├── wp-ban/                    untracked here, cloned separately
+├── …
+└── wp-useronline/
+```
+
+```sh
+git clone https://github.com/lesterchan/wordpress-plugins.git
+cd wordpress-plugins
+```
+
+The slug list comes out of `verify.py`'s own table rather than being typed
+again, which is the same thing CI does and for the same reason — a second copy
+of the list is what this repository exists to stop:
+
+```sh
+python3 -c "import sys; sys.path.insert(0, 'bin'); import verify; print('\n'.join(p[0] for p in verify.PLUGINS))" |
+	xargs -P 6 -I{} git clone --quiet https://github.com/lesterchan/{}.git {}
+```
+
+CI adds `--depth 1` because it throws the clones away; leave it off here, since
+a plugin's own history is most of what you will want to read. Confirm the layout
+before going further — `verify.py` reports a plugin it cannot find as missing
+rather than skipping it, so a run that names no missing plugin means all
+nineteen are where the tooling expects:
+
+```sh
+python3 bin/verify.py
+```
+
+### 2. Start WordPress
+
+```sh
+npx --yes @wordpress/env start
+```
+
+This repository has no `package.json` of its own, so `npx` fetches `wp-env` on
+demand; the `--yes` is what stops it asking. The first run downloads WordPress
+and a MariaDB image and takes a few minutes, and subsequent runs are seconds.
+It reads the `.wp-env.json` here, which mounts **all nineteen plugins into one
+WordPress install** — which is also the only way to catch two plugins claiming
+the same option row, function name or hook.
+
+### 3. Fill it with something to look at
+
+A bare install has no posts, so the pagination, ratings and comment plugins have
+nothing to render:
+
+```sh
+bin/seed-demo.sh                      # 200 posts, 100 comments
+bin/seed-demo.sh 500 250              # as much as you like
+```
+
+It activates all nineteen plugins and a classic theme, then seeds content and
+prints where each demo page is. Run it again whenever you like: it clears what
+the previous run made and nothing else.
+
+### 4. Open it
+
+| URL | What it is |
+|---|---|
+| <http://localhost:8888> | The site. Front page, demo pages, everything the plugins render. |
+| <http://localhost:8888/wp-admin> | wp-admin. Log in as **`admin`** / **`password`**. |
+| <http://localhost:8889> | The tests site. Not for browsing — see below. |
+
+The site on 8889 is the one PHPUnit installs over, so it has no theme and no
+active plugins; a browser pointed at it gets a blank front page and "not allowed
+to access this page" everywhere else. That is expected. E2E runs go through a
+plugin's own `bin/test-e2e.sh`, which activates the plugin and a theme first.
+
+Each plugin also carries its own `.wp-env.json` on its own pair of ports, so you
+can bring one plugin up in isolation from inside its directory without
+disturbing this one. The port table is in
+[`_standards/STANDARDS.md`](_standards/STANDARDS.md) under §10.
+
+### Stopping and starting over
+
+```sh
+npx --yes @wordpress/env stop         # containers down, database kept
+npx --yes @wordpress/env start --update   # pull newer WordPress and images
+npx --yes @wordpress/env destroy      # delete the database and start clean
+```
+
+`destroy` is the fix for a site left in a strange state — nothing in it is
+worth keeping, and `bin/seed-demo.sh` rebuilds the interesting part.
+
 ## Tooling
 
-The tooling reads the plugins as **sibling directories of this repository**, so
-clone the ones you want beside it first — `bin/verify.py` resolves each plugin as
-`<this repo>/<slug>` and reports a plugin it cannot find as missing rather than
-skipping it. Nothing here modifies a plugin; every script only reads.
+Nothing here modifies a plugin; every script only reads.
 
 ```sh
 python3 bin/verify.py                 # check every plugin against the standard
@@ -137,9 +238,8 @@ because the sections with nothing behind them are where the next defect will be.
 ## Requirements
 
 WordPress 6.8 and PHP 8.2 are the floors, for every plugin. Anything older is
-simply not offered the update. Development needs Docker (for
-[`wp-env`](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-env/))
-and Node 24.
+simply not offered the update. Development needs Docker, Node 24, Python 3 and
+git — see [Getting started](#getting-started).
 
 ## Licence
 
