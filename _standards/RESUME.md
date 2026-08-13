@@ -9,15 +9,17 @@ serving roughly 880,000 active installs between them, and **no item is open**.
 What the release itself found is under "Closed 2026-08-10", and it is the
 campaign's thesis proving itself one last time.
 
-**Two releases are staged and deliberately not shipped.** wp-downloadmanager is
+**Three releases are staged and deliberately not shipped.** wp-downloadmanager is
 2.0.1 in git — the category-zero renumbering fix, changelog and Upgrade Notice
 written — while wordpress.org serves 2.0.0. wp-draftsforfriends is 2.0.1 in
 git — both requests from the one post-release support topic: the copy button
 became a clipboard dashicon beside the link, and the post editor gained a
 Drafts for Friends meta box (posts only; the `?p=<id>` link shape is why) —
+while wordpress.org serves 2.0.0. wp-postratings is 2.0.1 in git as of
+2026-08-13 — a regression the 2.0.0 security fix caused, written up below —
 while wordpress.org serves 2.0.0. Lester is accumulating fixes rather than
 releasing again immediately; when he says ship, the `release-wp-plugin` skill
-is the path. Nothing else waits on either.
+is the path. Nothing else waits on any of them.
 
 **Before writing another migration test, read the §7.6.1 entry under "Rules
 earned the hard way"** — advice the release sharpened rather than dated: the
@@ -151,6 +153,47 @@ the authority; `gh run list` per repo takes a minute.
   screens — and is still deliberately unreleased so fixes can accumulate.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
+
+## Closed 2026-08-13 — the 2.0.0 security fix refused the site's own drafts
+
+A wordpress.org topic against wp-postratings: every vote answered
+`Invalid Post ID (#50408)`, and the reporter had checked the id against the
+edit URL, so the message was pointing at the one thing that was right. Their
+note "it's not being used on any publicly available pages" was the whole
+answer — an editorial queue rating unpublished posts.
+
+The cause was ours, and recent. The 2026-08-09 security review added
+`is_post_publicly_viewable()` to both vote paths, closing a real hole: a
+stranger could seed `ratings_users` and `ratings_score` on a draft, and a text
+template holding `%POST_TITLE%` or `%POST_CONTENT%` returned unpublished
+content in the reply. But **the guard asked what the post was and never who was
+asking**, so it refused the author of the draft exactly as it refused a
+stranger. Fixed by adding `current_user_can( 'read_post', … )` beside the
+public test — `read_post` maps to `edit_post` on every unpublished status, so
+nobody is handed a post they could not already open, and the hole stays shut.
+
+Three things worth carrying:
+
+* **A "can the public see it" test is not an authorisation check.** It answers a
+  question about the row, and the two coincide only for anonymous visitors. Any
+  new guard of that shape needs the second clause written at the same time, or
+  it breaks every logged-in workflow the plugin has.
+* **The refusal named the wrong thing.** "Invalid Post ID" sent the reporter to
+  check the id, which was fine, and cost the round trip that would have found
+  it. The message is now "This Post Cannot Be Rated (#…)", one string for both
+  "no such post" and "not yours to rate" — telling them apart tells a stranger
+  which drafts exist, which is why the REST route answers 404 rather than 403
+  for both. `wp_postratings_is_ratable` filters the decision for anyone whose
+  answer is neither.
+* **It is contained.** `is_post_publicly_viewable` appears in no other plugin in
+  the collection — checked across all nineteen — so nothing else needs the same
+  fix. The security review's other findings are unaffected.
+
+The unit cases live in `tests/test-vote.php`; the browser case is
+`voting.spec.js`, "a post the public cannot see is still ratable by somebody who
+can", and it earns its place because the unit tests call `process_vote()`
+directly and so never exercise the rendered nonce or the AJAX action on a
+non-public post. Both were run against the unfixed source and both fail there.
 
 ## Closed 2026-08-10 — a readme sweep turned three suites red
 
