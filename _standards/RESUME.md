@@ -9,7 +9,7 @@ serving roughly 880,000 active installs between them, and **no item is open**.
 What the release itself found is under "Closed 2026-08-10", and it is the
 campaign's thesis proving itself one last time.
 
-**Three releases are staged and deliberately not shipped.** wp-downloadmanager is
+**Four releases are staged and deliberately not shipped.** wp-downloadmanager is
 2.0.1 in git — the category-zero renumbering fix, changelog and Upgrade Notice
 written — while wordpress.org serves 2.0.0. wp-draftsforfriends is 2.0.1 in
 git — both requests from the one post-release support topic: the copy button
@@ -17,7 +17,9 @@ became a clipboard dashicon beside the link, and the post editor gained a
 Drafts for Friends meta box (posts only; the `?p=<id>` link shape is why) —
 while wordpress.org serves 2.0.0. wp-postratings is 2.0.1 in git as of
 2026-08-13 — a regression the 2.0.0 security fix caused, written up below —
-while wordpress.org serves 2.0.0. Lester is accumulating fixes rather than
+while wordpress.org serves 2.0.0. wp-useronline is 4.0.1 in git as of
+2026-08-17 — the IPv6 address lookup from a post-release support topic, written
+up below — while wordpress.org serves 4.0.0. Lester is accumulating fixes rather than
 releasing again immediately; when he says ship, the `release-wp-plugin` skill
 is the path. Nothing else waits on any of them.
 
@@ -153,6 +155,42 @@ the authority; `gh run list` per repo takes a minute.
   screens — and is still deliberately unreleased so fixes can accumulate.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
+
+## Closed 2026-08-17 — wp-useronline linked every IPv6 visitor to a whois that cannot read one
+
+A wordpress.org topic against wp-useronline: the detailed listing links each
+address to `whois.domaintools.com/<ip>`, which answers "Malformed Domain or IP"
+for an IPv6 address. On a host with IPv6 switched on that is most of the
+listing, and the reporter named three services that read both — ipinfo.io,
+ip-api.com and who.is.
+
+Only ipinfo.io survives being checked. who.is redirects
+`whois-ip/ip-address/<ipv6>` to its own bare search form, and does it for the
+percent-encoded form too; ip-api.com's page takes the address in a fragment, so
+it is a JavaScript app rather than a URL. **The reporter's shortlist was three
+names, and two of them do not do the thing the topic is about** — worth the ten
+minutes of curl before committing to a default, because every one of them
+returns HTTP 200 while dropping the address on the floor.
+
+Staged as 4.0.1: the default becomes `https://ipinfo.io/<ip>`, and
+`wp_useronline_ip_lookup_url` filters it, receiving the raw address as its
+second argument. Two things the shape is deliberate about:
+
+* **The encoding stays.** `get_ip()` validates with `FILTER_VALIDATE_IP`, but
+  the column also holds whatever releases before 4.0.0 wrote into it, so the
+  default keeps `rawurlencode()` — verified against ipinfo.io, which resolves
+  `2001%3Adb8%3A%3A1` and the bare colons alike. `esc_url()` passes both
+  through; the unit test asserts the emitted `href`, so that is pinned rather
+  than assumed.
+* **An empty return drops the link rather than emitting `href=""`.** Blank means
+  "do not hand a visitor's address to a third party", and the obvious
+  filter-then-print shape turns that into a link to the screen you are already
+  on, which looks like it worked. Guard and test both, mutation-checked.
+
+**Adding a filter is a patch; renaming one is not.** The 4.0.0 metadata test
+pinned `expected_version()` to the literal `4.0.0` to stop the filter renames
+folding into a 3.0.x — a bump that could only ever be tripped by the next
+legitimate patch. It now pins the major, which is what the rule was about.
 
 ## Closed 2026-08-13 — the 2.0.0 security fix refused the site's own drafts
 

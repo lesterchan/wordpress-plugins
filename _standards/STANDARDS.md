@@ -2673,7 +2673,7 @@ to carry sites forward from:
 | wp-showhide | 3.0.0 | 2.0.0 |
 | wp-stats | 3.0.0 | 2.56.1 |
 | wp-sweep | 2.0.0 | 1.2.0 |
-| wp-useronline | 4.0.0 | 3.0.0 |
+| wp-useronline | 4.0.0 — 4.0.1 staged in git | 3.0.0 |
 
 Two plugins shipped a different major from what the repo long carried, and the
 reasons are kept because they generalise:

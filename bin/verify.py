@@ -73,7 +73,7 @@ SHIPS_AS = {
     "wp-showhide": "3.0.0",
     "wp-stats": "3.0.0",
     "wp-sweep": "2.0.0",
-    "wp-useronline": "4.0.0",
+    "wp-useronline": "4.0.1",
 }
 
 README_FIELDS = [
