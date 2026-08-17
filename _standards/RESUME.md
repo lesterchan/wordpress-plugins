@@ -192,6 +192,18 @@ pinned `expected_version()` to the literal `4.0.0` to stop the filter renames
 folding into a 3.0.x — a bump that could only ever be tripped by the next
 legitimate patch. It now pins the major, which is what the rule was about.
 
+**Staging this one exposed §14's table as a fourth unchecked copy.** Lester
+noticed the table said `2.0.0` for wp-postratings while the paragraph above and
+`SHIPS_AS` both said 2.0.1. Only wp-downloadmanager's row was ever marked,
+because it was staged on release day and the two staged after it moved
+`SHIPS_AS`, moved the plugin's three markers and left the table alone — and
+nothing read the table, so nothing said. §14's own prose calls `SHIPS_AS` its
+machine-readable half; `verify.py` now checks that claim, reading the last
+version each row names and comparing it. wp-draftsforfriends and wp-postratings
+are marked, and the check was run against the unmarked rows to see it fail. The
+number now lives in four places with three of them checked against the fourth,
+which is the most this shape allows.
+
 ## Closed 2026-08-13 — the 2.0.0 security fix refused the site's own drafts
 
 A wordpress.org topic against wp-postratings: every vote answered

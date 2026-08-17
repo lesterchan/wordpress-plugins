@@ -419,6 +419,26 @@ def verify(slug, name, prefix, port, root):
                 "%s (want %s)" % (stable.group(1) if stable else "?",
                                   SHIPS_AS[slug]))
 
+        # §14's table is a fourth copy of a number that already lives in the
+        # header, the Stable tag and the constant -- and it was the copy no
+        # check read, so three plugins staged a patch, moved SHIPS_AS with it
+        # and left the table naming the released version. The prose above the
+        # table calls SHIPS_AS its machine-readable half; this is what makes
+        # that true. Anchored on the table's own heading, because a slug in
+        # column one appears in five other tables.
+        standards = read(os.path.join(ROOT, "_standards", "STANDARDS.md")) or ""
+        table = standards.partition("| Plugin | Released 2026-08-10 "
+                                    "| Pre-revamp release |")[2]
+        row = re.search(r"^\| %s \|([^|]*)\|" % re.escape(slug),
+                        table.partition("\n\n")[0], re.M)
+        # The last version the cell names, so "2.0.0 - 2.0.1 staged in git"
+        # answers with what is staged rather than with what shipped.
+        named = re.findall(r"\d+\.\d+\.\d+", row.group(1)) if row else []
+        r.check(bool(named) and named[-1] == SHIPS_AS[slug],
+                "STANDARDS §14 table names the version being shipped",
+                "%s (want %s)" % (named[-1] if named else "no row",
+                                  SHIPS_AS[slug]))
+
         # §14.1: never say what the reader is upgrading from -- the predecessor
         # claims were wrong in nearly every plugin, and seventeen "up from"
         # changelog lines shipped in the 2026-08 majors before anything checked.
