@@ -23,6 +23,15 @@ up below — while wordpress.org serves 4.0.0. Lester is accumulating fixes rath
 releasing again immediately; when he says ship, the `release-wp-plugin` skill
 is the path. Nothing else waits on any of them.
 
+**All nineteen read `Tested up to: 7.1` in git, and none of them says so on
+wordpress.org.** WordPress 7.1 became the current release and the readme header
+was bumped across the set on 2026-08-20, together with the value `bin/verify.py`
+checks for and the §3.2 template, so a plugin still reading 7.0 now fails
+verification. Lester's call is that it rides along with each plugin's next
+release rather than justifying nineteen releases for a metadata line — so
+wordpress.org goes on showing 7.0 until then, and there the compatibility line
+is the stale one, not the git one.
+
 **Before writing another migration test, read the §7.6.1 entry under "Rules
 earned the hard way"** — advice the release sharpened rather than dated: the
 write half turned out to be missing its guard in six plugins after all, held
