@@ -1457,8 +1457,8 @@ def verify(slug, name, prefix, port, root):
         r.check(req_php is not None and req_php.group(1) == "8.2",
                 "README Requires PHP 8.2",
                 req_php.group(1) if req_php else "missing")
-        r.check(tested is not None and tested.group(1) == "7.0",
-                "README Tested up to 7.0",
+        r.check(tested is not None and tested.group(1) == "7.1",
+                "README Tested up to 7.1",
                 tested.group(1) if tested else "missing")
 
     if ci:
