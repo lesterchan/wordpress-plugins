@@ -5,7 +5,8 @@ State of the consistency programme as of **2026-08-10**. Read this, then
 
 **In one line: the campaign is finished.** All nineteen plugins were released
 to wordpress.org on 2026-08-09/10, every one tagged at its README's version,
-serving roughly 880,000 active installs between them, and **no item is open**.
+serving roughly 880,000 active installs between them, and **no campaign item
+is open**.
 What the release itself found is under "Closed 2026-08-10", and it is the
 campaign's thesis proving itself one last time.
 
@@ -31,6 +32,15 @@ verification. Lester's call is that it rides along with each plugin's next
 release rather than justifying nineteen releases for a metadata line — so
 wordpress.org goes on showing 7.0 until then, and there the compatibility line
 is the stale one, not the git one.
+
+**7.1 moved more than the version number: it moved the list table primary
+column, and that turned wp-dbmanager red on 2026-08-20.** A sorting test read
+`td.column-name` and core had moved that cell into a `th scope="row"`. Fixed,
+green, and the whole collection swept — nothing any plugin *ships* was
+affected. It leaves two open questions, both about CI rather than about any
+plugin: whether the end-to-end job should pin a WordPress version instead of
+following `latest`, and whether `Start wp-env` should retry. Written up under
+"Closed 2026-08-20".
 
 **Before writing another migration test, read the §7.6.1 entry under "Rules
 earned the hard way"** — advice the release sharpened rather than dated: the
@@ -164,6 +174,61 @@ the authority; `gh run list` per repo takes a minute.
   screens — and is still deliberately unreleased so fixes can accumulate.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
+
+## Closed 2026-08-20 — WordPress 7.1 moved the list table primary column
+
+Two plugins were red the morning after the `Tested up to: 7.1` sweep, and only
+one of them for a reason that lives in this collection.
+
+wp-dbmanager's `tables.spec.js` failed on "the tables list sorts by the column
+headed" — first try and Playwright's own retry — while the other 55 tests
+passed. The read was `.wp-list-table tbody tr td.column-name` and it came back
+empty. That looks exactly like a navigation race: `allInnerTexts()` is the one
+read in that suite that does not auto-wait, and it sits directly after a click
+that starts a full page load. **That was the first diagnosis and it was wrong.**
+An added `toBeAttached()` waited its full ten seconds, twice, and reported
+"element(s) not found". The cells were not late. They were absent.
+
+What settled it was the diff rather than the log: the last green run and the
+first red one are **one README line apart**, and no browser test can see
+`Tested up to`. **WordPress 7.1 moved the primary column of every admin list
+table out of a `td` and into a `th scope="row"`**, giving it an `aria-label`
+naming the row, so that a screen reader announces a row by its title instead of
+by "Select All" — core ticket #32892, open eleven years. The checkbox column
+went the other way, `th` to `td`. wp-dbmanager's `name` column is the primary
+column in both of its modes, being the first column that is not the checkbox,
+so the single cell that test reads is precisely the one core moved.
+
+The fix is core's own migration advice: **match the class, not the element.**
+`.column-name` reads the column on both sides of 7.1; `td.column-name` reads it
+on neither side from 7.1 onwards.
+
+**The collection was swept and wp-dbmanager was the only one.** No shipped CSS,
+JS or PHP in any of the nineteen scopes a list table selector to a `td`, so
+nothing a user sees was affected — the part that mattered, with 880,000
+installs between them. Every other `column-` selector in the E2E suites was
+already class-only: wp-ban's `.column-ip`, wp-draftsforfriends' `.column-link`,
+wp-polls' `.column-pollq_id`, wp-sweep's `.column-group` and `.column-name`.
+wp-sweep has its own sorting test over the same markup and stayed green purely
+because it never wrote the element name.
+
+**The end-to-end job follows WordPress `latest` and nothing pins it.**
+`.wp-env.json` carries `"core": null`, and the E2E job sets no `WP_ENV_CORE`
+where the PHPUnit matrix sets one per row. That is why a WordPress release
+turned a repository red with no commit behind it. Left open deliberately:
+pinning makes the job reproducible, not pinning is what caught a real
+compatibility break on the day it shipped, and a pinned row plus a `latest` row
+buys both for the price of one more job — across nineteen workflows, or none.
+
+wp-commentnavi was the other red one and was never any of this. Its
+`Start wp-env` step died inside wp-env's own image build on `Could not open
+input file: /tmp/composer-setup.php` — the composer installer download failing
+upstream, one matrix row out of six, green on the re-run with no commit.
+wp-dbmanager hit the same class of failure twice more within the hour, once on
+an HTTP 504 from api.github.com fetching PHP-Parser. **Three upstream download
+failures in eighty minutes across two plugins.** A retry around the step would
+pay for itself if it keeps costing re-runs, and like the pinning question it is
+all nineteen workflows or none.
 
 ## Closed 2026-08-17 — wp-useronline linked every IPv6 visitor to a whois that cannot read one
 
@@ -885,6 +950,12 @@ time somebody installs something.
 
 ## E2E lessons that will recur — read before writing the next suite
 
+* **Match a list table cell by its class, never by its element.** WordPress
+  7.1 moved the primary column into a `th scope="row"`, so `td.column-name`
+  finds nothing from 7.1 and `th.column-name` finds nothing before it, while
+  `.column-name` reads both. The primary column is the first one that is not
+  the checkbox — that is, whichever column names the row, which is the column
+  a sorting test is most likely to read.
 * **`bin/test-e2e.sh` is the only entry point.** wp-env installs a plugin into
   the tests environment but activates neither it nor any theme; PHPUnit needs
   neither, because its bootstrap loads the plugin itself and never renders a
