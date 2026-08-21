@@ -206,10 +206,11 @@ blog stack. Mutation-checked on each — deleting the branch again fails two of
 the four. Suites, multisite suites, phpcs and `verify.py` are green on all
 three.
 
-Committed, not pushed, and **no version bumped**: all three are level with
-wordpress.org at 3.0.0 / 2.0.0 / 2.0.0, so the two fixes need a staged patch
-version before they can ship. wp-commentnavi's commit is tests only and needs
-none.
+All three are pushed, and the two fixes are staged as wp-pagenavi 3.0.1 and
+wp-pluginsused 2.0.1 — header, constant, Stable tag, changelog section and the
+metadata suite's expected_version() moved together, deliberately unreleased so
+fixes can accumulate. wp-commentnavi's commit is tests only and stays at its
+released 2.0.0.
 ## Closed 2026-08-20 — WordPress 7.1 moved the list table primary column
 
 Two plugins were red the morning after the `Tested up to: 7.1` sweep, and only
