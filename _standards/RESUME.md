@@ -219,13 +219,25 @@ suite then died on memory at the same test every run — an infinite recursion
 under a runner reads as SIGKILL at 49%, not as a stack trace. The stash test
 (`git stash` → green → `git stash pop`) is what localised it in one run.
 
-Still open from the same audits, not started: eight plugins whose
-network-activation loop no test drives (§7 knows this shape — useronline,
-downloadmanager, polls and dbmanager own tables, so they go first);
-wp-commentnavi's theme-stylesheet override cascade, a documented pre-2.0.0
-regression with no regression test; wp-postratings' missing e2e security
-spec for its AJAX-swapped markup; and the twin filter gaps
-(`wp_commentnavi_allowed_html`, `wp_pagenavi_capability`).
+The follow-up closed the same day, all of it agent-built and mutation-checked
+where a mutation could prove anything: all eight network-activation
+test-multisite.php files exist and pass (the table owners assert the table per
+site, wp-stats asserts the per-site url — the one seed nothing self-heals);
+wp-commentnavi's stylesheet cascade and both twin filter gaps are tested;
+wp-postratings has its e2e security spec, driving the AJAX vote reply that
+PHPUnit cannot see. The cosmetic tail went too: the option setter is
+set_options( array ) in all eight suites that have one (wp-postratings keeps
+its merge-into-stored semantics — 58 call sites layer overrides, and a
+defaults merge would drop them), the four suites that kept migration tests
+inside test-options.php moved them to test-upgrade.php, and the bin/build
+comment, wp-ban's script order and wp-downloadmanager's eslint comment match
+their majorities. Two deliberate non-changes: no helper-source.php was
+introduced where suites inline file_get_contents, and wp-showhide keeps "The
+block registers" — it has one block, and uniformity would make the sentence
+wrong. One judgement worth keeping: MariaDB 12 lists temporary tables in SHOW
+TABLES, which is the only reason the table assertions work under the
+harness's CREATE TEMPORARY rewrite; a MySQL-backed harness would need the
+filter-removal form wp-email's metadata test already uses.
 
 ## Closed 2026-08-21 — two bootstraps upgraded only one site of a network
 
