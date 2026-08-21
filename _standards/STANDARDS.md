@@ -1746,7 +1746,9 @@ its siblings are named.
 ## 8. CI
 
 `.github/workflows/ci.yml` is copied verbatim from `_standards/templates/`, with
-`{{SLUG}}` substituted. Three jobs; the PHPUnit job has **six** rows — every supported stack in both modes, no special cases:
+`{{SLUG}}` substituted. Four jobs — `phpcs`, `eslint`, `e2e`, `phpunit`; the
+PHPUnit job has **six** rows — every supported stack in both modes, no special
+cases:
 
 | WP | PHP | Mode |
 |---|---|---|
@@ -1759,10 +1761,12 @@ its siblings are named.
 
 Action versions, pinned identically everywhere:
 `actions/checkout@v7`, `actions/setup-node@v7` (node 24),
-`shivammathur/setup-php@v2` (PHP 8.2, `coverage: none`, `tools: cs2pr`).
+`shivammathur/setup-php@v2` (PHP 8.2, `coverage: none`, `tools: cs2pr`), and
+`actions/upload-artifact@v4` for the Playwright traces the `e2e` job keeps on
+failure — a passing run uploads nothing.
 
 Job names are exactly `PHP coding standards`, `JS coding standards and tests`,
-and `PHPUnit (WP …, PHP …, …)`.
+`End-to-end (Playwright)` and `PHPUnit (WP …, PHP …, …)`.
 
 **A plugin with no JavaScript at all deletes the whole `eslint:` job**, from its
 `eslint:` line through to the job that follows it. The template carries no
