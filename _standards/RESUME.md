@@ -175,6 +175,58 @@ the authority; `gh run list` per repo takes a minute.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
 
+## Closed 2026-08-21 — the drift audit, and the five defects it survived
+
+Two agent audits — one normalising every shared file across the nineteen and
+diffing the copies, one walking the test suites for coverage gaps — found the
+shared surface in better shape than feared: CI, composer.json, README
+structure, the §1.1 floors and the metadata contract are uniform or correctly
+derived, and most "missing test file" cells are the plugin genuinely lacking
+the feature. Five defects were real, and all five are fixed, one commit per
+plugin per defect:
+
+* **`run_uninstall()` degraded on its second call** in seven plugins (the
+  `function_exists` shape), plus wp-stats' delegate and wp-email's single-site
+  patch-up: the first call in a process ran uninstall.php's real network loop,
+  every later call silently uninstalled the current site only, so two
+  uninstall tests in one multisite run exercised two different behaviours.
+  All nine now carry the fan-out in the helper — the same loop the file runs,
+  every call — which four plugins already had. The five suites that
+  *reimplement* the deletions instead (their uninstallers drop tables, and
+  DDL commits through the suite's transaction) keep that sanctioned shape.
+* **wp-useronline's uninstall path was executed by nothing** — its helper's
+  docblock promised the compensating source assertions lived in
+  test-install.php, and they did not; emptying uninstall.php left the suite
+  green. The two tests every other reimplementing plugin carries exist now.
+* **One declared range, two resolved lint rule sets** — `@wordpress/eslint-plugin
+  ^25.7.0` was locked at 25.7.0 in six plugins and 25.8.0 in thirteen. All
+  nineteen lockfiles now resolve one registry state (25.9.0). The residual
+  cross-plugin differences are nested pins under the block-build dependencies
+  only the eight `src/` plugins carry — derived, not drift.
+* **Eight spellings of the test-loader function**, three of them breaking
+  §2.5's prefix rule, and two bootstraps (wp-dbmanager, wp-draftsforfriends)
+  missing the test-library guard. All nineteen now declare
+  `_{{under}}_manually_load_plugin` behind the guard.
+* **Two verbs for the per-site uninstall work** — wp-email, wp-sweep and
+  wp-draftsforfriends said `_delete_options` where sixteen said
+  `_uninstall_site`. Renamed; §2.5 now also names the second sanctioned shape,
+  the Install-delegating file wp-polls, wp-postratings and wp-useronline carry.
+
+One self-inflicted lesson worth keeping: two of the uninstall.php edits were
+made with sequenced string replaces, and the second replace rewrote the body
+of the wrapper the first had just inserted, into a self-call. wp-email's
+suite then died on memory at the same test every run — an infinite recursion
+under a runner reads as SIGKILL at 49%, not as a stack trace. The stash test
+(`git stash` → green → `git stash pop`) is what localised it in one run.
+
+Still open from the same audits, not started: eight plugins whose
+network-activation loop no test drives (§7 knows this shape — useronline,
+downloadmanager, polls and dbmanager own tables, so they go first);
+wp-commentnavi's theme-stylesheet override cascade, a documented pre-2.0.0
+regression with no regression test; wp-postratings' missing e2e security
+spec for its AJAX-swapped markup; and the twin filter gaps
+(`wp_commentnavi_allowed_html`, `wp_pagenavi_capability`).
+
 ## Closed 2026-08-21 — two bootstraps upgraded only one site of a network
 
 A survey of the eighteen `includes/class-{{slug}}.php` bootstraps, prompted by
