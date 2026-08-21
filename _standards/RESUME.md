@@ -209,7 +209,10 @@ plugin per defect:
   `_{{under}}_manually_load_plugin` behind the guard.
 * **Two verbs for the per-site uninstall work** — wp-email, wp-sweep and
   wp-draftsforfriends said `_delete_options` where sixteen said
-  `_uninstall_site`. Renamed; §2.5 now also names the second sanctioned shape,
+  `_uninstall_site`. The loop-called verb is `_uninstall_site` everywhere now
+  — wp-sweep's renamed outright, wp-email's and wp-draftsforfriends' kept as
+  prefixed sub-helpers the new verb calls; §2.5 also names the second
+  sanctioned shape,
   the Install-delegating file wp-polls, wp-postratings and wp-useronline carry.
 
 One self-inflicted lesson worth keeping: two of the uninstall.php edits were
@@ -238,6 +241,17 @@ wrong. One judgement worth keeping: MariaDB 12 lists temporary tables in SHOW
 TABLES, which is the only reason the table assertions work under the
 harness's CREATE TEMPORARY rewrite; a MySQL-backed harness would need the
 filter-removal form wp-email's metadata test already uses.
+
+A fresh adversarial re-audit then verified every claim above mechanically and
+came back five findings, all fixed the same day: the activation-side
+get_sites() cap was unpinned in wp-draftsforfriends, wp-postviews and
+wp-postratings while their uninstall side's was (the exact bug class the
+campaign closed could have re-entered green); wp-postratings and wp-showhide
+were the only two eslint configs without the declared tests/e2e CommonJS
+override, linting clean on parser-default luck; three set_options() copies
+lacked the array type hint; the bootstrap run-hint existed in three phrasings;
+and this file overstated the _delete_options rename. Twenty repos ended the
+day with clean level trees and a green latest CI run each.
 
 ## Closed 2026-08-21 — two bootstraps upgraded only one site of a network
 
