@@ -348,9 +348,15 @@ Global functions live in four places and nowhere else:
   the names they shipped with in the last SVN release and must not be renamed,
   which is why they alone are exempt from the prefix rule below.
 * `includes/deprecated.php` — the same, for names being retired.
-* `uninstall.php` — every plugin declares one here, and §7.2.1 depends on it:
-  the uninstaller is `require_once`d by the suite, so the work has to be
-  reachable by calling a function rather than by including the file twice.
+* `uninstall.php` — the per-site work is callable rather than living only in
+  the file body, because §7.2.1 depends on re-running it without including the
+  file twice. Two shapes satisfy that and no third does: a declared
+  `{{UNDER}}_uninstall_site()` the file's own network loop calls, or a file
+  that only dispatches to the `Install` component, whose methods are just as
+  reachable — the shape wp-polls, wp-postratings and wp-useronline carry
+  because their row lists and table drops live beside their installers. `_uninstall_site` is
+  the verb; a `_delete_options` spelling used to exist in three plugins and
+  was retired for saying less than the function did.
 * the main plugin file — activation and deactivation callbacks that have to be
   registered while it loads.
 
