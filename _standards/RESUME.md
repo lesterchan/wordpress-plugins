@@ -175,6 +175,41 @@ the authority; `gh run list` per repo takes a minute.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
 
+## Closed 2026-08-21 — two bootstraps upgraded only one site of a network
+
+A survey of the eighteen `includes/class-{{slug}}.php` bootstraps, prompted by
+wp-pagenavi looking unlike the rest, found the reverse of what it looked like:
+wp-pagenavi and wp-commentnavi are near-clones — the only pair where the
+bootstrap class does its own `require_once`s rather than the main plugin file —
+and the clone had drifted in the one place it mattered.
+
+`WP_PageNavi::activate()` and `WP_PluginsUsed::activate()` took no
+`$network_wide` and ran the upgrade against whichever site was current.
+`WP_CommentNavi::activate()`, the same file in the same shape, loops
+`get_sites( number => 0 )`. Settings and version markers are per-site rows, so
+a network activation left every other site's legacy row unread — wp-pagenavi
+serving the shipped defaults on its front end, wp-pluginsused publishing
+plugins its hidden list would have hidden.
+
+**Low severity for a reason worth writing down: the same routine is also on
+`admin_init`**, and `migrate()` deletes the legacy row only after folding it
+in. So nothing was lost and every site healed the moment somebody opened its
+dashboard. Only a network whose subsites are front-end-only stayed wrong, which
+is why it survived — and it is the shape to look for, because a bug that
+repairs itself under every hand-check is invisible to hand-checking.
+
+**Nothing tested the loop on any of the three**, including the one that had it.
+`tests/test-multisite.php` is now on all three: the loop, the per-site
+activation that must not touch its neighbours, the uncapped `get_sites()` read
+off `pre_get_sites` rather than by building a 101-site fixture, and the unwound
+blog stack. Mutation-checked on each — deleting the branch again fails two of
+the four. Suites, multisite suites, phpcs and `verify.py` are green on all
+three.
+
+Committed, not pushed, and **no version bumped**: all three are level with
+wordpress.org at 3.0.0 / 2.0.0 / 2.0.0, so the two fixes need a staged patch
+version before they can ship. wp-commentnavi's commit is tests only and needs
+none.
 ## Closed 2026-08-20 — WordPress 7.1 moved the list table primary column
 
 Two plugins were red the morning after the `Tested up to: 7.1` sweep, and only
