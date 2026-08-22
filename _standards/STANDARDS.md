@@ -477,6 +477,39 @@ own capability because those settings govern exactly the data it covers.
 What is **not** permitted is a third capability belonging to neither set: the
 settings screen takes `manage_options` or the plugin's own, and nothing else.
 
+### 2.7.1 Differences that are load-bearing — do not converge these
+
+A consistency pass will keep rediscovering these and proposing to unify them.
+Each is deliberate; the reason is the entry:
+
+* **Widget `id_base` strings are frozen** (`polls-widget`, `downloads`,
+  `views`, …). They are stored inside every site's widget instances; renaming
+  one orphans the widget on every site that placed it.
+* **Front-end AJAX action names `polls` and `email` are frozen.** Pages cached
+  with the old script keep posting to the old action for as long as the cache
+  lives; renaming breaks voting and sending on every such page mid-rollout.
+  wp-postratings paid that price knowingly in its major; a patch release must
+  not. Handler *method* names converge; the action strings do not.
+* **The asset-gate mechanism follows what the page can know.** Two passes
+  (head scan + render flag, wp-polls and wp-postratings) only where markup can
+  appear later than the head *and* a stylesheet needs the head; flag-only
+  where there is no stylesheet (wp-useronline); scan-only where nothing
+  renders late (wp-stats); unconditional where the output is on effectively
+  every page (wp-email). The gate name states what it gates: `needs_assets`
+  (both), `needs_styles` (CSS), `needs_script` (JS).
+* **`capability()` lives beside the admin-page registration**, and its
+  `$context` default names the plugin's primary surface — which is why the
+  defaults differ. wp-ban and wp-stats take no default because no surface of
+  theirs is privileged; wp-serverinfo's `NETWORK_CAPABILITY` branch is the
+  §7.2.2 rule expressed in code.
+* **The Options API family follows the option's shape**: flat rows speak
+  `get`/`update`/`write`/`migrate`; the nested-array plugins speak
+  `all`/`set`/`save`/`flush`. Where an Install class exists it owns activation
+  and upgrade; otherwise Options does.
+* **wp-email ships no theme-override stylesheet lookup** — removed on purpose,
+  with the reason in the enqueue docblock. wp-showhide's stylesheet is
+  unconditional for the FOUC reason its comment gives.
+
 ### 2.8 Comments — concise, and as few as possible
 
 A comment earns its place by stating a constraint the code cannot show — why,
