@@ -27,13 +27,17 @@ Exactly this, in this order. Anything not on this list must be deleted or moved.
 {{SLUG}}/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml
+│       ├── ci.yml
+│       ├── claude-code-review.yml
+│       └── claude.yml
 ├── .editorconfig
 ├── .gitignore
 ├── .wp-env.json
 ├── bin/
+│   ├── build                 # only the plugins with src/ (§13.4); makes build/
 │   ├── index.php
 │   ├── test.sh
+│   ├── test-e2e.sh
 │   └── test-multisite.sh
 ├── css/                      # only if the plugin has CSS
 │   ├── index.php
@@ -49,13 +53,23 @@ Exactly this, in this order. Anything not on this list must be deleted or moved.
 ├── js/                       # only if the plugin has JS
 │   ├── index.php
 │   ├── {{SLUG}}.js           # front end
-│   └── {{SLUG}}-admin.js     # wp-admin
+│   ├── {{SLUG}}-admin.js     # wp-admin
+│   └── {{SLUG}}-<thing>.js   # a further script earns a purpose suffix
+├── src/                      # only the plugins with blocks (§13.4); committed,
+│                             # never shipped -- bin/build compiles it to build/,
+│                             # which is gitignored and ships
 ├── tests/
 │   ├── index.php
 │   ├── bootstrap.php
 │   ├── helper-*.php          # every non-test file in tests/ is helper-*.php
+│   ├── e2e/                  # the Playwright suite (§7.5)
+│   │   ├── index.php
+│   │   ├── helpers.js        # single-spec suites may inline it
+│   │   ├── mu-plugins/       # only where the suite needs one (§7.5)
+│   │   └── *.spec.js
 │   ├── js/                   # only if the plugin has JS
 │   │   ├── index.php
+│   │   ├── helpers.js        # loads the shipped script into jsdom
 │   │   └── *.test.js
 │   └── test-*.php            # every test file is test-*.php
 ├── tinymce/                  # only wp-downloadmanager and wp-polls
@@ -69,6 +83,7 @@ Exactly this, in this order. Anything not on this list must be deleted or moved.
 ├── phpcs.xml
 ├── phpunit-multisite.xml.dist
 ├── phpunit.xml.dist
+├── playwright.config.js
 ├── README.md
 ├── uninstall.php
 ├── vitest.config.mjs         # only if the plugin has JS
@@ -98,10 +113,12 @@ Hard rules:
   live in the committed `.wp-env.json`; the override file is for local/CI use
   only and must never be tracked.
 * `.idea/` is deleted from the working tree and gitignored.
-* **The list above is what the plugin *ships*, not everything the repo may
-  hold.** Do not delete `CLAUDE.md`, `.claude/`, `claude.yml` or
-  `claude-code-review.yml` — they are development tooling, excluded from the
-  SVN deploy, and outside this standard. Same for `htaccess.txt` and
+* **The list above is what the repo *tracks*, not what the plugin *ships*.**
+  The SVN deploy excludes everything development-only — `.github/`, `bin/`,
+  `tests/`, `src/`, the configs — and ships `build/` in its place for the
+  block plugins. Do not delete `CLAUDE.md` or `.claude/` either; they are
+  development tooling outside this standard, and the two `claude*.yml`
+  workflows (§8) are in the tree because every repo carries them. Same for `htaccess.txt` and
   `Web.config.txt` in wp-dbmanager, which are shipped payloads that protect the
   backup folder.
 
