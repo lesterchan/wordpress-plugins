@@ -181,6 +181,43 @@ the authority; `gh run list` per repo takes a minute.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
 
+## Closed 2026-08-22 — pass five: names, and the shapes inside files
+
+A fifth audit swept what no pass had: file naming conventions and in-file
+structure. Two findings were against the standard itself — §1's layout tree
+predated the e2e, blocks and Claude-workflow phases (redrawn; the closing
+bullet now says the tree is what the repo *tracks*, not what ships), and §2.8
+is being outrun by the newest files' long docblocks (89 of 173 class files,
+worst are the newest — left to the touch-it-trim-it rule, no sweep). The rest
+was majority-vs-outlier and was fixed across all nineteen in one pass, three
+agents on disjoint repo sets, one commit per fix-class per repo:
+
+* **Guards**: `defined( 'ABSPATH' ) || exit;` and
+  `defined( 'WP_UNINSTALL_PLUGIN' ) || exit;` everywhere — three whole plugins
+  and three main files came off the if-block form, and fourteen uninstall.php
+  guards converged. Four suites pinned a guard spelling by regex or literal;
+  every pin was found before its suite ran and moved with the guard.
+* **Names**: `test-upgrade.php` wins over `test-migration.php` (the e2e side
+  was already unanimously `upgrade.spec.js`); `tests/js/helpers.js` wins over
+  `helper-dom.js`/`helper-load.js`; `test-escaping.php` over `test-kses.php`
+  and commentnavi's `test-security.php` — but wp-downloadmanager keeps its
+  `test-security.php`, which a fix agent correctly judged to be a genuine
+  broad security suite the audit had misfiled as an escaping suite. Settings
+  suites live in `test-settings.php`; pagenavi's screen tests took their own
+  `test-settings-screen.php` after the first fold-in put two classes in one
+  file and verify.py's §7.1 check said no. Assorted one-offs: ban's
+  trust-proxy file, print's lifecycle→uninstall, relativedate's singular
+  template-tag, sweep's and showhide's tests/js names, postratings'
+  extensionless e2e requires.
+* **In-file**: 'use strict' in the five shipped JS files missing it; GROUP
+  before PAGE in the two Settings classes that flipped §2.2's order; wp-polls'
+  admin CSS header no longer names a file dead since the restructure.
+
+Shipped-code edits are guard spelling, two JS strict pragmas and a CSS
+comment — behaviour-preserving, riding each plugin's next release; the staged
+versions were not touched. Suites, phpcs, lint and verify.py green across all
+nineteen before each push.
+
 ## Closed 2026-08-21 — the drift audit, and the five defects it survived
 
 Two agent audits — one normalising every shared file across the nineteen and
