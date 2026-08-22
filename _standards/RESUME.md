@@ -192,6 +192,27 @@ the authority; `gh run list` per repo takes a minute.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
 
+## Open — pass eight: the implementation-parity fix pass, canon decided, not yet run
+
+An eighth audit built feature-by-feature matrices (asset gating, capability(),
+Options/Install/REST/CLI/Blocks/AJAX/Widget method names, recurring comment
+idioms, bootstrap shapes) and found 42 convergence items — the same feature
+under different names across plugins, the exact drift class the campaign
+exists for. **`_standards/pass-eight-canon.md` holds the chosen shape for
+every item**, including the three judgement calls already made: the upgrade
+hook converges on `init` priority 5 (wp-postratings' comment correctly
+indicts admin_init — background updates run on cron); the theme-override
+stylesheet lookup converges on the navi pair's child→parent algorithm; the
+legacy `polls`/`email` front-end AJAX action names stay (renaming breaks
+pages cached with the old script — deliberate, record as such), with only
+wp-sweep's admin-only actions gaining the prefix. Frozen surfaces the fix
+pass must not touch are listed in the canon's process rules.
+
+The fix pass itself has NOT run. Next session: partition the repos across
+3-4 agents, each following the canon verbatim — suites, multisite, e2e where
+AJAX/widgets/wiring are touched, phpcs, verify.py per repo, commits per
+theme, no pushes until green.
+
 ## Closed 2026-08-22 — the performance wave: all three findings fixed
 
 Pass seven's three performance findings are closed, failing-test-first,
