@@ -10,7 +10,7 @@ is open**.
 What the release itself found is under "Closed 2026-08-10", and it is the
 campaign's thesis proving itself one last time.
 
-**Eight releases are staged and deliberately not shipped**, every one the
+**Nine releases are staged and deliberately not shipped**, every one the
 `released — released+0.0.1 staged` shape, and `bin/verify.py`'s SHIPS_AS plus
 §14's table are the machine-readable copy of this list. wp-downloadmanager
 2.0.1 — the category-zero renumbering fix, changelog and Upgrade Notice
@@ -35,7 +35,9 @@ ids into PHP. The screen now renders immediately and the script fetches the
 counts afterwards, sequentially (`counts=now` via a `<noscript>` link is the
 no-JavaScript path, a Count-column sort still computes synchronously, and the
 new `wp_sweep_defer_counts` filter restores the old render); the duplicated
-counts read per-key totals only. Lester is accumulating fixes
+counts read per-key totals only. wp-polls 3.0.1, staged 2026-08-22 — the
+front-end assets load only on pages that show a poll, by the head-time scan
+plus a render flag the footer enqueue reads. Lester is accumulating fixes
 rather than releasing again immediately; when he says ship, the
 `release-wp-plugin` skill is the path. Nothing else waits on any of them.
 
@@ -189,6 +191,37 @@ the authority; `gh run list` per repo takes a minute.
   screens — and is still deliberately unreleased so fixes can accumulate.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
+
+## Closed 2026-08-22 — the performance wave: all three findings fixed
+
+Pass seven's three performance findings are closed, failing-test-first,
+suites and Playwright green on each:
+
+* **wp-postratings** no longer queries every vote row on every loop of every
+  page for a display that defaults off — the filter gate moved in front of
+  the query — and its assets load only where a rating renders, on
+  wp-useronline's render-flag mechanism (theme template tags defeat content
+  scanning, which decided the choice). 77 e2e specs prove the vote path with
+  the footer-delivered script. Both ride the staged 2.0.1.
+* **wp-useronline**'s table gained `KEY user_ip` and `KEY user_id`, so the
+  per-request DELETE and per-IP COUNT stop scanning. DB_VERSION 1 → 2; an
+  existing site gains the keys through maybe_upgrade() → dbDelta on its first
+  request after update, proven against the table shape transcribed from the
+  4.0.0 SVN tag, with a guard against dbDelta's user_ip_2 re-add mode. Rides
+  the staged 4.0.1.
+* **wp-polls** enqueues only on pages that show a poll, by both sibling
+  mechanisms at once: wp-stats' head-time scan (shortcode/block/widget, so
+  the stylesheet still reaches the head with no unstyled flash) plus
+  wp-useronline's render flag read on wp_footer for what the head cannot see
+  (template tags, archives) — print_late_styles() runs at wp_footer 20, the
+  enqueue sits at 10, and the inline bar-colour block is guarded against
+  double emission. Staged as 3.0.1, the ninth staged release.
+
+A counting note: pass four's audit reported seven staged releases and this
+file was "corrected" to say seven — but wp-sweep's 2.0.1 was already staged,
+so the true count was eight. The audit counted divergence against
+wordpress.org and still missed one; the headline paragraph above now defers
+to SHIPS_AS and §14 precisely because prose counts keep rotting.
 
 ## Closed 2026-08-22 — pass seven: the outward faces
 
