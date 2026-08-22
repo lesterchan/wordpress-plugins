@@ -55,7 +55,7 @@ PLUGINS = [
 STORES_NOTHING = {"wp-relativedate", "wp-showhide", "wp-serverinfo", "wp-sweep"}
 
 SHIPS_AS = {
-    "freemyinternet": "1.0.0",
+    "freemyinternet": "1.0.1",
     "wp-ban": "2.0.0",
     "wp-commentnavi": "2.0.0",
     "wp-dbmanager": "4.0.0",

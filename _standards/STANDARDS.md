@@ -2718,7 +2718,7 @@ to carry sites forward from:
 
 | Plugin | Released 2026-08-10 | Pre-revamp release |
 |---|---|---|
-| freemyinternet | 1.0.0 | *trunk* (0.01) |
+| freemyinternet | 1.0.0 — 1.0.1 staged in git | *trunk* (0.01) |
 | wp-ban | 2.0.0 | 1.69.2 |
 | wp-commentnavi | 2.0.0 | *trunk* (tag 1.10) |
 | wp-dbmanager | 4.0.0 | 3.0.0 |
