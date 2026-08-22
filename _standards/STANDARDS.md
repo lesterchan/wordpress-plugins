@@ -1803,8 +1803,11 @@ can have JavaScript worth linting and no vitest suite: a plugin whose only
 scripts are Playwright specs has nothing for jsdom to load. `lint:js` is not
 optional in the same way — anything lintable gets linted.
 
-`wp-serverinfo` and `wp-sweep` keep their extra `claude.yml` /
-`claude-code-review.yml`; those are not part of this standard.
+Every repository also carries `claude.yml` and `claude-code-review.yml` —
+@claude on issues and PR comments, and a Claude review posted inline on every
+pull request. They are copied verbatim from wp-postviews' current revision and
+need the `CLAUDE_CODE_OAUTH_TOKEN` secret in each repository to run; they are
+not part of the CI contract above and verify.py does not check them.
 
 ---
 
