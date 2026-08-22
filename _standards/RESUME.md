@@ -10,7 +10,7 @@ is open**.
 What the release itself found is under "Closed 2026-08-10", and it is the
 campaign's thesis proving itself one last time.
 
-**Seven releases are staged and deliberately not shipped**, every one the
+**Eight releases are staged and deliberately not shipped**, every one the
 `released — released+0.0.1 staged` shape, and `bin/verify.py`'s SHIPS_AS plus
 §14's table are the machine-readable copy of this list. wp-downloadmanager
 2.0.1 — the category-zero renumbering fix, changelog and Upgrade Notice
@@ -26,7 +26,16 @@ written up below. wp-postviews 2.0.1, staged 2026-08-22 — GitHub issue #61:
 the "Count Views From" setting was enforced only on the wp_head path, so the
 AJAX/REST path that cached sites actually use counted guests under
 "Registered Users Only" and skipped the bot exclusion; both endpoints now ask
-the setting with the visitor's real login state. Lester is accumulating fixes
+the setting with the visitor's real login state. wp-sweep 2.0.1, staged
+2026-08-22 — the 2.0.0 support-forum reports of the Tools -> Sweep screen
+timing out: 2.0.0 computed every count before printing a byte, asked each
+table's `COUNT(*)` once per row rather than once, and counted the duplicated
+meta sweeps through the `GROUP_CONCAT` query that hauls every duplicate row's
+ids into PHP. The screen now renders immediately and the script fetches the
+counts afterwards, sequentially (`counts=now` via a `<noscript>` link is the
+no-JavaScript path, a Count-column sort still computes synchronously, and the
+new `wp_sweep_defer_counts` filter restores the old render); the duplicated
+counts read per-key totals only. Lester is accumulating fixes
 rather than releasing again immediately; when he says ship, the
 `release-wp-plugin` skill is the path. Nothing else waits on any of them.
 

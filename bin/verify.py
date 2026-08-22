@@ -72,7 +72,7 @@ SHIPS_AS = {
     "wp-serverinfo": "3.0.0",
     "wp-showhide": "3.0.0",
     "wp-stats": "3.0.0",
-    "wp-sweep": "2.0.0",
+    "wp-sweep": "2.0.1",
     "wp-useronline": "4.0.1",
 }
 
