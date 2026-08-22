@@ -2679,7 +2679,7 @@ to carry sites forward from:
 | wp-pluginsused | 2.0.0 — 2.0.1 staged in git | *trunk* (tag 1.50) |
 | wp-polls | 3.0.0 | 2.77.3 |
 | wp-postratings | 2.0.0 — 2.0.1 staged in git | 1.91.3 |
-| wp-postviews | 2.0.0 | 1.78.1 |
+| wp-postviews | 2.0.0 — 2.0.1 staged in git | 1.78.1 |
 | wp-print | 3.0.0 | 2.58.3 |
 | wp-relativedate | 2.0.0 | 1.51.1 |
 | wp-serverinfo | 3.0.0 | 2.0.0 |
