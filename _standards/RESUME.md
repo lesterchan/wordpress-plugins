@@ -181,6 +181,34 @@ the authority; `gh run list` per repo takes a minute.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
 
+## Closed 2026-08-22 — pass six: what the words claim
+
+A sixth audit swept the claims layer: plugin CLAUDE.md standalone rules,
+documented-vs-actual API, README content accuracy, e2e spec quality,
+verify.py's own text, git hygiene, and a code-level read of every
+post-release shipped diff. The code side came back clean — no unsanctioned
+shipped change anywhere, no assertion-free or skipped e2e spec, no
+cannot-fail check in verify.py, no signed commit. The words needed work:
+
+* **README staleness cluster**: the §4.2.2 tab renames stopped short of the
+  prose in four READMEs — wp-postratings ("Ratings Options" ×4), wp-email
+  (menu paths still naming "E-Mail" and "Manage E-Mail" for what the menu
+  calls WP-EMail and Logs), wp-polls (two tab mentions and one screen
+  docblock) and wp-downloadmanager ("Download Templates"). wp-polls' shipped
+  3.0.0 changelog also named a `wp_polls_uninstall_site()` that never
+  existed — corrected to the Install method that does. All fixed.
+* **wp_postviews_capability** was the only capability filter of fifteen with
+  no README mention; it has a FAQ entry now.
+* Four CLAUDE.md lines violated the standalone rules (one true cross-repo
+  reference in wp-print, two collection-reference claims, one unverifiable
+  state-of-work claim in wp-postviews). Fixed.
+* verify.py cited §7.6.1 for the rule §7.6.2 states, and a comment still
+  described §2.5's pre-rewrite text. Fixed.
+* **Recorded, not repaired**: 27 pushed commits authored by Claude carry no
+  session trailer (the SessionStart-hook rollout predates the convention),
+  and 17 subjects run past 72 characters. History is public; rewriting it
+  for trailers is worse than the miss. The convention holds for new commits.
+
 ## Closed 2026-08-22 — pass five: names, and the shapes inside files
 
 A fifth audit swept what no pass had: file naming conventions and in-file
@@ -213,7 +241,7 @@ agents on disjoint repo sets, one commit per fix-class per repo:
   before PAGE in the two Settings classes that flipped §2.2's order; wp-polls'
   admin CSS header no longer names a file dead since the restructure.
 
-Shipped-code edits are guard spelling, two JS strict pragmas and a CSS
+Shipped-code edits are guard spelling, five JS strict pragmas and a CSS
 comment — behaviour-preserving, riding each plugin's next release; the staged
 versions were not touched. Suites, phpcs, lint and verify.py green across all
 nineteen before each push.

@@ -1317,7 +1317,7 @@ def verify(slug, name, prefix, port, root):
                     "%s:%d %s() writes through %s, which cannot tell an absent "
                     "row from a defaulted one -- with a registered default a "
                     "migrated value equal to the defaults writes nothing at "
-                    "all, so the row is never created (§7.6.1)"
+                    "all, so the row is never created (§7.6.2)"
                     % (rel, line, fname, " and ".join(reached)))
 
     # --- §11 ships no raster image -----------------------------------------
@@ -1847,13 +1847,11 @@ def verify(slug, name, prefix, port, root):
     # Same shape as §2.4, which has been checked since the fan-out: a name that
     # reaches global scope is prefixed, and where it may live is a closed set.
     #
-    # Two checks, because §2.5's two sentences say different things and only one
-    # of them survives contact with the collection. "Global functions exist only
-    # in template-tags.php and deprecated.php" is false in all nineteen --
-    # uninstall.php necessarily declares one, and §7.2.1 relies on it doing so
-    # -- so the enforceable rule is the second sentence: any other global
-    # function is prefixed {{UNDER}}_. template-tags.php and deprecated.php are
-    # exempt from the prefix because §2.5 requires the opposite of them: those
+    # Two checks. §2.5 names the four places a global function may live, and
+    # the enforceable rule is its prefix sentence: any global function outside
+    # template-tags.php is prefixed {{UNDER}}_. template-tags.php and
+    # deprecated.php are exempt from the prefix because §2.5 requires the
+    # opposite of them: those
     # names shipped in the last SVN release and are the documented public API.
     #
     # A global function inside a class-*.php file is a violation whichever way
