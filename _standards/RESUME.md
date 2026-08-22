@@ -253,6 +253,18 @@ lacked the array type hint; the bootstrap run-hint existed in three phrasings;
 and this file overstated the _delete_options rename. Twenty repos ended the
 day with clean level trees and a green latest CI run each.
 
+A third pass the next day verified the second pass's fixes sha-for-sha and
+swept fresh angles (e2e infrastructure, the uninstall source-assertion
+contracts, docblock truth, staged-release consistency — six staged, not five:
+wp-postratings 2.0.1 was already among them). Five residual findings, fixed
+the same day: the fourteen new test-multisite.php files had already forked
+(two stack-test forms, three fixture spellings, two isolation-test names —
+converged on the majority frame); wp-draftsforfriends alone lacked the
+multisite isolation test; a ninth set_options() in wp-email's AJAX base was
+untyped; wp-relativedate and wp-showhide were the only two with no pin on
+uninstall.php's site-query cap; and §2.5 repeated the _delete_options
+overstatement RESUME had already corrected.
+
 ## Closed 2026-08-21 — two bootstraps upgraded only one site of a network
 
 A survey of the eighteen `includes/class-{{slug}}.php` bootstraps, prompted by

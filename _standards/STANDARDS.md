@@ -355,8 +355,8 @@ Global functions live in four places and nowhere else:
   that only dispatches to the `Install` component, whose methods are just as
   reachable — the shape wp-polls, wp-postratings and wp-useronline carry
   because their row lists and table drops live beside their installers. `_uninstall_site` is
-  the verb; a `_delete_options` spelling used to exist in three plugins and
-  was retired for saying less than the function did.
+  the verb the loop calls; a `_delete_options` spelling was the loop's verb in
+  three plugins and survives only as a sub-helper the verb calls in two.
 * the main plugin file — activation and deactivation callbacks that have to be
   registered while it loads.
 
