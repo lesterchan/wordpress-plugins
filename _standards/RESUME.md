@@ -208,10 +208,20 @@ pages cached with the old script — deliberate, record as such), with only
 wp-sweep's admin-only actions gaining the prefix. Frozen surfaces the fix
 pass must not touch are listed in the canon's process rules.
 
-The fix pass itself has NOT run. Next session: partition the repos across
-3-4 agents, each following the canon verbatim — suites, multisite, e2e where
-AJAX/widgets/wiring are touched, phpcs, verify.py per repo, commits per
-theme, no pushes until green.
+The fix pass IS RUNNING as of 2026-08-23: four agents over disjoint repo
+sets (wp-polls alone; downloadmanager/postratings/postviews/email;
+ban/dbmanager/draftsforfriends/print/stats/sweep/useronline;
+freemyinternet/commentnavi/pagenavi/pluginsused/serverinfo/showhide), each
+following the canon verbatim and committing per theme WITHOUT pushing. If
+this session ended mid-run, the evidence is in each repo: `git log` shows
+canon commits landed, `git status` shows work in flight. To finish: verify
+any repo whose suites the agent did not complete (bin/test.sh,
+bin/test-multisite.sh, e2e for polls/downloadmanager/postratings/postviews/
+email/sweep/useronline, verify.py per slug), push every clean repo,
+hand-apply wp-relativedate's two canon lines (get_instance docblock, comment
+idioms — no agent owned it), confirm staged changelogs gained bullets only
+for user-visible changes, and record the pass in this file. §2.7.1 of the
+standard now carries the load-bearing differences the pass must keep.
 
 ## Closed 2026-08-22 — the performance wave: all three findings fixed
 
