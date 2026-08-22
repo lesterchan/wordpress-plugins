@@ -10,19 +10,25 @@ is open**.
 What the release itself found is under "Closed 2026-08-10", and it is the
 campaign's thesis proving itself one last time.
 
-**Four releases are staged and deliberately not shipped.** wp-downloadmanager is
-2.0.1 in git — the category-zero renumbering fix, changelog and Upgrade Notice
-written — while wordpress.org serves 2.0.0. wp-draftsforfriends is 2.0.1 in
-git — both requests from the one post-release support topic: the copy button
-became a clipboard dashicon beside the link, and the post editor gained a
-Drafts for Friends meta box (posts only; the `?p=<id>` link shape is why) —
-while wordpress.org serves 2.0.0. wp-postratings is 2.0.1 in git as of
-2026-08-13 — a regression the 2.0.0 security fix caused, written up below —
-while wordpress.org serves 2.0.0. wp-useronline is 4.0.1 in git as of
-2026-08-17 — the IPv6 address lookup from a post-release support topic, written
-up below — while wordpress.org serves 4.0.0. Lester is accumulating fixes rather than
-releasing again immediately; when he says ship, the `release-wp-plugin` skill
-is the path. Nothing else waits on any of them.
+**Seven releases are staged and deliberately not shipped**, every one the
+`released — released+0.0.1 staged` shape, and `bin/verify.py`'s SHIPS_AS plus
+§14's table are the machine-readable copy of this list. wp-downloadmanager
+2.0.1 — the category-zero renumbering fix, changelog and Upgrade Notice
+written. wp-draftsforfriends 2.0.1 — both requests from the one post-release
+support topic: the copy button became a clipboard dashicon beside the link,
+and the post editor gained a Drafts for Friends meta box (posts only; the
+`?p=<id>` link shape is why). wp-postratings 2.0.1, staged 2026-08-13 — a
+regression the 2.0.0 security fix caused, written up below. wp-useronline
+4.0.1, staged 2026-08-17 — the IPv6 address lookup from a post-release
+support topic, written up below. wp-pagenavi 3.0.1 and wp-pluginsused 2.0.1,
+staged 2026-08-21 — network activation upgraded only the current site,
+written up below. wp-postviews 2.0.1, staged 2026-08-22 — GitHub issue #61:
+the "Count Views From" setting was enforced only on the wp_head path, so the
+AJAX/REST path that cached sites actually use counted guests under
+"Registered Users Only" and skipped the bot exclusion; both endpoints now ask
+the setting with the visitor's real login state. Lester is accumulating fixes
+rather than releasing again immediately; when he says ship, the
+`release-wp-plugin` skill is the path. Nothing else waits on any of them.
 
 **All nineteen read `Tested up to: 7.1` in git, and none of them says so on
 wordpress.org.** WordPress 7.1 became the current release and the readme header
