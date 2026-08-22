@@ -190,6 +190,33 @@ the authority; `gh run list` per repo takes a minute.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
 
+## Closed 2026-08-22 — pass seven: the outward faces
+
+A seventh audit swept what only the outside world sees. The load-bearing
+surfaces all passed: every public entry point added or changed since the
+2026-08-09 security review was read as code and none has a gap (the
+postviews REST/AJAX paths, the vote paths, the eight block render callbacks,
+the useronline refresh, the sweep count endpoints, the draftsforfriends
+metabox); shipped dependencies carry zero advisories (`npm audit --omit=dev`
+and `composer audit --locked` clean across all nineteen — the dev-only
+lighthouse/@wordpress/scripts chains are upstream watch-items); wordpress.org
+assets, screenshots, banners and stable-tag state agree with the READMEs
+everywhere; GitHub metadata is uniform. Fixed the same day: the
+wp-relativedate header's misplaced apostrophe ('2 'Seconds Ago') and
+wp-dbmanager's space-before-comma — both on every install's Plugins screen —
+plus three GitHub blemishes (showhide's stale description, three
+trailing-whitespace homepages). Deferred: jsdom three majors behind (dev
+only, rides the next vitest), freemyinternet's PNG icons against the
+collection's SVGs.
+
+The performance spot-check is the pass's real yield, held for Lester's call:
+wp-postratings queries every vote row for the post on every loop of every
+page before checking a filter that defaults off (the gate belongs before the
+query); wp-useronline's per-request DELETE and per-IP COUNT scan for want of
+`user_ip`/`user_id` keys (a schema bump); wp-postratings (~16 KB) and
+wp-polls (~13 KB) enqueue site-wide unconditionally. wp-postviews and
+wp-pagenavi verified near-zero.
+
 ## Closed 2026-08-22 — pass six: what the words claim
 
 A sixth audit swept the claims layer: plugin CLAUDE.md standalone rules,
