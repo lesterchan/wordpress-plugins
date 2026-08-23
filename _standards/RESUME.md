@@ -10,34 +10,14 @@ is open**.
 What the release itself found is under "Closed 2026-08-10", and it is the
 campaign's thesis proving itself one last time.
 
-**Nine releases are staged and deliberately not shipped**, every one the
-`released — released+0.0.1 staged` shape, and `bin/verify.py`'s SHIPS_AS plus
-§14's table are the machine-readable copy of this list. wp-downloadmanager
-2.0.1 — the category-zero renumbering fix, changelog and Upgrade Notice
-written. wp-draftsforfriends 2.0.1 — both requests from the one post-release
-support topic: the copy button became a clipboard dashicon beside the link,
-and the post editor gained a Drafts for Friends meta box (posts only; the
-`?p=<id>` link shape is why). wp-postratings 2.0.1, staged 2026-08-13 — a
-regression the 2.0.0 security fix caused, written up below. wp-useronline
-4.0.1, staged 2026-08-17 — the IPv6 address lookup from a post-release
-support topic, written up below. wp-pagenavi 3.0.1 and wp-pluginsused 2.0.1,
-staged 2026-08-21 — network activation upgraded only the current site,
-written up below. wp-postviews 2.0.1, staged 2026-08-22 — GitHub issue #61:
-the "Count Views From" setting was enforced only on the wp_head path, so the
-AJAX/REST path that cached sites actually use counted guests under
-"Registered Users Only" and skipped the bot exclusion; both endpoints now ask
-the setting with the visitor's real login state. wp-sweep 2.0.1, staged
-2026-08-22 — the 2.0.0 support-forum reports of the Tools -> Sweep screen
-timing out: 2.0.0 computed every count before printing a byte, asked each
-table's `COUNT(*)` once per row rather than once, and counted the duplicated
-meta sweeps through the `GROUP_CONCAT` query that hauls every duplicate row's
-ids into PHP. The screen now renders immediately and the script fetches the
-counts afterwards, sequentially (`counts=now` via a `<noscript>` link is the
-no-JavaScript path, a Count-column sort still computes synchronously, and the
-new `wp_sweep_defer_counts` filter restores the old render); the duplicated
-counts read per-key totals only. wp-polls 3.0.1, staged 2026-08-22 — the
-front-end assets load only on pages that show a poll, by the head-time scan
-plus a render flag the footer enqueue reads. Lester is accumulating fixes
+**Ten releases are staged and deliberately not shipped** — every one the
+`released — released+0.0.1 staged` shape. **The list lives in
+`bin/verify.py`'s SHIPS_AS and §14's table; count from those, never from
+prose here** (this paragraph has been wrong twice). Currently: freemyinternet
+1.0.1, wp-downloadmanager, wp-draftsforfriends, wp-pluginsused,
+wp-postratings, wp-postviews and wp-sweep 2.0.1, wp-pagenavi and wp-polls
+3.0.1, wp-useronline 4.0.1. Each staged version's write-up is in its dated
+entry below and its own README changelog. Lester is accumulating fixes
 rather than releasing again immediately; when he says ship, the
 `release-wp-plugin` skill is the path. Nothing else waits on any of them.
 
@@ -192,288 +172,63 @@ the authority; `gh run list` per repo takes a minute.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
 
-## Closed 2026-08-23 — the final verification pass, and the campaign's close
+## Closed 2026-08-21 → 23 — the consistency campaign: eight audits, one canon, one fix pass
 
-A closing audit is verifying the canon landed everywhere: a grep-matrix of
-every pass-eight item, a zero-tolerance sweep for every retired name across
-code/tests/docs, frozen surfaces diffed against the released wordpress.org
-zips, the ten staged releases reconciled three ways, and a last drift sweep.
-Its one named-but-unverified candidate so far: **a wp-sweep count/sweep
-whitelist disagreement**, possibly fallout from the sweep_count →
-wp_sweep_count admin action rename — check whether any allow-list, nonce
-action or JS data-action still references the old names or disagrees with
-the PHP hooks. If this session ended before the report landed, re-run that
-check first, then finish the audit's checklist (it is spelled out in this
-entry) and close this section with the verdicts.
+Three days of alternating audit and fix passes took the collection from
+"released and green" to "converged and proven". The blow-by-blow lived here
+while it ran; what survives is the durable part. **The rules the campaign
+produced are §2.7.1 (the differences that must not be flattened) and §2.7.2
+(the method-name canon) of the standard — read those, not this.**
 
-The report came back: everything held except four findings, all fixed and
-pushed the same day. The sweep whitelist candidate was a false alarm — the
-action rename is complete and self-consistent. The real ones: **wp-ban's
-migration ran only from admin_init and the WP-CLI subcommands**, so a
-cron-driven background update served the front end unmigrated until somebody
-opened wp-admin — the canon had miscounted it among the direct-call plugins;
-it runs on `init` priority 5 now, with a hook test, and that also settles the
-registered-default trap on every path. wp-useronline was the lone holdout on
-the `register()` rename; wp-sweep, wp-postviews and wp-useronline still named
-their admin enqueue callback after the hook (postviews' fix collided with an
-existing `enqueue()` gate, renamed `screen_loaded()`). And the two loop
-sentences — the cap and the restore — now read identically in all seventeen
-files that carry them; the activation-update elaborations were judged
-per-plugin rationale and kept. Frozen surfaces were diffed against all
-nineteen released zips: identical. Ten staged releases reconciled three ways
-with every bullet mapping to a real change. verify.py 0, twenty clean level
-trees, twenty green CI runs.
+What ran, and what each pass yielded:
 
-That is the campaign: eight audit passes, one canon, one fix pass, one
-closing verification — and the ninth pass's findings were a hook, three
-names and two sentences, which is what convergence looks like when it is
-nearly done.
+1. **Shared-file drift + test-coverage audits** (two agents): five defects —
+   a `run_uninstall()` helper that silently degraded to single-site on its
+   second call in seven suites; wp-useronline's uninstall path executed by
+   nothing; one eslint-plugin range resolved as two versions; eight spellings
+   of the test loader; two verbs for the per-site uninstall work. All fixed,
+   one commit per plugin per defect.
+2. **Second and third verification passes**: caught the fixes' own gaps —
+   activation-side site-query pins missing where only uninstall's existed,
+   the 14 new test-multisite files already forking, a ninth untyped
+   `set_options()`, and RESUME's own staging count wrong twice (the audit
+   missed wp-sweep's staged 2.0.1 too — which is why the staged list now
+   defers to SHIPS_AS and §14 instead of prose).
+3. **Pass four (outward)**: SVN trunks clean, released zips byte-match git,
+   Playwright's session-cookie artifact was back on disk (deploy exclusions
+   held; deleted anyway).
+4. **Pass five (naming)**: §1's layout tree was three phases stale; guards,
+   loader names, test-file names converged; three naming decisions made
+   (test-upgrade.php, tests/js/helpers.js, test-escaping.php).
+5. **Pass six (claims)**: READMEs still describing pre-rename screens, a
+   changelog naming a function that never existed, four CLAUDE.md
+   standalone-rule breaks, verify.py citing the wrong section.
+6. **Pass seven (outward again)**: security delta clean on every entry point
+   since 2026-08-09; zero shipped-dependency advisories; the yield was three
+   performance findings — postratings' unbounded loop_start query behind a
+   default-off filter, useronline's unindexed per-request scans (now
+   `KEY user_ip`/`user_id`, DB_VERSION 2), and unconditional site-wide assets
+   in polls/postratings (now the two-pass conditional gate both share).
+7. **Pass eight (implementation parity)**: eleven feature matrices, 42
+   convergence items, the canon written before the fix pass ran, then four
+   agents over disjoint repo sets — ~46 themed commits, every suite and seven
+   e2e suites green, verify.py 0 throughout.
+8. **The closing verification**: proved the canon landed; four residual
+   findings (wp-ban's migration unreachable by cron-driven updates — the one
+   real bug; one rename holdout; three hook-named callbacks; two sentences
+   not yet verbatim), fixed same day. Frozen surfaces diffed byte-for-byte
+   against all nineteen released wordpress.org zips: identical.
 
-## Closed 2026-08-23 — pass eight: the implementation-parity fix pass ran
+Lessons already promoted to the standard or this file's head: prose counts
+rot (defer to SHIPS_AS/§14); a WP-CLI boot fires `init`, so migration
+fixtures seed-and-read-back in one `wp eval`; MariaDB 12 lists temporary
+tables in SHOW TABLES, which is what lets the table assertions pass under
+the harness; an infinite recursion under the test runner reads as SIGKILL at
+a fixed percentage, and `git stash` → green → `git stash pop` localises it
+in one run; sequenced string replaces can rewrite the text an earlier
+replace just inserted — the wrapper-self-call bug shipped twice in one
+afternoon that way.
 
-An eighth audit built feature-by-feature matrices (asset gating, capability(),
-Options/Install/REST/CLI/Blocks/AJAX/Widget method names, recurring comment
-idioms, bootstrap shapes) and found 42 convergence items — the same feature
-under different names across plugins, the exact drift class the campaign
-exists for. **`_standards/pass-eight-canon.md` holds the chosen shape for
-every item**, including the three judgement calls already made: the upgrade
-hook converges on `init` priority 5 (wp-postratings' comment correctly
-indicts admin_init — background updates run on cron); the theme-override
-stylesheet lookup converges on the navi pair's child→parent algorithm; the
-legacy `polls`/`email` front-end AJAX action names stay (renaming breaks
-pages cached with the old script — deliberate, record as such), with only
-wp-sweep's admin-only actions gaining the prefix. Frozen surfaces the fix
-pass must not touch are listed in the canon's process rules.
-
-The fix pass ran 2026-08-23: four agents over disjoint repo sets, ~45
-themed commits across all nineteen, every repo's suites and phpcs green
-before its push, e2e for the seven AJAX/widget/wiring plugins (polls 51,
-downloadmanager 85, postratings 77, postviews 116, email 54, sweep 72 with
-three contention flakes that passed 22/22 in isolation, useronline 97),
-verify.py 0 across 19 throughout. The predicted fallout mode appeared three
-times and was fixed the same way each time: moving the upgrade to `init`
-means a WP-CLI boot migrates the site, so e2e fixtures now seed and read
-back in one `wp eval` call (polls, downloadmanager, email). freemyinternet's
-missing network-activation loop became its staged 1.0.1 — the tenth staged
-release. Two agent judgement calls stood: wp-downloadmanager keeps
-`test-security.php` (from the earlier pass) and serverinfo's plugins-screen
-link says "Server Information", not "Settings", because that is what it
-opens. dff's flagged leftovers (defaults()/markers()/enqueue()) were
-finished by hand. §2.7.1 of the standard carries the load-bearing
-differences the pass kept.
-
-## Closed 2026-08-22 — the performance wave: all three findings fixed
-
-Pass seven's three performance findings are closed, failing-test-first,
-suites and Playwright green on each:
-
-* **wp-postratings** no longer queries every vote row on every loop of every
-  page for a display that defaults off — the filter gate moved in front of
-  the query — and its assets load only where a rating renders, on
-  wp-useronline's render-flag mechanism (theme template tags defeat content
-  scanning, which decided the choice). 77 e2e specs prove the vote path with
-  the footer-delivered script. Both ride the staged 2.0.1.
-* **wp-useronline**'s table gained `KEY user_ip` and `KEY user_id`, so the
-  per-request DELETE and per-IP COUNT stop scanning. DB_VERSION 1 → 2; an
-  existing site gains the keys through maybe_upgrade() → dbDelta on its first
-  request after update, proven against the table shape transcribed from the
-  4.0.0 SVN tag, with a guard against dbDelta's user_ip_2 re-add mode. Rides
-  the staged 4.0.1.
-* **wp-polls** enqueues only on pages that show a poll, by both sibling
-  mechanisms at once: wp-stats' head-time scan (shortcode/block/widget, so
-  the stylesheet still reaches the head with no unstyled flash) plus
-  wp-useronline's render flag read on wp_footer for what the head cannot see
-  (template tags, archives) — print_late_styles() runs at wp_footer 20, the
-  enqueue sits at 10, and the inline bar-colour block is guarded against
-  double emission. Staged as 3.0.1, the ninth staged release.
-
-A counting note: pass four's audit reported seven staged releases and this
-file was "corrected" to say seven — but wp-sweep's 2.0.1 was already staged,
-so the true count was eight. The audit counted divergence against
-wordpress.org and still missed one; the headline paragraph above now defers
-to SHIPS_AS and §14 precisely because prose counts keep rotting.
-
-## Closed 2026-08-22 — pass seven: the outward faces
-
-A seventh audit swept what only the outside world sees. The load-bearing
-surfaces all passed: every public entry point added or changed since the
-2026-08-09 security review was read as code and none has a gap (the
-postviews REST/AJAX paths, the vote paths, the eight block render callbacks,
-the useronline refresh, the sweep count endpoints, the draftsforfriends
-metabox); shipped dependencies carry zero advisories (`npm audit --omit=dev`
-and `composer audit --locked` clean across all nineteen — the dev-only
-lighthouse/@wordpress/scripts chains are upstream watch-items); wordpress.org
-assets, screenshots, banners and stable-tag state agree with the READMEs
-everywhere; GitHub metadata is uniform. Fixed the same day: the
-wp-relativedate header's misplaced apostrophe ('2 'Seconds Ago') and
-wp-dbmanager's space-before-comma — both on every install's Plugins screen —
-plus three GitHub blemishes (showhide's stale description, three
-trailing-whitespace homepages). Deferred: jsdom three majors behind (dev
-only, rides the next vitest), freemyinternet's PNG icons against the
-collection's SVGs.
-
-The performance spot-check is the pass's real yield, held for Lester's call:
-wp-postratings queries every vote row for the post on every loop of every
-page before checking a filter that defaults off (the gate belongs before the
-query); wp-useronline's per-request DELETE and per-IP COUNT scan for want of
-`user_ip`/`user_id` keys (a schema bump); wp-postratings (~16 KB) and
-wp-polls (~13 KB) enqueue site-wide unconditionally. wp-postviews and
-wp-pagenavi verified near-zero.
-
-## Closed 2026-08-22 — pass six: what the words claim
-
-A sixth audit swept the claims layer: plugin CLAUDE.md standalone rules,
-documented-vs-actual API, README content accuracy, e2e spec quality,
-verify.py's own text, git hygiene, and a code-level read of every
-post-release shipped diff. The code side came back clean — no unsanctioned
-shipped change anywhere, no assertion-free or skipped e2e spec, no
-cannot-fail check in verify.py, no signed commit. The words needed work:
-
-* **README staleness cluster**: the §4.2.2 tab renames stopped short of the
-  prose in four READMEs — wp-postratings ("Ratings Options" ×4), wp-email
-  (menu paths still naming "E-Mail" and "Manage E-Mail" for what the menu
-  calls WP-EMail and Logs), wp-polls (two tab mentions and one screen
-  docblock) and wp-downloadmanager ("Download Templates"). wp-polls' shipped
-  3.0.0 changelog also named a `wp_polls_uninstall_site()` that never
-  existed — corrected to the Install method that does. All fixed.
-* **wp_postviews_capability** was the only capability filter of fifteen with
-  no README mention; it has a FAQ entry now.
-* Four CLAUDE.md lines violated the standalone rules (one true cross-repo
-  reference in wp-print, two collection-reference claims, one unverifiable
-  state-of-work claim in wp-postviews). Fixed.
-* verify.py cited §7.6.1 for the rule §7.6.2 states, and a comment still
-  described §2.5's pre-rewrite text. Fixed.
-* **Recorded, not repaired**: 27 pushed commits authored by Claude carry no
-  session trailer (the SessionStart-hook rollout predates the convention),
-  and 17 subjects run past 72 characters. History is public; rewriting it
-  for trailers is worse than the miss. The convention holds for new commits.
-
-## Closed 2026-08-22 — pass five: names, and the shapes inside files
-
-A fifth audit swept what no pass had: file naming conventions and in-file
-structure. Two findings were against the standard itself — §1's layout tree
-predated the e2e, blocks and Claude-workflow phases (redrawn; the closing
-bullet now says the tree is what the repo *tracks*, not what ships), and §2.8
-is being outrun by the newest files' long docblocks (89 of 173 class files,
-worst are the newest — left to the touch-it-trim-it rule, no sweep). The rest
-was majority-vs-outlier and was fixed across all nineteen in one pass, three
-agents on disjoint repo sets, one commit per fix-class per repo:
-
-* **Guards**: `defined( 'ABSPATH' ) || exit;` and
-  `defined( 'WP_UNINSTALL_PLUGIN' ) || exit;` everywhere — three whole plugins
-  and three main files came off the if-block form, and fourteen uninstall.php
-  guards converged. Four suites pinned a guard spelling by regex or literal;
-  every pin was found before its suite ran and moved with the guard.
-* **Names**: `test-upgrade.php` wins over `test-migration.php` (the e2e side
-  was already unanimously `upgrade.spec.js`); `tests/js/helpers.js` wins over
-  `helper-dom.js`/`helper-load.js`; `test-escaping.php` over `test-kses.php`
-  and commentnavi's `test-security.php` — but wp-downloadmanager keeps its
-  `test-security.php`, which a fix agent correctly judged to be a genuine
-  broad security suite the audit had misfiled as an escaping suite. Settings
-  suites live in `test-settings.php`; pagenavi's screen tests took their own
-  `test-settings-screen.php` after the first fold-in put two classes in one
-  file and verify.py's §7.1 check said no. Assorted one-offs: ban's
-  trust-proxy file, print's lifecycle→uninstall, relativedate's singular
-  template-tag, sweep's and showhide's tests/js names, postratings'
-  extensionless e2e requires.
-* **In-file**: 'use strict' in the five shipped JS files missing it; GROUP
-  before PAGE in the two Settings classes that flipped §2.2's order; wp-polls'
-  admin CSS header no longer names a file dead since the restructure.
-
-Shipped-code edits are guard spelling, five JS strict pragmas and a CSS
-comment — behaviour-preserving, riding each plugin's next release; the staged
-versions were not touched. Suites, phpcs, lint and verify.py green across all
-nineteen before each push.
-
-## Closed 2026-08-21 — the drift audit, and the five defects it survived
-
-Two agent audits — one normalising every shared file across the nineteen and
-diffing the copies, one walking the test suites for coverage gaps — found the
-shared surface in better shape than feared: CI, composer.json, README
-structure, the §1.1 floors and the metadata contract are uniform or correctly
-derived, and most "missing test file" cells are the plugin genuinely lacking
-the feature. Five defects were real, and all five are fixed, one commit per
-plugin per defect:
-
-* **`run_uninstall()` degraded on its second call** in seven plugins (the
-  `function_exists` shape), plus wp-stats' delegate and wp-email's single-site
-  patch-up: the first call in a process ran uninstall.php's real network loop,
-  every later call silently uninstalled the current site only, so two
-  uninstall tests in one multisite run exercised two different behaviours.
-  All nine now carry the fan-out in the helper — the same loop the file runs,
-  every call — which four plugins already had. The five suites that
-  *reimplement* the deletions instead (their uninstallers drop tables, and
-  DDL commits through the suite's transaction) keep that sanctioned shape.
-* **wp-useronline's uninstall path was executed by nothing** — its helper's
-  docblock promised the compensating source assertions lived in
-  test-install.php, and they did not; emptying uninstall.php left the suite
-  green. The two tests every other reimplementing plugin carries exist now.
-* **One declared range, two resolved lint rule sets** — `@wordpress/eslint-plugin
-  ^25.7.0` was locked at 25.7.0 in six plugins and 25.8.0 in thirteen. All
-  nineteen lockfiles now resolve one registry state (25.9.0). The residual
-  cross-plugin differences are nested pins under the block-build dependencies
-  only the eight `src/` plugins carry — derived, not drift.
-* **Eight spellings of the test-loader function**, three of them breaking
-  §2.5's prefix rule, and two bootstraps (wp-dbmanager, wp-draftsforfriends)
-  missing the test-library guard. All nineteen now declare
-  `_{{under}}_manually_load_plugin` behind the guard.
-* **Two verbs for the per-site uninstall work** — wp-email, wp-sweep and
-  wp-draftsforfriends said `_delete_options` where sixteen said
-  `_uninstall_site`. The loop-called verb is `_uninstall_site` everywhere now
-  — wp-sweep's renamed outright, wp-email's and wp-draftsforfriends' kept as
-  prefixed sub-helpers the new verb calls; §2.5 also names the second
-  sanctioned shape,
-  the Install-delegating file wp-polls, wp-postratings and wp-useronline carry.
-
-One self-inflicted lesson worth keeping: two of the uninstall.php edits were
-made with sequenced string replaces, and the second replace rewrote the body
-of the wrapper the first had just inserted, into a self-call. wp-email's
-suite then died on memory at the same test every run — an infinite recursion
-under a runner reads as SIGKILL at 49%, not as a stack trace. The stash test
-(`git stash` → green → `git stash pop`) is what localised it in one run.
-
-The follow-up closed the same day, all of it agent-built and mutation-checked
-where a mutation could prove anything: all eight network-activation
-test-multisite.php files exist and pass (the table owners assert the table per
-site, wp-stats asserts the per-site url — the one seed nothing self-heals);
-wp-commentnavi's stylesheet cascade and both twin filter gaps are tested;
-wp-postratings has its e2e security spec, driving the AJAX vote reply that
-PHPUnit cannot see. The cosmetic tail went too: the option setter is
-set_options( array ) in all eight suites that have one (wp-postratings keeps
-its merge-into-stored semantics — 58 call sites layer overrides, and a
-defaults merge would drop them), the four suites that kept migration tests
-inside test-options.php moved them to test-upgrade.php, and the bin/build
-comment, wp-ban's script order and wp-downloadmanager's eslint comment match
-their majorities. Two deliberate non-changes: no helper-source.php was
-introduced where suites inline file_get_contents, and wp-showhide keeps "The
-block registers" — it has one block, and uniformity would make the sentence
-wrong. One judgement worth keeping: MariaDB 12 lists temporary tables in SHOW
-TABLES, which is the only reason the table assertions work under the
-harness's CREATE TEMPORARY rewrite; a MySQL-backed harness would need the
-filter-removal form wp-email's metadata test already uses.
-
-A fresh adversarial re-audit then verified every claim above mechanically and
-came back five findings, all fixed the same day: the activation-side
-get_sites() cap was unpinned in wp-draftsforfriends, wp-postviews and
-wp-postratings while their uninstall side's was (the exact bug class the
-campaign closed could have re-entered green); wp-postratings and wp-showhide
-were the only two eslint configs without the declared tests/e2e CommonJS
-override, linting clean on parser-default luck; three set_options() copies
-lacked the array type hint; the bootstrap run-hint existed in three phrasings;
-and this file overstated the _delete_options rename. Twenty repos ended the
-day with clean level trees and a green latest CI run each.
-
-A third pass the next day verified the second pass's fixes sha-for-sha and
-swept fresh angles (e2e infrastructure, the uninstall source-assertion
-contracts, docblock truth, staged-release consistency — six staged, not five:
-wp-postratings 2.0.1 was already among them). Five residual findings, fixed
-the same day: the fourteen new test-multisite.php files had already forked
-(two stack-test forms, three fixture spellings, two isolation-test names —
-converged on the majority frame); wp-draftsforfriends alone lacked the
-multisite isolation test; a ninth set_options() in wp-email's AJAX base was
-untyped; wp-relativedate and wp-showhide were the only two with no pin on
-uninstall.php's site-query cap; and §2.5 repeated the _delete_options
-overstatement RESUME had already corrected.
 
 ## Closed 2026-08-21 — two bootstraps upgraded only one site of a network
 

@@ -510,6 +510,62 @@ Each is deliberate; the reason is the entry:
   with the reason in the enqueue docblock. wp-showhide's stylesheet is
   unconditional for the FOUC reason its comment gives.
 
+### 2.7.2 One name per job — the method-name canon
+
+The 2026-08 consistency campaign found the same feature under different names
+across the nineteen and converged them. These are now the names; a new plugin
+takes them, and a rename away from them is drift:
+
+* **Options**: `defaults()`, `get()`, `update()`, `sanitize( $input )`,
+  `maybe_upgrade()`, `migrate()` / `migrate_legacy_rows()`, `write()`,
+  `markers()`, `update_markers()` (no arguments — it stamps the constants),
+  `flush()`. Constants: `OPTION`, `VERSION`, `LEGACY_OPTION`.
+* **Activation**: the entry point is `activate( $network_wide = false )`; the
+  per-site work is `install()`. The hook is registered from the bootstrap
+  class, pointing at the Install class where one exists.
+* **The upgrade runs on `init` at priority 5** — never `admin_init` or
+  `plugins_loaded`. Activation does not fire on a plugin update, and an
+  automatic background update runs on cron, which never reaches an admin
+  hook; an `admin_init` migration leaves such a site serving its front end
+  unmigrated until somebody logs in. A direct unconditional call from the
+  bootstrap is the one acceptable alternative (it runs even earlier). A
+  consequence the e2e suites carry: WP-CLI boots fire `init` too, so a
+  fixture that seeds legacy rows must seed and read back in one `wp eval`
+  call, or the migration has already eaten them.
+* **Admin**: the `admin_menu` callback is `add_page()`; the Settings API
+  registration is `register()`; the `admin_enqueue_scripts` callback is
+  `enqueue()` — never named after its hook. Every plugin with an admin page
+  carries `action_links()` on the `plugin_action_links_` filter, linking its
+  first screen.
+* **Front end**: the asset pair is `scripts()` / `styles()`; a CSS-only
+  callback is `enqueue_styles()`. Handles are the literal `'wp-slug'` string,
+  never the SLUG constant. Asset URLs use the `{{UPPER}}_URL` constant, never
+  `plugins_url()`. The theme-override stylesheet lookup, where a plugin keeps
+  one, is child theme → parent theme → plugin.
+* **Widgets**: wired by a bootstrap `register_widget()` method on
+  `widgets_init`; constructors pass the options array inline and translate
+  with `__()`.
+* **AJAX**: handler methods are `ajax_*`; the registered action strings are
+  frozen per §2.7.1. Nonce constants are `NONCE_ACTION` / `NONCE_FIELD`.
+* **WP-CLI**: `register_command()` in the shape all nine copies share —
+  negative guard, `require_once` of the command file, `add_command`.
+* **WPStats bridges**: static `init()`; the most-listing limit helper is
+  `most_limit()`.
+* **Singletons**: `private function __construct()`; the `get_instance()`
+  summary reads "Get the instance, creating it on first call." Component
+  `init()` docblocks read "Hook registration."
+* **The recurring sentences are verbatim**, because seven phrasings of one
+  sentence is how drift was discovered in the first place:
+  * `// 'number' => 0 lifts WP_Site_Query's default cap of 100, which would otherwise skip every site past the hundredth while reporting success.`
+  * `// Inside the loop: switch_to_blog() pushes onto a stack, so restoring once after the loop unwinds it by exactly one.`
+  * `// Must be registered at file-load time, which is when this runs.`
+  * docblock line: `Activation does not fire on a plugin update, which is the single most common reason a migration never runs.`
+  * `@param bool $network_wide Whether the plugin is being activated network-wide.`
+
+Where any of this collides with a frozen public surface — template-tag names,
+hook names, shortcodes, option rows, widget ids, the two legacy AJAX actions —
+§2.7.1 wins and the frozen name stays.
+
 ### 2.8 Comments — concise, and as few as possible
 
 A comment earns its place by stating a constraint the code cannot show — why,
