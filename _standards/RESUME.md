@@ -192,7 +192,7 @@ the authority; `gh run list` per repo takes a minute.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
 
-## Open — pass eight: the implementation-parity fix pass, canon decided, not yet run
+## Closed 2026-08-23 — pass eight: the implementation-parity fix pass ran
 
 An eighth audit built feature-by-feature matrices (asset gating, capability(),
 Options/Install/REST/CLI/Blocks/AJAX/Widget method names, recurring comment
@@ -208,20 +208,22 @@ pages cached with the old script — deliberate, record as such), with only
 wp-sweep's admin-only actions gaining the prefix. Frozen surfaces the fix
 pass must not touch are listed in the canon's process rules.
 
-The fix pass IS RUNNING as of 2026-08-23: four agents over disjoint repo
-sets (wp-polls alone; downloadmanager/postratings/postviews/email;
-ban/dbmanager/draftsforfriends/print/stats/sweep/useronline;
-freemyinternet/commentnavi/pagenavi/pluginsused/serverinfo/showhide), each
-following the canon verbatim and committing per theme WITHOUT pushing. If
-this session ended mid-run, the evidence is in each repo: `git log` shows
-canon commits landed, `git status` shows work in flight. To finish: verify
-any repo whose suites the agent did not complete (bin/test.sh,
-bin/test-multisite.sh, e2e for polls/downloadmanager/postratings/postviews/
-email/sweep/useronline, verify.py per slug), push every clean repo,
-hand-apply wp-relativedate's two canon lines (get_instance docblock, comment
-idioms — no agent owned it), confirm staged changelogs gained bullets only
-for user-visible changes, and record the pass in this file. §2.7.1 of the
-standard now carries the load-bearing differences the pass must keep.
+The fix pass ran 2026-08-23: four agents over disjoint repo sets, ~45
+themed commits across all nineteen, every repo's suites and phpcs green
+before its push, e2e for the seven AJAX/widget/wiring plugins (polls 51,
+downloadmanager 85, postratings 77, postviews 116, email 54, sweep 72 with
+three contention flakes that passed 22/22 in isolation, useronline 97),
+verify.py 0 across 19 throughout. The predicted fallout mode appeared three
+times and was fixed the same way each time: moving the upgrade to `init`
+means a WP-CLI boot migrates the site, so e2e fixtures now seed and read
+back in one `wp eval` call (polls, downloadmanager, email). freemyinternet's
+missing network-activation loop became its staged 1.0.1 — the tenth staged
+release. Two agent judgement calls stood: wp-downloadmanager keeps
+`test-security.php` (from the earlier pass) and serverinfo's plugins-screen
+link says "Server Information", not "Settings", because that is what it
+opens. dff's flagged leftovers (defaults()/markers()/enqueue()) were
+finished by hand. §2.7.1 of the standard carries the load-bearing
+differences the pass kept.
 
 ## Closed 2026-08-22 — the performance wave: all three findings fixed
 
