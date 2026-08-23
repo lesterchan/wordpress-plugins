@@ -192,7 +192,7 @@ the authority; `gh run list` per repo takes a minute.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
 
-## Open — the final verification pass is running
+## Closed 2026-08-23 — the final verification pass, and the campaign's close
 
 A closing audit is verifying the canon landed everywhere: a grep-matrix of
 every pass-eight item, a zero-tolerance sweep for every retired name across
@@ -205,6 +205,29 @@ action or JS data-action still references the old names or disagrees with
 the PHP hooks. If this session ended before the report landed, re-run that
 check first, then finish the audit's checklist (it is spelled out in this
 entry) and close this section with the verdicts.
+
+The report came back: everything held except four findings, all fixed and
+pushed the same day. The sweep whitelist candidate was a false alarm — the
+action rename is complete and self-consistent. The real ones: **wp-ban's
+migration ran only from admin_init and the WP-CLI subcommands**, so a
+cron-driven background update served the front end unmigrated until somebody
+opened wp-admin — the canon had miscounted it among the direct-call plugins;
+it runs on `init` priority 5 now, with a hook test, and that also settles the
+registered-default trap on every path. wp-useronline was the lone holdout on
+the `register()` rename; wp-sweep, wp-postviews and wp-useronline still named
+their admin enqueue callback after the hook (postviews' fix collided with an
+existing `enqueue()` gate, renamed `screen_loaded()`). And the two loop
+sentences — the cap and the restore — now read identically in all seventeen
+files that carry them; the activation-update elaborations were judged
+per-plugin rationale and kept. Frozen surfaces were diffed against all
+nineteen released zips: identical. Ten staged releases reconciled three ways
+with every bullet mapping to a real change. verify.py 0, twenty clean level
+trees, twenty green CI runs.
+
+That is the campaign: eight audit passes, one canon, one fix pass, one
+closing verification — and the ninth pass's findings were a hook, three
+names and two sentences, which is what convergence looks like when it is
+nearly done.
 
 ## Closed 2026-08-23 — pass eight: the implementation-parity fix pass ran
 
