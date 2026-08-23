@@ -192,6 +192,20 @@ the authority; `gh run list` per repo takes a minute.
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
 
+## Open — the final verification pass is running
+
+A closing audit is verifying the canon landed everywhere: a grep-matrix of
+every pass-eight item, a zero-tolerance sweep for every retired name across
+code/tests/docs, frozen surfaces diffed against the released wordpress.org
+zips, the ten staged releases reconciled three ways, and a last drift sweep.
+Its one named-but-unverified candidate so far: **a wp-sweep count/sweep
+whitelist disagreement**, possibly fallout from the sweep_count →
+wp_sweep_count admin action rename — check whether any allow-list, nonce
+action or JS data-action still references the old names or disagrees with
+the PHP hooks. If this session ended before the report landed, re-run that
+check first, then finish the audit's checklist (it is spelled out in this
+entry) and close this section with the verdicts.
+
 ## Closed 2026-08-23 — pass eight: the implementation-parity fix pass ran
 
 An eighth audit built feature-by-feature matrices (asset gating, capability(),
