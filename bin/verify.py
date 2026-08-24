@@ -427,7 +427,7 @@ def verify(slug, name, prefix, port, root):
         # that true. Anchored on the table's own heading, because a slug in
         # column one appears in five other tables.
         standards = read(os.path.join(ROOT, "_standards", "STANDARDS.md")) or ""
-        table = standards.partition("| Plugin | Released 2026-08-10 "
+        table = standards.partition("| Plugin | Live on wordpress.org "
                                     "| Pre-revamp release |")[2]
         row = re.search(r"^\| %s \|([^|]*)\|" % re.escape(slug),
                         table.partition("\n\n")[0], re.M)

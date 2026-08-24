@@ -1,6 +1,6 @@
 # Resume here
 
-State of the consistency programme as of **2026-08-10**. Read this, then
+State of the consistency programme as of **2026-08-24**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line: the campaign is finished.** All nineteen plugins were released
@@ -10,24 +10,32 @@ is open**.
 What the release itself found is under "Closed 2026-08-10", and it is the
 campaign's thesis proving itself one last time.
 
-**Ten releases are staged and deliberately not shipped** — every one the
+**Ten patch releases were staged after the campaign; seven went out on
+2026-08-24 and three are still staged** — each the
 `released — released+0.0.1 staged` shape. **The list lives in
 `bin/verify.py`'s SHIPS_AS and §14's table; count from those, never from
-prose here** (this paragraph has been wrong twice). Currently: freemyinternet
-1.0.1, wp-downloadmanager, wp-draftsforfriends, wp-pluginsused,
-wp-postratings, wp-postviews and wp-sweep 2.0.1, wp-pagenavi and wp-polls
-3.0.1, wp-useronline 4.0.1. Each staged version's write-up is in its dated
-entry below and its own README changelog. Lester is accumulating fixes
-rather than releasing again immediately; when he says ship, the
-`release-wp-plugin` skill is the path. Nothing else waits on any of them.
+prose here** (this paragraph has been wrong three times). Currently staged:
+wp-postratings 2.0.1, wp-pagenavi and wp-polls 3.0.1. Released that day:
+freemyinternet 1.0.1, wp-pluginsused, wp-downloadmanager, wp-draftsforfriends,
+wp-postviews and wp-sweep 2.0.1, wp-useronline 4.0.1 — write-up under "Closed
+2026-08-24". Each staged version's write-up is in its dated entry below and its
+own README changelog. When Lester says ship, the `release-wp-plugin` skill is
+the path. Nothing else waits on any of them.
 
-**All nineteen read `Tested up to: 7.1` in git, and none of them says so on
-wordpress.org.** WordPress 7.1 became the current release and the readme header
+**SHIPS_AS does not move on a release.** It records the version a repo intends
+to ship, so it was already right for all seven before they went out and is
+still right after. What goes stale on a release is prose like this paragraph
+and §14's table — which is the whole reason the sentence above says to count
+from the machine-readable half.
+
+**All nineteen read `Tested up to: 7.1` in git, and the seven released on
+2026-08-24 now say so on wordpress.org; the other twelve still show 7.0.**
+WordPress 7.1 became the current release and the readme header
 was bumped across the set on 2026-08-20, together with the value `bin/verify.py`
 checks for and the §3.2 template, so a plugin still reading 7.0 now fails
 verification. Lester's call is that it rides along with each plugin's next
-release rather than justifying nineteen releases for a metadata line — so
-wordpress.org goes on showing 7.0 until then, and there the compatibility line
+release rather than justifying nineteen releases for a metadata line — so the
+remaining twelve go on showing 7.0 until then, and there the compatibility line
 is the stale one, not the git one.
 
 **7.1 moved more than the version number: it moved the list table primary
@@ -166,11 +174,75 @@ the authority; `gh run list` per repo takes a minute.
   wp-downloadmanager's staged 2.0.1 then the one intentional divergence;
   wp-draftsforfriends' staged 2.0.1 joined it later that day.
 * **No known plugin bug is outstanding that is not already fixed in git.**
-  wp-downloadmanager's category-zero defect is fixed as the staged 2.0.1, which
-  now carries a second fix — the N/A-versus-blank split between its two admin
-  screens — and is still deliberately unreleased so fixes can accumulate.
+  wp-downloadmanager's category-zero defect shipped in 2.0.1 on 2026-08-24,
+  along with a second fix — the N/A-versus-blank split between its two admin
+  screens — and the migration that carries it was re-tagged the same day; see
+  "Closed 2026-08-24".
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
+
+## Closed 2026-08-24 — seven of the ten staged patches released, one re-tagged
+
+Released in this order, chosen by size of diff rather than by importance so the
+smallest change was the first thing to go through the procedure that day:
+freemyinternet 1.0.1, wp-pluginsused 2.0.1, wp-downloadmanager 2.0.1,
+wp-draftsforfriends 2.0.1, wp-useronline 4.0.1, wp-sweep 2.0.1,
+wp-postviews 2.0.1. Still staged: wp-pagenavi 3.0.1, wp-postratings 2.0.1,
+wp-polls 3.0.1.
+
+**The live-site step was skipped, at Lester's instruction.** Every one of the
+seven went straight from staged trunk to `svn ci` without the deploy to
+lesterchan.net, so the site is behind on all seven and none of them was
+exercised against real data before publication. That is a deliberate departure
+from the release skill's standing "live site always", not an oversight — but it
+is also why the defect below was found by reading the migration rather than by
+running it.
+
+### wp-downloadmanager 2.0.1 was re-tagged the same day
+
+The category migration it shipped renumbers every category up by one and adds
+one to every row's `file_category` to match. Two ways that could go wrong, both
+found by asking what happens when the request dies, after it was already
+public:
+
+* **The two writes were ordered option-first, table-second, and the guard is
+  the option.** A request dying between them left a list one ahead of its rows,
+  and the next request saw an empty slot 0 — indistinguishable from an install
+  that never needed shifting — and returned early. Every file would read its
+  neighbour's category for good, with nothing able to detect it. The docblock
+  argued that order was the safe one; it is safe against a double shift and
+  unsafe against a half one, and nothing said so.
+* **Nothing held a lock, and 2.0.1 moved the upgrade to `init`.** On
+  `admin_init` two concurrent runs took two open admin tabs; on `init` any two
+  visitors will do, and both would add their own 1 to every row.
+
+Fixed by putting `wp_downloadmanager_category_shift_pending` between the two
+writes so an interrupted run is resumed rather than lost, and by taking a lock
+before the upgrade does anything. **The lock is an `add_option()` row, not
+`wp_cache_add()`** — with no persistent object cache `wp_cache_add()` succeeds
+in every request, which is precisely the site that needs protecting, whereas
+the unique key on `option_name` makes the INSERT fail for the second caller.
+An abandoned lock times out rather than stranding the site on the old schema.
+
+**Lester's call was to re-tag 2.0.1 rather than ship 2.0.2**, on the grounds
+that the directory takes about a day to propagate so almost nobody could have
+the first cut, and for anyone who did the migration had already run. Recorded
+in §14 as the exception it is: a re-tag leaves whoever downloaded the first cut
+holding different bytes under the same version for ever, and is not the
+default.
+
+Both new guards were mutation-tested rather than assumed: removing the lock
+fails one new test and restoring the old early-return fails the other, so
+neither is a test that cannot fail.
+
+### What the release procedure itself got right
+
+Nothing else needed touching. Every one of the seven had a clean pre-flight,
+`verify.py` 0, CI green on the exact shipped SHA, and `assets/` already correct
+— no screenshot to add, none orphaned, every caption matching. The two plugins
+with a new shipped file (wp-draftsforfriends' meta box, wp-postviews' bootstrap
+class) needed the `svn add` the procedure's "read the `?` list before adding
+it" step exists for, and nothing else appeared in either list.
 
 ## Closed 2026-08-21 → 23 — the consistency campaign: eight audits, one canon, one fix pass
 

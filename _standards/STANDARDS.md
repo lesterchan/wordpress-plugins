@@ -2761,6 +2761,16 @@ tag — including the five that had sat on `Stable tag: trunk` for years
 (freemyinternet, wp-commentnavi, wp-draftsforfriends, wp-pluginsused,
 wp-relativedate; an earlier version of this section counted four).
 
+**Seven of the ten staged patches went out on 2026-08-24**, leaving three.
+wp-downloadmanager 2.0.1 was **re-tagged** the same day rather than superseded:
+its category migration wrote the shifted list before it moved the rows and took
+no lock, so an interrupted or doubled run could leave every file reading its
+neighbour's category. Lester's call was that the directory takes about a day to
+propagate and almost nobody could have had the first cut yet. That is the
+exception and not a precedent — the default for a version already published is
+a new number, because a re-tag leaves whoever did download it holding different
+bytes under the same version for ever.
+
 **The machine-readable half of this table is `SHIPS_AS` in `bin/verify.py`**,
 which pins every version marker in a repo — header, `Stable tag`, constant — to
 the version that repo intends to ship. It moves when a new version is
@@ -2769,30 +2779,31 @@ the version that repo intends to ship. It moves when a new version is
 `https://api.wordpress.org/plugins/info/1.2/` per slug, or the comparison loop
 at the end of the `release-wp-plugin` skill for the whole set.
 
-The release-day baseline, with the pre-revamp release each migration still has
-to carry sites forward from:
+What is live now, with the pre-revamp release each migration still has to carry
+sites forward from. A row reading `staged in git` is one whose repository is
+ahead of the directory:
 
-| Plugin | Released 2026-08-10 | Pre-revamp release |
+| Plugin | Live on wordpress.org | Pre-revamp release |
 |---|---|---|
-| freemyinternet | 1.0.0 — 1.0.1 staged in git | *trunk* (0.01) |
+| freemyinternet | 1.0.1 | *trunk* (0.01) |
 | wp-ban | 2.0.0 | 1.69.2 |
 | wp-commentnavi | 2.0.0 | *trunk* (tag 1.10) |
 | wp-dbmanager | 4.0.0 | 3.0.0 |
-| wp-downloadmanager | 2.0.0 — 2.0.1 staged in git | 1.69.2 |
-| wp-draftsforfriends | 2.0.0 — 2.0.1 staged in git | *trunk* (1.0.2) |
+| wp-downloadmanager | 2.0.1 | 1.69.2 |
+| wp-draftsforfriends | 2.0.1 | *trunk* (1.0.2) |
 | wp-email | 3.0.0 | 2.69.4 |
 | wp-pagenavi | 3.0.0 — 3.0.1 staged in git | 2.94.6 |
-| wp-pluginsused | 2.0.0 — 2.0.1 staged in git | *trunk* (tag 1.50) |
+| wp-pluginsused | 2.0.1 | *trunk* (tag 1.50) |
 | wp-polls | 3.0.0 — 3.0.1 staged in git | 2.77.3 |
 | wp-postratings | 2.0.0 — 2.0.1 staged in git | 1.91.3 |
-| wp-postviews | 2.0.0 — 2.0.1 staged in git | 1.78.1 |
+| wp-postviews | 2.0.1 | 1.78.1 |
 | wp-print | 3.0.0 | 2.58.3 |
 | wp-relativedate | 2.0.0 | 1.51.1 |
 | wp-serverinfo | 3.0.0 | 2.0.0 |
 | wp-showhide | 3.0.0 | 2.0.0 |
 | wp-stats | 3.0.0 | 2.56.1 |
-| wp-sweep | 2.0.0 — 2.0.1 staged in git | 1.2.0 |
-| wp-useronline | 4.0.0 — 4.0.1 staged in git | 3.0.0 |
+| wp-sweep | 2.0.1 | 1.2.0 |
+| wp-useronline | 4.0.1 | 3.0.0 |
 
 Two plugins shipped a different major from what the repo long carried, and the
 reasons are kept because they generalise:
