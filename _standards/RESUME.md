@@ -1,6 +1,6 @@
 # Resume here
 
-State of the consistency programme as of **2026-08-24**. Read this, then
+State of the consistency programme as of **2026-08-28**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line: the campaign is finished.** All nineteen plugins were released
@@ -10,15 +10,16 @@ is open**.
 What the release itself found is under "Closed 2026-08-10", and it is the
 campaign's thesis proving itself one last time.
 
-**Ten patch releases were staged after the campaign; seven went out on
-2026-08-24 and three are still staged** — each the
-`released — released+0.0.1 staged` shape. **The list lives in
-`bin/verify.py`'s SHIPS_AS and §14's table; count from those, never from
-prose here** (this paragraph has been wrong three times). Currently staged:
-wp-postratings 2.0.1, wp-pagenavi and wp-polls 3.0.1. Released that day:
-freemyinternet 1.0.1, wp-pluginsused, wp-downloadmanager, wp-draftsforfriends,
-wp-postviews and wp-sweep 2.0.1, wp-useronline 4.0.1 — write-up under "Closed
-2026-08-24". Each staged version's write-up is in its dated entry below and its
+**Ten patch releases were staged after the campaign; nine have gone out and one
+is still staged** — each the `released — released+0.0.1 staged` shape. **The
+list lives in `bin/verify.py`'s SHIPS_AS and §14's table; count from those,
+never from prose here** (this paragraph has been wrong three times, and was
+wrong again between the 2026-08-28 releases and this edit). Still staged:
+wp-postratings 2.0.1. Released 2026-08-24: freemyinternet 1.0.1,
+wp-pluginsused, wp-downloadmanager, wp-draftsforfriends, wp-postviews and
+wp-sweep 2.0.1, wp-useronline 4.0.1 — write-up under "Closed 2026-08-24".
+Released 2026-08-28: wp-polls and wp-pagenavi 3.0.1 — write-up under "Closed
+2026-08-28". Each staged version's write-up is in its dated entry below and its
 own README changelog. When Lester says ship, the `release-wp-plugin` skill is
 the path. Nothing else waits on any of them.
 
@@ -28,8 +29,9 @@ still right after. What goes stale on a release is prose like this paragraph
 and §14's table — which is the whole reason the sentence above says to count
 from the machine-readable half.
 
-**All nineteen read `Tested up to: 7.1` in git, and the seven released on
-2026-08-24 now say so on wordpress.org; the other twelve still show 7.0.**
+**All nineteen read `Tested up to: 7.1` in git, and the nine released on
+2026-08-24 and 2026-08-28 now say so on wordpress.org; the other ten still show
+7.0.**
 WordPress 7.1 became the current release and the readme header
 was bumped across the set on 2026-08-20, together with the value `bin/verify.py`
 checks for and the §3.2 template, so a plugin still reading 7.0 now fails
@@ -180,6 +182,80 @@ the authority; `gh run list` per repo takes a minute.
   "Closed 2026-08-24".
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
+
+## Closed 2026-08-28 — wp-polls and wp-pagenavi released; three defects found on the way
+
+Two of the three remaining staged patches went out: **wp-polls 3.0.1** (trunk
+r3670406, tag r3670407) and **wp-pagenavi 3.0.1** (trunk r3670430, tag
+r3670431). The live-site step was skipped again, at Lester's instruction. Only
+wp-postratings 2.0.1 is still staged.
+
+**The pre-flight is not the only gate worth running.** wp-polls passed all 31
+checks, `verify.py` and CI, and the release still stopped: 3.0.1 moves the
+upgrade to `init`, which is the change that had just produced a real defect in
+wp-downloadmanager, so the same shape was worth reading before publishing rather
+than after. Trunk was staged, then reverted, and the release went out an hour
+later with a lock in it. Nothing had been published, which is the whole point of
+4e existing as a stop.
+
+**A finding reported with more confidence than it had.** The wp-polls lock was
+first justified as fixing a lost update — a second request writing stale
+defaults over a finished migration. That is not reachable. `get_option()` serves
+autoloaded rows from the `alloptions` snapshot, loaded once per request in a
+single `SELECT`, and both the consolidated row and the pre-3.0.0 rows it folds
+in are autoloaded, so a request's view of all of them is internally consistent
+and any two requests compute the same values. What the lock actually buys is
+that the work is not done twice. The code shipped, the changelog entry was
+corrected afterwards, and the lesson is the ordinary one: check the mechanism
+before describing the consequence. wp-downloadmanager's lock **is** load-bearing,
+for a different reason — its migration writes the downloads table, and no option
+snapshot covers table rows.
+
+**Which plugins actually need the lock.** A sweep of all nineteen for
+non-idempotent work in a migration path found three: wp-downloadmanager (the
+`file_category + 1` shift and the permission rotation in `upgrade_pre_150()`),
+wp-postratings (`maybe_add_indexes()` reads `SHOW INDEX` then `ALTER`s, on every
+front-end request until the markers move — two requests both issue it, and the
+second sits on the metadata lock for the length of the first), and wp-polls,
+whose schema work is reached only from activation so its lock is defensive. The
+other sixteen have no table writes in migration code. All three implementations
+are byte-identical, and their tests were brought to parity.
+
+**wp-postratings picked up three defects while it sat staged**, all found by
+looking rather than by a suite:
+
+* the numbers shape drew its box two ways — sides as a border on the container,
+  top and bottom as inset shadows on the bar inside it. Same colour, but the
+  sides fell on the page background and the top and bottom on the bar's own
+  tint, so they rendered at roughly four times each other's contrast. One
+  outline now draws all four.
+* one refusal template served three reasons. `can_rate()` is correct in all
+  eight combinations, but a site on **Guests Only** refuses a logged-in member
+  and then told them to become a registered member.
+  `%RATINGS_PERMISSION%` gives each reason its own sentence.
+* **and the fix for that one reached nobody.** The defaults are written into the
+  option row at install and by the migration rather than read back lazily, so
+  changing a shipped default reaches new installs only. Caught by asking how the
+  token gets translated, not by any test — the suite was green and the change
+  was inert for every existing site. `adopt_permission_token()` corrects the
+  stored copy. **Generalise this: in this collection, a wrong default is not
+  fixed by editing the default.**
+
+**Two stale assertions, and the more useful one passed.** Replacing the refusal
+sentence turned `tests/e2e/voting.spec.js` red — a string pinned in the e2e tree
+after I had swept `tests/*.php`, exactly the miss CLAUDE.md warns about. The
+instructive one is the test that stayed green: `Guests Only shows a logged-in
+user the permission template` asserted only that the vote form was absent and
+never read the message, so it passed throughout the life of the bug, on the very
+case that had the wrong sentence. A test named for a behaviour that checks
+something weaker than the behaviour is worse than no test, because it is counted.
+
+**Mutation testing earned its place twice here.** It killed two guards in
+`adopt_permission_token()` that no assertion could distinguish — `str_replace`
+is a no-op when its needle is absent, so the outcome is identical with or
+without them. What the surviving guard buys is one avoided write of the settings
+row, so the test counts writes instead of asserting on a value that does not
+change.
 
 ## Closed 2026-08-24 — seven of the ten staged patches released, one re-tagged
 

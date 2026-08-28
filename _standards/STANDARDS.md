@@ -2761,7 +2761,8 @@ tag — including the five that had sat on `Stable tag: trunk` for years
 (freemyinternet, wp-commentnavi, wp-draftsforfriends, wp-pluginsused,
 wp-relativedate; an earlier version of this section counted four).
 
-**Seven of the ten staged patches went out on 2026-08-24**, leaving three.
+**Seven of the ten staged patches went out on 2026-08-24, and wp-polls and
+wp-pagenavi 3.0.1 followed on 2026-08-28**, leaving one: wp-postratings 2.0.1.
 wp-downloadmanager 2.0.1 was **re-tagged** the same day rather than superseded:
 its category migration wrote the shifted list before it moved the rows and took
 no lock, so an interrupted or doubled run could leave every file reading its
@@ -2792,9 +2793,9 @@ ahead of the directory:
 | wp-downloadmanager | 2.0.1 | 1.69.2 |
 | wp-draftsforfriends | 2.0.1 | *trunk* (1.0.2) |
 | wp-email | 3.0.0 | 2.69.4 |
-| wp-pagenavi | 3.0.0 — 3.0.1 staged in git | 2.94.6 |
+| wp-pagenavi | 3.0.1 | 2.94.6 |
 | wp-pluginsused | 2.0.1 | *trunk* (tag 1.50) |
-| wp-polls | 3.0.0 — 3.0.1 staged in git | 2.77.3 |
+| wp-polls | 3.0.1 | 2.77.3 |
 | wp-postratings | 2.0.0 — 2.0.1 staged in git | 1.91.3 |
 | wp-postviews | 2.0.1 | 1.78.1 |
 | wp-print | 3.0.0 | 2.58.3 |
