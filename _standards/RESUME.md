@@ -1,6 +1,6 @@
 # Resume here
 
-State of the consistency programme as of **2026-08-28**. Read this, then
+State of the consistency programme as of **2026-08-29**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line: the campaign is finished.** All nineteen plugins were released
@@ -10,17 +10,14 @@ is open**.
 What the release itself found is under "Closed 2026-08-10", and it is the
 campaign's thesis proving itself one last time.
 
-**Ten patch releases were staged after the campaign; nine have gone out and one
-is still staged** — each the `released — released+0.0.1 staged` shape. **The
-list lives in `bin/verify.py`'s SHIPS_AS and §14's table; count from those,
-never from prose here** (this paragraph has been wrong three times, and was
-wrong again between the 2026-08-28 releases and this edit). Still staged:
-wp-postratings 2.0.1. Released 2026-08-24: freemyinternet 1.0.1,
+**Ten patch releases were staged after the campaign, and all ten are now
+released.** Nothing is staged. **The list lives in `bin/verify.py`'s SHIPS_AS
+and §14's table; count from those, never from prose here** (this paragraph has
+been wrong four times). Released 2026-08-24: freemyinternet 1.0.1,
 wp-pluginsused, wp-downloadmanager, wp-draftsforfriends, wp-postviews and
-wp-sweep 2.0.1, wp-useronline 4.0.1 — write-up under "Closed 2026-08-24".
-Released 2026-08-28: wp-polls and wp-pagenavi 3.0.1 — write-up under "Closed
-2026-08-28". Each staged version's write-up is in its dated entry below and its
-own README changelog. When Lester says ship, the `release-wp-plugin` skill is
+wp-sweep 2.0.1, wp-useronline 4.0.1. Released 2026-08-28: wp-polls and
+wp-pagenavi 3.0.1. Released 2026-08-29: wp-postratings 2.0.1 — write-ups under
+the dated entries below and in each README's changelog. When Lester says ship, the `release-wp-plugin` skill is
 the path. Nothing else waits on any of them.
 
 **SHIPS_AS does not move on a release.** It records the version a repo intends
@@ -29,8 +26,8 @@ still right after. What goes stale on a release is prose like this paragraph
 and §14's table — which is the whole reason the sentence above says to count
 from the machine-readable half.
 
-**All nineteen read `Tested up to: 7.1` in git, and the nine released on
-2026-08-24 and 2026-08-28 now say so on wordpress.org; the other ten still show
+**All nineteen read `Tested up to: 7.1` in git, and the ten released across
+2026-08-24 to 2026-08-29 now say so on wordpress.org; the other nine still show
 7.0.**
 WordPress 7.1 became the current release and the readme header
 was bumped across the set on 2026-08-20, together with the value `bin/verify.py`
@@ -182,6 +179,44 @@ the authority; `gh run list` per repo takes a minute.
   "Closed 2026-08-24".
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
+
+## Closed 2026-08-29 — wp-postratings 2.0.1 released, and the last of the ten
+
+**wp-postratings 2.0.1** (trunk r3670662, tag r3670663) closes the set: all ten
+patches staged after the campaign are live, and nothing is staged. The live-site
+step was skipped again, so lesterchan.net is behind on all ten.
+
+It shipped eight commits, and three of them are worth remembering for the shape
+rather than the fix.
+
+**A fix that reached nobody.** `%RATINGS_PERMISSION%` gives each refusal its own
+sentence, because one template served all three and its sentence was written for
+one of them — a site on Guests Only refused a logged-in member and then told
+them to become a registered member. The change was inert. The defaults are
+written into the option row at install and by the migration, not read back
+lazily, so editing a shipped default reaches new installs and nobody else. The
+suite was green and the plugin unchanged for every existing site.
+`adopt_permission_token()` corrects the stored copy. **Generalise it: in this
+collection a wrong default is not fixed by editing the default.** It surfaced
+because Lester asked how the new token got translated, not from any test.
+
+**Two tests that could not fail, one of each kind.** The e2e test named
+`Guests Only shows a logged-in user the permission template` asserted only that
+the vote form was absent and never read the message, so it passed for the whole
+life of the bug, on precisely the case that was broken. And
+`a ten point numeric scale keeps every cell the same width` asserted an
+invariant the stylesheet did not provide — the cell reserved its size as a
+*minimum* and grew for two-digit glyphs — so it passed on CI's fonts and failed
+on macOS. Equal grid columns make it true by construction. **CI runs one
+platform's fonts and structurally cannot catch that class of bug.**
+
+**A finding stated with more confidence than it had, twice.** The wp-polls lock
+was justified as fixing a lost update that is not reachable; corrected the day
+after. Then the numeric border was reported here as a fill landing "in the wrong
+place", inherited from the test's own comment — measured, the error is 0.75px at
+5/10 and 1.34px at 9/10, which nobody would ever see. The fix was still right,
+for the invariant rather than the pixels. Quantify before describing a
+consequence.
 
 ## Closed 2026-08-28 — wp-polls and wp-pagenavi released; three defects found on the way
 
