@@ -575,6 +575,36 @@ changelog or `_standards/`, not above the code. Docblocks are the one-line
 summary plus the tags WPCS requires. (Lester's call, 2026-08-10; earlier code
 predates it and is trimmed as it is touched, not in a sweep.)
 
+### 2.8.1 In `css/` and `js/`, tighter still — those bytes ship
+
+`css/*.css` and `js/*.js` are served to the browser exactly as they sit in the
+repository. Nothing minifies them: `bin/build` runs webpack over `src/` only, so
+a comment in a shipped stylesheet or script is downloaded by whoever loads the
+page it is enqueued on — every visitor for a front-end asset, every admin screen
+load for an admin one — and read by none of them.
+
+So in those files a comment is one or two lines, and only where the *why* would
+otherwise be lost. Everything longer goes where the people who need it are
+already looking: the plugin's `CLAUDE.md`, the commit message, or a docblock on
+the PHP that owns the behaviour. The rule of thumb is that if it explains what
+a rule replaced, how it once broke, or which test pins it, it belongs somewhere
+that is not downloaded.
+
+Two exemptions:
+
+* **`src/`** — webpack strips comments on the way to `build/`, so a comment
+  there costs a reader nothing and §2.8's ordinary limit applies.
+* **the file-head docblock**, where a stylesheet documents the custom
+  properties a theme is meant to set. That is the file's public interface and
+  the one comment its readers do want.
+
+Gzip takes some of the cost back, and the saving is a kilobyte or two per
+plugin rather than a dramatic number: applying this across the collection took
+123,301 bytes of shipped CSS and JS down to 108,468, and 923 comment lines to
+662 — the remainder being mostly the JSDoc tags eslint requires. The argument is
+not really the bytes. It is that a rationale in a shipped asset sits in the one
+place its audience never looks.
+
 ---
 
 ## 3. Plugin header and README
