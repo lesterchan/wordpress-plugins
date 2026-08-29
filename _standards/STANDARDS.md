@@ -2821,7 +2821,7 @@ ahead of the directory:
 | wp-commentnavi | 2.0.0 | *trunk* (tag 1.10) |
 | wp-dbmanager | 4.0.0 | 3.0.0 |
 | wp-downloadmanager | 2.0.1 | 1.69.2 |
-| wp-draftsforfriends | 2.0.1 | *trunk* (1.0.2) |
+| wp-draftsforfriends | 2.0.1 — 2.0.2 staged in git | *trunk* (1.0.2) |
 | wp-email | 3.0.0 | 2.69.4 |
 | wp-pagenavi | 3.0.1 | 2.94.6 |
 | wp-pluginsused | 2.0.1 | *trunk* (tag 1.50) |
