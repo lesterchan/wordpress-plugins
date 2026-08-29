@@ -65,15 +65,15 @@ SHIPS_AS = {
     "wp-pagenavi": "3.0.1",
     "wp-pluginsused": "2.0.1",
     "wp-polls": "3.0.2",
-    "wp-postratings": "2.0.1",
+    "wp-postratings": "2.0.2",
     "wp-postviews": "2.0.1",
     "wp-print": "3.0.0",
     "wp-relativedate": "2.0.0",
     "wp-serverinfo": "3.0.0",
     "wp-showhide": "3.0.0",
-    "wp-stats": "3.0.0",
+    "wp-stats": "3.0.1",
     "wp-sweep": "2.0.1",
-    "wp-useronline": "4.0.1",
+    "wp-useronline": "4.0.2",
 }
 
 README_FIELDS = [

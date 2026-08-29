@@ -496,7 +496,22 @@ Each is deliberate; the reason is the entry:
   where there is no stylesheet (wp-useronline); scan-only where nothing
   renders late (wp-stats); unconditional where the output is on effectively
   every page (wp-email). The gate name states what it gates: `needs_assets`
-  (both), `needs_styles` (CSS), `needs_script` (JS).
+  (both), `needs_styles` (CSS), `needs_scripts` (JS) — **all plural, whatever
+  the file count**, following the `scripts()` / `styles()` canon of §2.7.2.
+  wp-useronline read `needs_script` singular from 4.0.0 because it enqueues
+  exactly one file; that was drift, and 4.0.2 renames its public
+  `WP_UserOnline_Template::needs_script()` and `request_script()` to match.
+* **Every gate that guesses exposes a filter named after it**, because a guess
+  the site knows is wrong has no other recourse: `wp_polls_needs_assets`,
+  `wp_postratings_needs_assets`, `wp_stats_needs_styles`,
+  `wp_useronline_needs_scripts`. Each is handed what the plugin worked out and
+  returns what the page should do, and each `@since` is the patch that added
+  it. What differs is the cost of returning false: the two-pass plugins still
+  serve the assets from the footer to anything that renders, so it suppresses
+  the head enqueue alone, while wp-stats and wp-useronline have no second pass
+  and returning false there leaves the page unstyled or its counters frozen.
+  The unconditional and option-gated plugins get no such filter — nothing is
+  being guessed, so there is nothing to overrule.
 * **`capability()` lives beside the admin-page registration**, and its
   `$context` default names the plugin's primary surface — which is why the
   defaults differ. wp-ban and wp-stats take no default because no surface of
@@ -2826,15 +2841,15 @@ ahead of the directory:
 | wp-pagenavi | 3.0.1 | 2.94.6 |
 | wp-pluginsused | 2.0.1 | *trunk* (tag 1.50) |
 | wp-polls | 3.0.1 — 3.0.2 staged in git | 2.77.3 |
-| wp-postratings | 2.0.1 | 1.91.3 |
+| wp-postratings | 2.0.1 — 2.0.2 staged in git | 1.91.3 |
 | wp-postviews | 2.0.1 | 1.78.1 |
 | wp-print | 3.0.0 | 2.58.3 |
 | wp-relativedate | 2.0.0 | 1.51.1 |
 | wp-serverinfo | 3.0.0 | 2.0.0 |
 | wp-showhide | 3.0.0 | 2.0.0 |
-| wp-stats | 3.0.0 | 2.56.1 |
+| wp-stats | 3.0.0 — 3.0.1 staged in git | 2.56.1 |
 | wp-sweep | 2.0.1 | 1.2.0 |
-| wp-useronline | 4.0.1 | 3.0.0 |
+| wp-useronline | 4.0.1 — 4.0.2 staged in git | 3.0.0 |
 
 Two plugins shipped a different major from what the repo long carried, and the
 reasons are kept because they generalise:
