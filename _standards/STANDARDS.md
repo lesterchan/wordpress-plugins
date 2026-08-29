@@ -2825,7 +2825,7 @@ ahead of the directory:
 | wp-email | 3.0.0 | 2.69.4 |
 | wp-pagenavi | 3.0.1 | 2.94.6 |
 | wp-pluginsused | 2.0.1 | *trunk* (tag 1.50) |
-| wp-polls | 3.0.1 | 2.77.3 |
+| wp-polls | 3.0.1 — 3.0.2 staged in git | 2.77.3 |
 | wp-postratings | 2.0.1 | 1.91.3 |
 | wp-postviews | 2.0.1 | 1.78.1 |
 | wp-print | 3.0.0 | 2.58.3 |
