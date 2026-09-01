@@ -1,6 +1,6 @@
 # Resume here
 
-State of the consistency programme as of **2026-08-29**. Read this, then
+State of the consistency programme as of **2026-09-02**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line: the campaign is finished.** All nineteen plugins were released
@@ -10,15 +10,17 @@ is open**.
 What the release itself found is under "Closed 2026-08-10", and it is the
 campaign's thesis proving itself one last time.
 
-**Ten patch releases were staged after the campaign, and all ten are now
-released.** Nothing is staged. **The list lives in `bin/verify.py`'s SHIPS_AS
-and §14's table; count from those, never from prose here** (this paragraph has
-been wrong four times). Released 2026-08-24: freemyinternet 1.0.1,
+**Fifteen patch releases have been staged after the campaign, and all fifteen
+are now released.** Nothing is staged. **The list lives in `bin/verify.py`'s
+SHIPS_AS and §14's table; count from those, never from prose here** (this
+paragraph has been wrong four times). Released 2026-08-24: freemyinternet 1.0.1,
 wp-pluginsused, wp-downloadmanager, wp-draftsforfriends, wp-postviews and
 wp-sweep 2.0.1, wp-useronline 4.0.1. Released 2026-08-28: wp-polls and
-wp-pagenavi 3.0.1. Released 2026-08-29: wp-postratings 2.0.1 — write-ups under
-the dated entries below and in each README's changelog. When Lester says ship, the `release-wp-plugin` skill is
-the path. Nothing else waits on any of them.
+wp-pagenavi 3.0.1. Released 2026-08-29: wp-postratings 2.0.1. Released
+2026-09-02: wp-useronline 4.0.2, wp-polls 3.0.2, wp-postratings 2.0.2,
+wp-stats 3.0.1, wp-draftsforfriends 2.0.2 — write-ups under the dated entries
+below and in each README's changelog. When Lester says ship, the
+`release-wp-plugin` skill is the path. Nothing else waits on any of them.
 
 **SHIPS_AS does not move on a release.** It records the version a repo intends
 to ship, so it was already right for all seven before they went out and is
@@ -26,15 +28,19 @@ still right after. What goes stale on a release is prose like this paragraph
 and §14's table — which is the whole reason the sentence above says to count
 from the machine-readable half.
 
-**All nineteen read `Tested up to: 7.1` in git, and the ten released across
-2026-08-24 to 2026-08-29 now say so on wordpress.org; the other nine still show
-7.0.**
+**All nineteen read `Tested up to: 7.1` in git, and the eleven released across
+2026-08-24 to 2026-09-02 now say so on wordpress.org; the other eight still
+show 7.0** — wp-ban, wp-commentnavi, wp-dbmanager, wp-email, wp-print,
+wp-relativedate, wp-serverinfo and wp-showhide. That count is derived from
+`svn cat .../trunk/readme.txt` per slug, not from adding up releases: four of
+the five shipped on 2026-09-02 were already in the earlier ten, so the number
+moved by one, not by five.
 WordPress 7.1 became the current release and the readme header
 was bumped across the set on 2026-08-20, together with the value `bin/verify.py`
 checks for and the §3.2 template, so a plugin still reading 7.0 now fails
 verification. Lester's call is that it rides along with each plugin's next
 release rather than justifying nineteen releases for a metadata line — so the
-remaining twelve go on showing 7.0 until then, and there the compatibility line
+remaining eight go on showing 7.0 until then, and there the compatibility line
 is the stale one, not the git one.
 
 **7.1 moved more than the version number: it moved the list table primary
@@ -179,6 +185,48 @@ the authority; `gh run list` per repo takes a minute.
   "Closed 2026-08-24".
   wp-polls' widget was found on 2026-08-07 and fixed on 2026-08-08; the
   write-up is kept below because how it was found is the useful part.
+
+## Closed 2026-09-02 — five staged patches released, and the live-site step waived
+
+wp-useronline 4.0.2, wp-polls 3.0.2, wp-postratings 2.0.2, wp-stats 3.0.1 and
+wp-draftsforfriends 2.0.2 went out, least-changed first, in that order. Four of
+the five carry one change: §2.7.1's rule that an asset gate which *guesses*
+must expose a filter to be overruled. wp-polls had grown
+`wp_polls_needs_assets` for a poll rendered where the head scan cannot see it;
+wp-postratings, wp-stats and wp-useronline guessed the same way with no escape
+hatch, and for the latter two a miss was permanent because neither has a second
+pass. wp-useronline also renamed its gate and two public template methods from
+singular to plural, following §2.7.2. wp-draftsforfriends is unrelated — a meta
+box that creates a share link with a button rather than a checkbox, and twenty
+times the diff of any of the others.
+
+**Lester waived the deploy to lesterchan.net for all five**, on the grounds
+that they are bug fixes and the live site takes the released version from the
+directory anyway. That is the second time the step has been skipped for a
+batch — seven went the same way on 2026-08-24 — and it is worth being precise
+about what the two waivers have in common, because the step's own write-up
+argues for it in absolute terms. Both were batches of small, same-shaped
+changes to plugins already running on the site. The step earns its place on a
+rewrite, where what it catches is a screen that renders wrong rather than code
+that is wrong; the failures it has actually caught were all of that kind. The
+standing instruction is unchanged, and so is the reason wp-showhide sat two
+weeks behind: skipping the deploy is safe **because** the site updates itself
+from wordpress.org, which is exactly the fact that made the gap invisible when
+it was skipped and the release then failed.
+
+Nothing else was notable, which is itself the point: pre-flight green on all
+five, CI green on the exact commit shipped, every tag free, `assets/` needing
+no change in any of them — caption counts already matched file counts, so for
+the first time in these releases there were no orphaned screenshots to remove.
+The staged `svn stat` for each was modifications only: no adds, no deletes, no
+unversioned entries. Trunk r3676711–r3676724.
+
+**`build/` did not move in any of the four block plugins**, and that is
+correct rather than a failed build. The filters are PHP-side; the compiled
+editor bundles are built from `src/` and were unchanged. It is worth writing
+down because a `svn stat` with no `build/` line in a block plugin looks exactly
+like a build that never ran, and the check that tells them apart is
+`svn ls <trunk URL>/build` after the commit, not the stat before it.
 
 ## Closed 2026-08-29 — wp-postratings 2.0.1 released, and the last of the ten
 

@@ -2806,9 +2806,12 @@ tag — including the five that had sat on `Stable tag: trunk` for years
 (freemyinternet, wp-commentnavi, wp-draftsforfriends, wp-pluginsused,
 wp-relativedate; an earlier version of this section counted four).
 
-**All ten staged patches are released**: seven on 2026-08-24, wp-polls and
-wp-pagenavi 3.0.1 on 2026-08-28, wp-postratings 2.0.1 on 2026-08-29.
-wp-downloadmanager 2.0.1 was **re-tagged** the same day rather than superseded:
+**All fifteen staged patches are released**: seven on 2026-08-24, wp-polls and
+wp-pagenavi 3.0.1 on 2026-08-28, wp-postratings 2.0.1 on 2026-08-29, and five
+on 2026-09-02 — wp-useronline 4.0.2, wp-polls 3.0.2, wp-postratings 2.0.2,
+wp-stats 3.0.1, wp-draftsforfriends 2.0.2. Those five carry §2.7.1's filter for
+a gate that guesses, so four of them are the same change in four plugins.
+wp-downloadmanager 2.0.1 was **re-tagged** on 2026-08-24 rather than superseded:
 its category migration wrote the shifted list before it moved the rows and took
 no lock, so an interrupted or doubled run could leave every file reading its
 neighbour's category. Lester's call was that the directory takes about a day to
@@ -2836,20 +2839,20 @@ ahead of the directory:
 | wp-commentnavi | 2.0.0 | *trunk* (tag 1.10) |
 | wp-dbmanager | 4.0.0 | 3.0.0 |
 | wp-downloadmanager | 2.0.1 | 1.69.2 |
-| wp-draftsforfriends | 2.0.1 — 2.0.2 staged in git | *trunk* (1.0.2) |
+| wp-draftsforfriends | 2.0.2 | *trunk* (1.0.2) |
 | wp-email | 3.0.0 | 2.69.4 |
 | wp-pagenavi | 3.0.1 | 2.94.6 |
 | wp-pluginsused | 2.0.1 | *trunk* (tag 1.50) |
-| wp-polls | 3.0.1 — 3.0.2 staged in git | 2.77.3 |
-| wp-postratings | 2.0.1 — 2.0.2 staged in git | 1.91.3 |
+| wp-polls | 3.0.2 | 2.77.3 |
+| wp-postratings | 2.0.2 | 1.91.3 |
 | wp-postviews | 2.0.1 | 1.78.1 |
 | wp-print | 3.0.0 | 2.58.3 |
 | wp-relativedate | 2.0.0 | 1.51.1 |
 | wp-serverinfo | 3.0.0 | 2.0.0 |
 | wp-showhide | 3.0.0 | 2.0.0 |
-| wp-stats | 3.0.0 — 3.0.1 staged in git | 2.56.1 |
+| wp-stats | 3.0.1 | 2.56.1 |
 | wp-sweep | 2.0.1 | 1.2.0 |
-| wp-useronline | 4.0.1 — 4.0.2 staged in git | 3.0.0 |
+| wp-useronline | 4.0.2 | 3.0.0 |
 
 Two plugins shipped a different major from what the repo long carried, and the
 reasons are kept because they generalise:
