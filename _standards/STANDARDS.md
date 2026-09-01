@@ -2799,26 +2799,21 @@ blocks, and a poll rendered from a block actually being votable.
 
 ## 14. Versions and the release baseline
 
-**All nineteen were released to wordpress.org on 2026-08-09/10**, so the
-repositories and the directory agree for the first time: each README's
-`Stable tag:` is the version being served, and every plugin has a real SVN
-tag — including the five that had sat on `Stable tag: trunk` for years
-(freemyinternet, wp-commentnavi, wp-draftsforfriends, wp-pluginsused,
-wp-relativedate; an earlier version of this section counted four).
+**Every plugin carries a numeric `Stable tag` and a real SVN tag at that
+version.** No plugin ships `Stable tag: trunk` — five did for years, and the
+rule that replaced it is that a release without a tag is not a release: the tag
+is the only fixed copy of what was served under that number, and trunk is not.
 
-**All fifteen staged patches are released**: seven on 2026-08-24, wp-polls and
-wp-pagenavi 3.0.1 on 2026-08-28, wp-postratings 2.0.1 on 2026-08-29, and five
-on 2026-09-02 — wp-useronline 4.0.2, wp-polls 3.0.2, wp-postratings 2.0.2,
-wp-stats 3.0.1, wp-draftsforfriends 2.0.2. Those five carry §2.7.1's filter for
-a gate that guesses, so four of them are the same change in four plugins.
-wp-downloadmanager 2.0.1 was **re-tagged** on 2026-08-24 rather than superseded:
-its category migration wrote the shifted list before it moved the rows and took
-no lock, so an interrupted or doubled run could leave every file reading its
-neighbour's category. Lester's call was that the directory takes about a day to
-propagate and almost nobody could have had the first cut yet. That is the
-exception and not a precedent — the default for a version already published is
-a new number, because a re-tag leaves whoever did download it holding different
-bytes under the same version for ever.
+**A version already published gets a new number. It is never re-tagged.** A
+re-tag leaves whoever downloaded the first cut holding different bytes under
+the same version for ever, with nothing to tell the two apart. The one
+exception on record is wp-downloadmanager 2.0.1, whose category migration wrote
+the shifted list before it moved the rows and took no lock, so an interrupted
+or doubled run could leave every file reading its neighbour's category
+permanently; Lester's call was that the directory takes about a day to
+propagate and almost nobody could have had the first cut yet. Record any repeat
+the same way — as an exception, with the reason and whose call it was, and not
+as a precedent.
 
 **The machine-readable half of this table is `SHIPS_AS` in `bin/verify.py`**,
 which pins every version marker in a repo — header, `Stable tag`, constant — to
