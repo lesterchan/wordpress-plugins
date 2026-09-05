@@ -65,7 +65,7 @@ SHIPS_AS = {
     "wp-pagenavi": "3.0.1",
     "wp-pluginsused": "2.0.1",
     "wp-polls": "3.0.2",
-    "wp-postratings": "2.0.2",
+    "wp-postratings": "2.1.0",
     "wp-postviews": "2.0.1",
     "wp-print": "3.0.0",
     "wp-relativedate": "2.0.0",

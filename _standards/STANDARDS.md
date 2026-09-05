@@ -2839,7 +2839,7 @@ ahead of the directory:
 | wp-pagenavi | 3.0.1 | 2.94.6 |
 | wp-pluginsused | 2.0.1 | *trunk* (tag 1.50) |
 | wp-polls | 3.0.2 | 2.77.3 |
-| wp-postratings | 2.0.2 | 1.91.3 |
+| wp-postratings | 2.0.2 - 2.1.0 staged in git | 1.91.3 |
 | wp-postviews | 2.0.1 | 1.78.1 |
 | wp-print | 3.0.0 | 2.58.3 |
 | wp-relativedate | 2.0.0 | 1.51.1 |
