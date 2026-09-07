@@ -59,7 +59,7 @@ SHIPS_AS = {
     "wp-ban": "2.0.0",
     "wp-commentnavi": "2.0.0",
     "wp-dbmanager": "4.0.0",
-    "wp-downloadmanager": "2.0.1",
+    "wp-downloadmanager": "2.0.2",
     "wp-draftsforfriends": "2.0.2",
     "wp-email": "3.0.0",
     "wp-pagenavi": "3.0.1",
