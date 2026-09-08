@@ -1,0 +1,168 @@
+name: Package
+
+# Builds the zip a release would have built, for one plugin, on request.
+#
+# Called by every plugin's own package.yml rather than copied into nineteen
+# repositories. The exclusion list below is the reason: it is already a copy of
+# the one in the release procedure, and a copy of a copy in nineteen places is
+# how five spellings of one skip list happen. One file here, nineteen callers of
+# a dozen lines each.
+#
+# It exists for the times somebody on the forum needs a fix before it is on
+# wordpress.org. The GitHub source zip cannot serve: a plugin with blocks has no
+# build/ in git, so its blocks do not register, and the zip unpacks as
+# <slug>-<branch>, which WordPress installs beside the copy they already have
+# rather than over it.
+
+on:
+  workflow_call:
+    inputs:
+      retention-days:
+        description: How long the artifact is kept. 90 is the most a public repository may.
+        type: number
+        default: 90
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Build an installable zip
+    runs-on: ubuntu-latest
+    steps:
+      # github.repository is the *caller* inside a reusable workflow, so this
+      # checks out the plugin, and its name is the plugin's slug -- which is
+      # also the directory name WordPress installs it under.
+      - uses: actions/checkout@v7
+
+      - name: Name the plugin
+        id: plugin
+        run: echo "slug=${GITHUB_REPOSITORY##*/}" >> "$GITHUB_OUTPUT"
+
+      # Only the plugins with blocks have a build to do, and only those have the
+      # node setup worth paying for.
+      - name: Look for a build
+        id: buildable
+        run: |
+          if [ -x bin/build ]; then
+            echo "yes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "yes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v7
+        if: steps.buildable.outputs.yes == 'true'
+        with:
+          node-version: "24"
+          cache: npm
+
+      # bin/build, not wp-scripts directly: the compile is only half of what
+      # that script does, and CI has already shipped a build/ with no index.php
+      # in it once by taking the shortcut. It installs its own dependencies when
+      # node_modules is missing, which on a fresh runner it always is.
+      - name: Build blocks
+        if: steps.buildable.outputs.yes == 'true'
+        run: bin/build
+
+      # The release procedure's own exclusion list, copied. Two copies of one
+      # decision will drift, and the direction matters: a dev file this list has
+      # not learned about yet ends up in the zip, costing a few kilobytes. The
+      # alternative -- listing what to include -- fails the other way, silently
+      # omitting a directory added later, and hands a reporter a plugin that is
+      # not the one they were asked to test.
+      #
+      # src is excluded and build is not. build/ is what
+      # register_block_type_from_metadata() loads; unbuilt JSX is of no use to a
+      # site. Never add build here however symmetrical the pair looks. bin is
+      # excluded, which is safe only because the build step above already ran.
+      #
+      # The config entries are globbed rather than named: these tools take a
+      # base config plus variants, and an exact name shipped the variant --
+      # phpunit-multisite.xml.dist is the one that proved it.
+      #
+      # Assembled under artifacts/ on purpose. The deploy rsyncs the working
+      # tree rather than a clean export, so any directory left on disk that the
+      # list does not name ships to wordpress.org -- and the list already names
+      # this one, because it is where Playwright leaves its traces. A staging
+      # directory called dist/ would have been a nested copy of the plugin
+      # waiting for the next release to pick it up.
+      - name: Assemble the plugin directory
+        run: |
+          mkdir -p artifacts/package/${{ steps.plugin.outputs.slug }}
+          rsync --recursive \
+            --exclude='*.git*' --exclude='vendor' --exclude='.idea' --exclude='.travis.yml' \
+            --exclude='.editorconfig' --exclude='phpcs*.xml*' --exclude='node_modules' \
+            --exclude='package.json' --exclude='package-lock.json' --exclude='.nvmrc' \
+            --exclude='.eslintrc*' --exclude='.eslintignore' --exclude='eslint.config.*' \
+            --exclude='.prettierrc*' --exclude='prettier.config.*' --exclude='tests' \
+            --exclude='phpunit*.xml*' --exclude='.phpunit.result.cache' \
+            --exclude='composer.json' --exclude='composer.lock' --exclude='.wp-env*.json' \
+            --exclude='playwright.config.*' --exclude='vitest.config.*' --exclude='vite.config.*' \
+            --exclude='src' --exclude='bin' \
+            --exclude='CLAUDE.md' --exclude='AGENTS.md' --exclude='.claude' \
+            --exclude='artifacts' --exclude='.DS_Store' \
+            ./ artifacts/package/${{ steps.plugin.outputs.slug }}/
+
+      # What trunk holds is not what the rsync copied. The release drops
+      # anything a .svnignore names -- no plugin has one today, so the loop is
+      # guarded rather than left to fail quietly -- and renames the readme,
+      # because wordpress.org reads readme.txt.
+      #
+      # The fence expression matches any language and is anchored at the line
+      # start. Naming the languages it knew is what once let a ```css fence
+      # through as ~~~css.
+      #
+      # sed -i takes an argument on macOS, where the release runs, and none
+      # here. `-i ''` is a syntax error on GNU sed.
+      - name: Apply the release's readme transform
+        run: |
+          cd artifacts/package/${{ steps.plugin.outputs.slug }}
+          if [ -f ../../../.svnignore ]; then
+            while read -r f; do rm -rf "$f"; done < ../../../.svnignore
+          fi
+          if [ -f README.md ]; then
+            mv README.md readme.txt
+            sed -i -E 's/^```[a-zA-Z0-9+#-]*/~~~/' readme.txt
+          fi
+
+      # An exclusion list cannot tell a file that was filtered out from one that
+      # was never built, so the three that would make the zip worthless are
+      # checked by name -- and the block manifest too, but only for a plugin
+      # that has blocks to lose.
+      - name: Check the zip is worth shipping
+        run: |
+          cd artifacts/package/${{ steps.plugin.outputs.slug }}
+          for path in ${{ steps.plugin.outputs.slug }}.php readme.txt includes; do
+            if [ ! -e "$path" ]; then
+              echo "Assembled tree is missing $path" >&2
+              exit 1
+            fi
+          done
+          if [ "${{ steps.buildable.outputs.yes }}" = "true" ] \
+            && [ -z "$(find build -name block.json -print -quit 2>/dev/null)" ]; then
+            echo "Assembled tree has no built block manifest" >&2
+            exit 1
+          fi
+
+      # Named for the version and the commit, so a zip that turns up in a
+      # support thread three weeks from now can still be traced to what built it.
+      - name: Zip it
+        id: zip
+        run: |
+          slug=${{ steps.plugin.outputs.slug }}
+          version=$(sed -n 's/^ \* Version: *//p' "$slug.php" | head -1)
+          name="${slug}-${version}-${GITHUB_SHA::7}"
+          (cd artifacts/package && zip -rq "${name}.zip" "$slug")
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+
+      # The zip is uploaded as a file, not as a directory: GitHub zips an
+      # artifact itself, and a directory arrives as a zip whose top level is the
+      # plugin's contents, which WordPress cannot install. One unwrap and the
+      # file inside is the installable one.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.zip.outputs.name }}
+          path: artifacts/package/${{ steps.zip.outputs.name }}.zip
+          retention-days: ${{ inputs.retention-days }}
+          if-no-files-found: error
