@@ -959,6 +959,23 @@ def verify(slug, name, prefix, port, root):
                 "ci.yml matches the shared template",
                 "differs from _standards/templates (§8)")
 
+    # --- §8 package.yml matches the template --------------------------------
+    # Nothing to drop here, unlike ci.yml. The caller is the same twelve lines
+    # everywhere because everything that could differ per plugin -- the slug,
+    # whether there is a build to run first -- is worked out by the shared job
+    # it names rather than written into each copy. So a difference is drift, and
+    # never a plugin legitimately carrying less.
+    pkg = read(os.path.join(root, ".github", "workflows", "package.yml"))
+    tpl_pkg = read(os.path.join(ROOT, "_standards", "templates",
+                                ".github", "workflows", "package.yml"))
+    if pkg is None:
+        r.check(False, ".github/workflows/package.yml missing")
+    elif tpl_pkg:
+        r.check(re.sub(r"\s+", " ", pkg).strip()
+                == re.sub(r"\s+", " ", tpl_pkg).strip(),
+                "package.yml matches the shared template",
+                "differs from _standards/templates (§8)")
+
     # --- §2.7 the capability granted is the capability checked --------------
     # Four plugins create a capability of their own -- wp-downloadmanager,
     # wp-email, wp-polls, wp-postratings -- and every screen gates on the

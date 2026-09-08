@@ -1919,8 +1919,13 @@ cases:
 Action versions, pinned identically everywhere:
 `actions/checkout@v7`, `actions/setup-node@v7` (node 24),
 `shivammathur/setup-php@v2` (PHP 8.2, `coverage: none`, `tools: cs2pr`), and
-`actions/upload-artifact@v4` for the Playwright traces the `e2e` job keeps on
+`actions/upload-artifact@v7` for the Playwright traces the `e2e` job keeps on
 failure — a passing run uploads nothing.
+
+Every one of those majors is the current one. `@v4` of the two `actions/*` pair
+declared `node20`, which the runners stopped providing: GitHub forced them onto
+24 and annotated every run that failed to say so. A pinned version is a decision
+that has to be revisited, not a decision made once.
 
 Job names are exactly `PHP coding standards`, `JS coding standards and tests`,
 `End-to-end (Playwright)` and `PHPUnit (WP …, PHP …, …)`.
@@ -1953,6 +1958,21 @@ edit here beyond this paragraph.
 can have JavaScript worth linting and no vitest suite: a plugin whose only
 scripts are Playwright specs has nothing for jsdom to load. `lint:js` is not
 optional in the same way — anything lintable gets linted.
+
+`.github/workflows/package.yml` is copied verbatim too, and unlike `ci.yml` it
+takes no substitution: it is a twelve-line caller, and everything that could
+differ per plugin — the slug, whether there is a build to run first — is worked
+out by the job it names. So `verify.py` compares it whole, and any difference is
+drift rather than a plugin legitimately having less.
+
+The job itself lives in the tooling repository, not here. It builds the zip a
+release would have built — `bin/build` where there is one, the deploy's own
+exclusion list, the `README.md` → `readme.txt` transform — for the times somebody
+on a support forum needs a fix before it is on wordpress.org. **The reason it is
+one file and not nineteen is that exclusion list**, which is already a copy of
+the release procedure's; a copy of a copy in nineteen repositories is how one
+skip list comes to have five spellings. It runs from the Actions tab only, and
+downloading what it produces needs a GitHub account.
 
 Every repository also carries `claude.yml` and `claude-code-review.yml` —
 @claude on issues and PR comments, and a Claude review posted inline on every
