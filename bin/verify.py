@@ -976,6 +976,50 @@ def verify(slug, name, prefix, port, root):
                 "package.yml matches the shared template",
                 "differs from _standards/templates (§8)")
 
+    # --- §9.1 static analysis -----------------------------------------------
+    # The config is the same file everywhere but for two lines that the code
+    # decides -- the slug in paths:, and the WP-CLI stub, which only a plugin
+    # with a command class carries -- so it is compared whole with those two
+    # taken out. The level is checked by name because it is the one number
+    # somebody will be tempted to lower to make a run green, and the baseline
+    # include because a config that drops it is green for the wrong reason.
+    neon = read(os.path.join(root, "phpstan.neon.dist"))
+    if neon is None:
+        r.check(False, "phpstan.neon.dist missing (§9.1)")
+    else:
+        r.check("level: 8" in neon, "phpstan runs at level 8 (§9.1)")
+        r.check("- phpstan-baseline.neon" in neon,
+                "phpstan.neon.dist includes the baseline (§9.1)")
+        has_cli = any(re.search(r"\bWP_CLI\b", read(os.path.join(root, "includes", f)) or "")
+                      for f in os.listdir(os.path.join(root, "includes"))
+                      if f.endswith(".php"))
+        r.check(("wp-cli-stubs" in neon) == has_cli,
+                "phpstan scans the WP-CLI stubs iff the plugin has a command (§9.1)")
+        tpl_neon = read(os.path.join(ROOT, "wp-postratings", "phpstan.neon.dist"))
+
+        def _norm_neon(text):
+            text = re.sub(r"- [a-z-]+\.php$", "- {{MAIN}}", text, flags=re.M)
+            text = re.sub(r"^\s*- vendor/php-stubs/wp-cli-stubs/.*\n", "", text, flags=re.M)
+            return re.sub(r"\s+", " ", text).strip()
+
+        if tpl_neon:
+            r.check(_norm_neon(neon) == _norm_neon(tpl_neon),
+                    "phpstan.neon.dist matches the collection (§9.1)")
+    r.check(os.path.isfile(os.path.join(root, "phpstan-baseline.neon")),
+            "phpstan-baseline.neon present (§9.1)")
+    stub = read(os.path.join(root, "phpstan-stubs", "constants.stub"))
+    if stub is None:
+        r.check(False, "phpstan-stubs/constants.stub missing (§9.1)")
+    else:
+        # A literal the main file already defines is a second copy of it.
+        main = read(os.path.join(root, slug + ".php")) or ""
+        literal = set(re.findall(r"define\( '([A-Z_0-9]+)', '[^']*' \)", main))
+        dup = sorted(literal & set(re.findall(r"define\( '([A-Z_0-9]+)'", stub)))
+        r.check(not dup, "constants.stub restates a literal from the main file (§9.1)",
+                ", ".join(dup))
+    r.check('"analyse": "phpstan analyse --memory-limit=2G"' in (read(os.path.join(root, "composer.json")) or ""),
+            "composer analyse script present with 2G limit (§9.1)")
+
     # --- §2.7 the capability granted is the capability checked --------------
     # Four plugins create a capability of their own -- wp-downloadmanager,
     # wp-email, wp-polls, wp-postratings -- and every screen gates on the

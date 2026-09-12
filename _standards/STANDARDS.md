@@ -1903,9 +1903,9 @@ its siblings are named.
 ## 8. CI
 
 `.github/workflows/ci.yml` is copied verbatim from `_standards/templates/`, with
-`{{SLUG}}` substituted. Four jobs — `phpcs`, `eslint`, `e2e`, `phpunit`; the
-PHPUnit job has **six** rows — every supported stack in both modes, no special
-cases:
+`{{SLUG}}` substituted. Five jobs — `phpcs`, `phpstan`, `eslint`, `e2e`,
+`phpunit`; the PHPUnit job has **six** rows — every supported stack in both
+modes, no special cases:
 
 | WP | PHP | Mode |
 |---|---|---|
@@ -1927,8 +1927,9 @@ declared `node20`, which the runners stopped providing: GitHub forced them onto
 24 and annotated every run that failed to say so. A pinned version is a decision
 that has to be revisited, not a decision made once.
 
-Job names are exactly `PHP coding standards`, `JS coding standards and tests`,
-`End-to-end (Playwright)` and `PHPUnit (WP …, PHP …, …)`.
+Job names are exactly `PHP coding standards`, `Static analysis`,
+`JS coding standards and tests`, `End-to-end (Playwright)` and
+`PHPUnit (WP …, PHP …, …)`.
 
 **A plugin with no JavaScript at all deletes the whole `eslint:` job**, from its
 `eslint:` line through to the job that follows it. The template carries no
@@ -2057,6 +2058,57 @@ not part of the CI contract above and verify.py does not check them.
 * `eslint.config.mjs` is copied from the template, with the single localised
   global name substituted. `npm run lint:js` must pass clean.
 * Both must pass with **no** warnings, not just no errors.
+
+### 9.1 Static analysis
+
+`composer analyse` runs PHPStan at **level 8** over the main file, `uninstall.php`
+and `includes/`, and CI fails on any error. The level is the highest the code
+can hold without arguing with WordPress: 9 is strict about `mixed`, and
+`get_option()`, `get_post_meta()`, `$wpdb` and the superglobals all return it,
+so every idiomatic `(int) get_post_meta( … )` becomes a guard nobody asked for.
+Levels 6 through 8 found real bugs; 9 found the platform.
+
+The pieces, all `phpstan*` so one glob excludes them from the release:
+
+* `phpstan.neon.dist` — identical everywhere but for the slug in `paths:` and
+  the WP-CLI stub line, which only a plugin with a command class carries.
+* `phpstan-baseline.neon` — **every error that existed when analysis was
+  switched on, and nothing that came after.** New code fails the build; fixed
+  code leaves a stale entry, which PHPStan reports as `ignore.unmatched` and
+  which is deleted, not regenerated around. A wholesale regenerate to make a run
+  green is the one thing the file exists to prevent.
+* `phpstan-stubs/constants.stub` — the two constants the main file computes
+  (`_DIR`, `_URL`), which PHPStan will not call `plugin_dir_path()` to learn,
+  plus any WordPress runtime constant the plugin reads (`COOKIEHASH`,
+  `DB_NAME`). **Never a literal the main file already defines**: restating
+  the version there is a second copy of the version string, which is the copy
+  that gets forgotten at release. Not a `.php` file, because a `.php` beside the
+  main file reads as something WordPress might load; and it carries the
+  directory's `index.php` guard like every other directory.
+
+Three annotations do most of the work of keeping a baseline small, and they are
+docblock-only, so a plugin that is not being released can take them without a
+version bump:
+
+* A `$wpdb` row is `@param stdClass $row`, never `@param object`. Bare `object`
+  promises no properties at all, and level 7 says so on every column read.
+* A template tag that echoes or returns on `$display` is
+  `@return ($display is true ? void : string)` — or `null` in place of `void`
+  where the function forwards with `return other( … )`, since `return f()` of
+  a void function yields null, not nothing. `string|void` is what these used to
+  say, and it made every caller that passed `false` null-check a value that
+  could not be null.
+* The settings shape is a `@phpstan-type` alias on the options class, with
+  `get()` given a conditional return keyed on the literal it was asked for.
+  One docblock, and every consumer stops reading `mixed`.
+
+The stubs are `php-stubs/wordpress-stubs` pinned to the major of `Tested up
+to:`, explicitly and identically in all nineteen. Left to resolve, they did not
+stay identical: `wp-cli-stubs` capped them at 6.x in the eight plugins that
+have it and the other eleven floated to 7.x, which is heavier and would not fit
+in the memory limit the eight were passing at. The limit is 2G, in the composer
+script rather than CI, because the default crashes the parallel workers rather
+than degrading and the run then reports a crashed worker instead of the errors.
 
 ---
 

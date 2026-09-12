@@ -79,7 +79,10 @@ jobs:
       #
       # The config entries are globbed rather than named: these tools take a
       # base config plus variants, and an exact name shipped the variant --
-      # phpunit-multisite.xml.dist is the one that proved it.
+      # phpunit-multisite.xml.dist is the one that proved it. phpstan* is the
+      # widest of them deliberately: the analysis config arrives as a config, a
+      # baseline, a bootstrap and a stub directory, and naming four things is
+      # four chances to miss the fifth.
       #
       # Assembled under artifacts/ on purpose. The deploy rsyncs the working
       # tree rather than a clean export, so any directory left on disk that the
@@ -97,6 +100,7 @@ jobs:
             --exclude='.eslintrc*' --exclude='.eslintignore' --exclude='eslint.config.*' \
             --exclude='.prettierrc*' --exclude='prettier.config.*' --exclude='tests' \
             --exclude='phpunit*.xml*' --exclude='.phpunit.result.cache' \
+            --exclude='phpstan*' \
             --exclude='composer.json' --exclude='composer.lock' --exclude='.wp-env*.json' \
             --exclude='playwright.config.*' --exclude='vitest.config.*' --exclude='vite.config.*' \
             --exclude='src' --exclude='bin' \

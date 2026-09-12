@@ -133,6 +133,62 @@ differences between two plugins are name, features and capability.
 Each plugin also has its own `bin/test.sh`, `bin/test-multisite.sh` and
 `bin/test-e2e.sh`.
 
+## In flight 2026-09-12 — static analysis in all nineteen, uncommitted
+
+PHPStan at level 8 is configured, green and baselined in every plugin, with a
+`phpstan` job in the shared `ci.yml` template and a §9.1 check in `verify.py`
+that fails on a lowered level, a dropped baseline include, a config that
+differs from the collection's, or a stub that restates a literal the main file
+defines. **None of it is committed or pushed.** The working trees hold, per
+plugin: `phpstan.neon.dist`, `phpstan-baseline.neon`, `phpstan-stubs/`
+(with its `index.php`), the CI job, and three dev dependencies in
+`composer.json`/`.lock`; this repository holds the template, the `package.yml`
+exclusion, STANDARDS §8/§9.1 and the verify.py check. The release skill's own
+copy of the exclusion list has `phpstan*` too.
+
+Why level 8 and not 9, and the three annotations that keep a baseline small,
+are in STANDARDS §9.1 — read that rather than re-deriving them. The numbers,
+so the next person is not surprised by the size of a baseline: 1,156 errors
+across the eighteen before the constant stubs and the annotations, 1,038
+after, and 1,175 baselined across all nineteen. wp-polls carries 208,
+wp-downloadmanager 173, wp-postratings 137. 787 of the 1,175 are
+`missingType.iterableValue` — a docblock `array` with no value type — which is
+annotation work for a quiet afternoon, not a defect; 260 are `argument.type`,
+mostly an int handed to `esc_attr()`.
+
+**Only wp-postratings changed code**, and it is staged at 2.1.0 already, so
+the fixes ride on that release: five unguarded nulls that levels 7 and 8 found
+(`post_or_404()` could return null against a `WP_Post|WP_Error` signature;
+`post_or_die()` dereferenced after a guard PHPStan cannot see through;
+`get_post()` straight into `record( WP_Post )`; two `WP_Comment|null` into
+functions typed `int|WP_Comment`), a `column_default()` returning int against
+`@return string`, a float into `fwrite()`, and a private `yes_no()` nothing
+called. None is user-visible, so the changelog does not carry them. The other
+eighteen took docblocks only — `object` → `stdClass` on 44 row parameters, and
+conditional return types on 55 template tags — which is why they need no
+version bump: nothing in a docblock reaches a site.
+
+Two things learned on the way that a re-run would hit again:
+
+* **`php-stubs/wordpress-stubs` must be pinned explicitly**, and is, at `^7.1`
+  to match `Tested up to:`. Left to resolve it split 8/11 between 6.9 and 7.1,
+  because `wp-cli-stubs` 2.12 caps it at 6.x — and the 7.1 stubs need more than
+  the 1G the 6.9 ones fit in, so wp-email reported "zero errors" that were
+  actually a crashed worker. `wp-cli-stubs` is taken from `dev-master`, where
+  the cap is already lifted; the lock pins the commit. Move to a tag when one
+  exists.
+* **Baselines generated in parallel are not to be trusted until verified
+  cold.** wp-polls' first baseline carried eight `WP_List_Table` entries that
+  did not reproduce — a result-cache race between concurrent runs. Regenerated
+  alone and checked twice from a cleared cache, it is 208 and stable. The
+  cold-cache sweep of all nineteen is the check to repeat before committing.
+
+Test runs behind this: wp-postratings full single-site and multisite suites,
+wp-polls, wp-downloadmanager and wp-email single-site — 423, 350, 486 and 386
+tests — all green; `phpcs` and `verify.py` clean across nineteen; the
+`package.yml` rsync run against wp-postratings on disk puts no `phpstan*` in
+the tree.
+
 ## Current state — last verified end to end 2026-09-02
 
 **All nineteen are released, green on CI at their current `HEAD`, and level
