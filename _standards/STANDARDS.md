@@ -81,6 +81,11 @@ Exactly this, in this order. Anything not on this list must be deleted or moved.
 ├── package.json              # only if the plugin has JS
 ├── package-lock.json         # only if the plugin has JS; `npm ci` requires it
 ├── phpcs.xml
+├── phpstan-baseline.neon
+├── phpstan-stubs/
+│   ├── index.php
+│   └── constants.stub       # not .php -- see §9.1
+├── phpstan.neon.dist
 ├── phpunit-multisite.xml.dist
 ├── phpunit.xml.dist
 ├── playwright.config.js
@@ -105,7 +110,9 @@ Hard rules:
 * Assets move into `css/` and `js/`. `polls-css.css` → `css/wp-polls.css`,
   `postviews-admin.js` → `js/wp-postviews-admin.js`, and so on.
 * Every directory gets a silence-is-golden `index.php` (see the template). This
-  includes `bin/`, `css/`, `images/`, `includes/`, `js/`, `tests/`.
+  includes `bin/`, `css/`, `images/`, `includes/`, `js/`, `phpstan-stubs/` and
+  `tests/` — **being excluded from the release does not exempt a directory**,
+  which is why the analysis stubs carry one like everything else.
 * `uninstall.php` exists in **every** plugin, even where it only deletes a
   single option row. `wp-relativedate` and `wp-showhide` had none when this was
   written; both do now.
@@ -2196,10 +2203,15 @@ differently per platform and cannot inherit `currentColor`.
 `composer.json`: same shape as `wp-ban/composer.json` — `name`
 `lesterchan/{{SLUG}}`, `type` `wordpress-plugin`, `homepage`
 `https://wordpress.org/plugins/{{SLUG}}/`, `license` `GPL-2.0-or-later`, author
-Lester Chan, `require` `php >=8.2`, `require-dev` `phpunit/phpunit ^9.6` +
-`yoast/phpunit-polyfills ^2.0`, `scripts.test` `phpunit`,
-`config.allow-plugins` `false`. `description` matches the plugin header
-`Description:` exactly.
+Lester Chan, `require` `php >=8.2`, `scripts.test` `phpunit`,
+`scripts.analyse` `phpstan analyse --memory-limit=2G`, `config.allow-plugins`
+`false`. `description` matches the plugin header `Description:` exactly.
+
+`require-dev` is `phpunit/phpunit ^9.6`, `yoast/phpunit-polyfills ^2.0`,
+`phpstan/phpstan ^2.2`, `szepeviktor/phpstan-wordpress ^2.0` and
+**`php-stubs/wordpress-stubs` pinned explicitly** (§9.1 says why it cannot be
+left to resolve), plus `php-stubs/wp-cli-stubs` in the plugins that register a
+WP-CLI command and nowhere else.
 
 `composer.lock` is committed. `vendor/` is not.
 

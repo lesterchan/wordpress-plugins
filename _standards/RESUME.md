@@ -930,10 +930,18 @@ copy. `.claude/` was already in the metadata fixture's `SKIPPED_DIRECTORIES` and
 is already named in §1 as development tooling excluded from the SVN deploy, so
 it ships to nobody.
 
-That makes **two of the nine CI jobs reproducible here** — "PHP coding standards"
-and "JS coding standards and tests". Both were validated: phpcs catches a planted
-double-quoted string, `npm ci` is clean under npm 11, `eslint` passes, and
-wp-sweep's 34 vitest tests run.
+That makes **three of the ten CI jobs reproducible here** — "PHP coding
+standards", "Static analysis" and "JS coding standards and tests". All were
+validated: phpcs catches a planted double-quoted string, `npm ci` is clean under
+npm 11, `eslint` passes, wp-sweep's 34 vitest tests run, and a planted type
+error fails `composer analyse` rather than being absorbed by the baseline.
+
+Static analysis needs `composer install` in the plugin first, for the stubs;
+packagist is allowed here. Then `composer analyse`, from inside the plugin
+directory. **A PHPStan run that reports zero errors on a plugin that has a
+baseline is not necessarily a clean run** — at too low a memory limit the
+parallel workers crash and the summary says so in a line above the count, which
+is why the composer script passes 2G rather than leaving it to `php.ini`.
 
 **The six PHPUnit jobs and the Playwright job still cannot run**, and not for
 want of Docker — Docker starts fine. wp-env downloads WordPress from
@@ -973,7 +981,10 @@ is the false alarm in Traps below.
 
 **PHPUnit remains CI-only.** That gap is real: `tests/test-metadata.php` pins
 each plugin's hook surface as an exact set, so any new hook fails it by design,
-and nothing short of running the suite will tell you.
+and nothing short of running the suite will tell you. It also holds the rule
+that every directory carries an `index.php`, which is what caught
+`phpstan-stubs/` having none — a check no linter and no analysis would have
+made.
 
 ## Traps
 
@@ -1191,10 +1202,12 @@ and nothing short of running the suite will tell you.
 Worth keeping because the answer is not "run `verify.py` again".
 
 **The mechanical half is continuously checked and green.** `bin/verify.py` is
-**160 checks** as of 2026-08-10 — re-derive with `grep -c '\.check(' bin/verify.py`
+**172 checks** as of 2026-09-12 — re-derive with `grep -c '\.check(' bin/verify.py`
 rather than quoting; this file has been wrong about its own arithmetic three
-times — and the shared metadata fixture covers §13 including the shared-row
-contract two plugins violated. Both run on every push. Re-auditing nineteen
+times, and was wrong again between 2026-08-10 and 2026-09-12, when the count
+sat at 160 and the section total at 58 while sections kept being added — and
+the shared metadata fixture covers §13 including the shared-row contract two
+plugins violated. Both run on every push. Re-auditing nineteen
 plugins against the spec by hand buys nothing.
 
 **But a green `verify.py` is not evidence the suites pass, and this bit on
@@ -1208,8 +1221,10 @@ So: **when you change a rule, grep for it in both files before believing
 either.** The overlap is not documented anywhere and there is no test that the
 two agree — which is itself worth fixing if this recurs a third time.
 
-**41 of the spec's 58 sections have something mechanical behind them**, and the
-denominator moved on 2026-08-07 when §13.4 added seven. These do not, and each
+**46 of the spec's 66 sections have something mechanical behind them**, measured
+2026-09-12; §9.1 is one of the 46. The denominator moves whenever a section is
+added, which is exactly why the re-derivation below is the answer and the
+number here is a snapshot. These do not, and each
 stays that way for a reason:
 
 | Section | Why not |
@@ -1224,9 +1239,9 @@ stays that way for a reason:
 **The arithmetic, measured on 2026-08-08 — and the measurement's limits matter
 as much as its answer.**
 
-Mechanically: the spec has **58** numbered sections; **40** are cited by a `§`
-label in `bin/verify.py` or in the shared metadata fixture, and **18** are not.
-That closes — 40 + 18 = 58 — where the old "41 of 48 with six unenforced"
+Mechanically: the spec has **66** numbered sections; **46** are cited by a `§`
+label in `bin/verify.py` or in the shared metadata fixture, and **20** are not.
+That closes — 46 + 20 = 66 — where the old "41 of 48 with six unenforced"
 accounted for 47 and never did. Re-derive it with:
 
 ```sh

@@ -57,6 +57,16 @@ are the plugin's.
 The judgement half — voice, comment density, whether a name earns its place —
 is not automatable and is not attempted, so a green run is not compliance.
 
+**A plugin now carries static analysis as well as tests.** `composer analyse`
+runs PHPStan at level 8 and CI fails on what it reports; each plugin's
+`phpstan-baseline.neon` holds what already existed when it was switched on, so
+the count only goes down. Two things bite. A baseline regenerated wholesale to
+clear a failure is the one move the file exists to prevent — delete the stale
+entry instead, which PHPStan names for you. And **a run reporting zero errors is
+not automatically a clean run**: below about 2G the parallel workers crash and
+the summary says so a line above the count, which is how one plugin looked green
+while analysing nothing. The composer script passes the limit for that reason.
+
 **Eight plugins now compile, and a plugin directory is no longer just what is in
 git.** The ones with blocks carry `src/` (committed, never shipped) and generate
 `build/` (gitignored, shipped — it is what the block registration loads).
