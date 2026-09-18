@@ -11,7 +11,8 @@ What the release itself found is under "Closed before 2026-08-24", and it is
 the campaign's thesis proving itself one last time.
 
 **Fifteen patch releases have been staged after the campaign, and all fifteen
-are now released.** Nothing is staged. **The list lives in `bin/verify.py`'s
+are now released. Two more are staged and not released: wp-downloadmanager
+2.0.2 and wp-postratings 2.1.0.** **The list lives in `bin/verify.py`'s
 SHIPS_AS and §14's table; count from those, never from prose here** (this
 paragraph has been wrong four times). Released 2026-08-24: freemyinternet 1.0.1,
 wp-pluginsused, wp-downloadmanager, wp-draftsforfriends, wp-postviews and
@@ -192,7 +193,8 @@ the tree.
 ## Current state — last verified end to end 2026-09-02
 
 **All nineteen are released, green on CI at their current `HEAD`, and level
-with their remotes; nothing is staged.** The twentieth repository, this one, is
+with their remotes; wp-downloadmanager 2.0.2 and wp-postratings 2.1.0 are
+staged in git and not yet released.** The twentieth repository, this one, is
 level too.
 
 **Every claim in this section moves with the next commit — re-run rather than
