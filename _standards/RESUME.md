@@ -1,6 +1,6 @@
 # Resume here
 
-State of the consistency programme as of **2026-09-02**. Read this, then
+State of the consistency programme as of **2026-10-02**. Read this, then
 `_standards/STANDARDS.md`, which is the contract everything else follows.
 
 **In one line: the campaign is finished.** All nineteen plugins were released
@@ -10,16 +10,17 @@ is open**.
 What the release itself found is under "Closed before 2026-08-24", and it is
 the campaign's thesis proving itself one last time.
 
-**Fifteen patch releases have been staged after the campaign, and all fifteen
-are now released. Three more are staged and not released: wp-downloadmanager
-2.0.2, wp-polls 3.0.3 and wp-postratings 2.1.0.** **The list lives in `bin/verify.py`'s
+**Sixteen patch releases have been staged after the campaign and released. Two
+more are staged and not released: wp-polls 3.0.3 and wp-postratings 2.1.0.**
+**The list lives in `bin/verify.py`'s
 SHIPS_AS and §14's table; count from those, never from prose here** (this
 paragraph has been wrong four times). Released 2026-08-24: freemyinternet 1.0.1,
 wp-pluginsused, wp-downloadmanager, wp-draftsforfriends, wp-postviews and
 wp-sweep 2.0.1, wp-useronline 4.0.1. Released 2026-08-28: wp-polls and
 wp-pagenavi 3.0.1. Released 2026-08-29: wp-postratings 2.0.1. Released
 2026-09-02: wp-useronline 4.0.2, wp-polls 3.0.2, wp-postratings 2.0.2,
-wp-stats 3.0.1, wp-draftsforfriends 2.0.2 — write-ups under the dated entries
+wp-stats 3.0.1, wp-draftsforfriends 2.0.2. Released 2026-10-02:
+wp-downloadmanager 2.0.2 — write-ups under the dated entries
 below and in each README's changelog. When Lester says ship, the
 `release-wp-plugin` skill is the path. Nothing else waits on any of them.
 
@@ -193,8 +194,8 @@ the tree.
 ## Current state — last verified end to end 2026-09-02
 
 **All nineteen are released, green on CI at their current `HEAD`, and level
-with their remotes; wp-downloadmanager 2.0.2, wp-polls 3.0.3 and wp-postratings
-2.1.0 are staged in git and not yet released.** The twentieth repository, this one, is
+with their remotes; wp-polls 3.0.3 and wp-postratings 2.1.0 are staged in git
+and not yet released.** The twentieth repository, this one, is
 level too.
 
 **Every claim in this section moves with the next commit — re-run rather than
@@ -225,6 +226,21 @@ What holds as of the last full check:
   the stalest claim here — re-check those first. The permalink audit of the E2E
   suites is complete.
 * **No known plugin bug is outstanding that is not already fixed in git.**
+
+## Closed 2026-10-02 — wp-downloadmanager 2.0.2 released; wp-polls 3.0.3 staged
+
+**wp-downloadmanager 2.0.2** (trunk r3724972, tag r3724973) went out 25 days
+after it was staged. Pre-flight green, CI green on the commit shipped, tag free,
+`svn stat` ten modifications and nothing else, `assets/` unchanged at six
+screenshots for six captions. Lester waived the deploy to lesterchan.net again;
+the reasoning under 2026-09-02 below applies unchanged. `screenshot-1.png` may
+predate the ID column this release brings back — not checked.
+
+**wp-polls 3.0.3 is staged.** A theme refreshing its polls by walking
+`.wp-polls` reported each poll appearing twice: since 3.0.0 the loading
+placeholder carried that class so the spinner rule would match, and its id,
+`polls-369-loading`, casts to the poll's own. The placeholder is
+`wp-polls-loading` alone again and the spinner is scoped to it.
 
 ## Closed 2026-09-02 — five staged patches released, and the live-site step waived
 
